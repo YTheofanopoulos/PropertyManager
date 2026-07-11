@@ -1,506 +1,278 @@
-# DEVELOPMENT.md
+# Architecture
 
-# Development Standards
+## Overview
 
-This document defines the development standards for the Property Manager project.
+The application follows a modular architecture designed to maximize reuse while minimizing duplicated code.
 
-These standards exist to maximize maintainability, readability, consistency, and long-term stability.
-
-If a proposed implementation conflicts with this document, this document takes precedence unless explicitly revised.
+The objective is to allow new modules to be added with very little custom code.
 
 ---
 
-# General Philosophy
+# Application Layers
 
-The application is intended to remain maintainable for many years.
+```
+Browser
 
-Favor:
+↓
 
-* Readability
-* Simplicity
-* Consistency
-* Explicit code
-* Small reusable components
+Bootstrap 4
 
-Avoid:
+↓
 
-* Clever code
-* Premature optimization
-* Hidden side effects
-* Duplicate business logic
-* Large monolithic classes
+Flask Routes
 
----
+↓
 
-# Python Version
+Service Layer
 
-Python 3.13 or newer.
+↓
 
----
+SQLAlchemy Models
 
-# Code Formatting
+↓
 
-Use:
-
-* Black
-* isort
-
-Maximum line length:
-
-88 characters.
-
----
-
-# Naming Standards
-
-## Variables
-
-Use descriptive names.
-
-Good:
-
-```python
-monthly_rent
-tenant_balance
-lease_end_date
+MariaDB
 ```
 
-Bad:
+Routes should contain almost no business logic.
 
-```python
-mr
-bal
-x
-```
+Services perform validation and processing.
+
+Models persist data.
 
 ---
 
-## Classes
+# Directory Structure
 
-PascalCase
-
-Example
-
-```python
-TenantService
-Lease
-PropertyCRUD
 ```
+PropertyManager/
 
----
+app/
 
-## Functions
+    common/
 
-snake_case
+    dashboard/
 
-```python
-generate_monthly_charges()
+    properties/
 
-calculate_balance()
+    units/
 
-close_work_order()
-```
+    tenants/
 
----
+    leases/
 
-## Constants
+    accounting/
 
-UPPER_CASE
+    maintenance/
 
-```python
-MAX_UPLOAD_SIZE
+    reports/
 
-DEFAULT_PAGE_SIZE
-```
-
----
-
-# Directory Organization
-
-Each module contains:
-
-```text
-module/
-
-    routes.py
-
-    services.py
-
-    forms.py
-
-    datatable.py
+    models/
 
     templates/
 
     static/
 ```
 
-Business logic belongs in services.
-
-Routes remain small.
+Each feature is isolated inside its own package.
 
 ---
 
-# Route Handlers
+# Common Package
 
-Routes should:
+The common package contains reusable infrastructure.
 
-* Validate request
-* Call service
-* Return response
+Examples include:
 
-Routes should not:
+* CRUD framework
+* DataTable adapter
+* Form helpers
+* Response helpers
+* Authorization adapter
+* Utility functions
 
-* Perform calculations
-* Execute business rules
-* Construct SQL
-* Update multiple tables
+No business logic should exist here.
 
 ---
 
-# Service Layer
+# Services
 
-Services contain business logic.
+Each module contains a service layer.
 
-Examples
+Example:
 
-```text
+```
+TenantService
+
 LeaseService
 
 PaymentService
 
 MaintenanceService
-
-ExpenseService
 ```
 
-A service may call multiple repositories/models.
+Services:
 
----
-
-# Database Access
-
-Use SQLAlchemy exclusively.
-
-Never write inline SQL unless:
-
-* Performance requires it
-* The ORM cannot express the query clearly
-
-Raw SQL should be isolated and documented.
-
----
-
-# Transactions
-
-Business operations execute inside transactions.
-
-Examples:
-
-* Generate monthly rent
-* Record payment
-* Close maintenance request
-
-If any step fails:
-
-Rollback the transaction.
+* Validate input
+* Perform calculations
+* Execute transactions
+* Return domain objects
 
 ---
 
 # Models
 
-Models should contain:
+Models contain:
 
-Relationships
+* Relationships
+* Validation helpers
+* Convenience properties
 
-Convenience properties
-
-Small validation helpers
-
-Models should not contain:
-
-Large business rules
-
-Application workflows
-
-External API calls
+Models should avoid complex business rules.
 
 ---
 
-# Forms
+# Generic CRUD Framework
 
-Forms use Flask-WTF.
+Most maintenance screens share the same workflow.
 
-Validation belongs in forms whenever possible.
+Instead of duplicating code:
 
-Business validation belongs in services.
+* List
+* Add
+* Edit
+* Delete
 
----
+the project provides a generic CRUD engine.
 
-# Templates
+Each module supplies only:
 
-Templates contain presentation only.
+* Model
+* Form
+* Columns
+* Permissions
 
-Avoid business logic inside Jinja.
-
-Small conditionals are acceptable.
-
-Complex calculations are not.
-
----
-
-# JavaScript
-
-JavaScript should remain minimal.
-
-Preferred order:
-
-1. HTML
-
-2. Bootstrap
-
-3. HTMX (future)
-
-4. Small jQuery helpers
-
-5. Custom JavaScript
-
-Avoid SPA complexity.
+Everything else is inherited.
 
 ---
 
 # DataTables
 
-Every table uses the shared wrapper.
+All grids use server-side processing.
 
-Never instantiate DataTables directly.
+Every table supports:
 
-Preferred:
+* Paging
+* Sorting
+* Searching
+* State saving
+* CSV export
+* Responsive layout
 
-```javascript
-PM.table("#tenantTable")
-```
-
-Not:
-
-```javascript
-$("#tenantTable").DataTable(...)
-```
+The DataTable adapter converts requests into SQLAlchemy queries.
 
 ---
 
-# CSS
+# Forms
 
-Bootstrap first.
+Forms are generated from metadata whenever practical.
 
-Custom CSS second.
+A field definition contains:
 
-Avoid inline styles.
+* Label
+* Type
+* Validation
+* Width
+* Searchable
+* Sortable
+* Required
+
+The same metadata drives:
+
+* Forms
+* Tables
+* Exports
+
+---
+
+# Transactions
+
+Business operations execute inside database transactions.
+
+Examples:
+
+* Posting rent
+* Applying payments
+* Closing maintenance requests
+
+A transaction either succeeds completely or rolls back.
 
 ---
 
 # Logging
 
-Use Python logging.
+Application events are written to rotating log files.
 
-Levels:
+Unexpected exceptions include stack traces.
 
-DEBUG
-
-INFO
-
-WARNING
-
-ERROR
-
-CRITICAL
-
-Business events should also be written to the Activity Log table.
+Business events are recorded in the Activity Log.
 
 ---
 
-# Error Messages
+# Error Handling
 
-Users should receive understandable messages.
+User-facing errors should be understandable.
 
-Example
+Detailed technical information belongs in the application logs.
 
-Good:
-
-"The lease has already expired."
-
-Bad:
-
-"IntegrityError"
-
-Technical details belong only in log files.
+Never expose stack traces to users.
 
 ---
 
-# Migrations
+# Frontend
 
-Every schema change requires:
+Bootstrap 4 provides layout.
 
-Alembic migration
+DataTables provides interactive grids.
 
-Migration review
+JavaScript is limited to:
 
-Migration testing
+* DataTables
+* AJAX
+* Small UI helpers
 
-Never edit production tables manually.
-
----
-
-# Git Workflow
-
-Primary branch:
-
-main
-
-Development branch:
-
-develop
-
-Feature branches:
-
-feature/<feature-name>
-
-Bug fixes:
-
-bugfix/<issue>
-
-Hot fixes:
-
-hotfix/<issue>
-
----
-
-# Commit Messages
-
-Use present tense.
-
-Examples
-
-```
-Add tenant CRUD
-
-Implement payment service
-
-Fix lease renewal calculation
-```
-
-Avoid
-
-```
-Stuff
-
-Updates
-
-Changes
-```
-
----
-
-# Documentation
-
-Every module should include:
-
-Purpose
-
-Dependencies
-
-Important assumptions
-
-Public interfaces
-
-Complex algorithms should include comments explaining *why*, not *what*.
-
----
-
-# Configuration
-
-No secrets are committed.
-
-Use:
-
-* Environment variables
-* Configuration classes
-
----
-
-# Testing
-
-Business logic should be testable independently of Flask.
-
-Service classes should not depend on HTTP requests.
-
----
-
-# Performance
-
-Optimize only after measuring.
-
-Readability is preferred over micro-optimizations.
+Business logic remains on the server.
 
 ---
 
 # Security
 
-Authentication is provided by the hosting environment.
+Authentication is delegated to the existing environment.
 
-The application consumes identity information through an adapter.
+The application obtains the current user through an adapter interface.
 
-Never hard-code authentication logic into business modules.
-
----
-
-# UI Standards
-
-All maintenance screens should follow a consistent layout:
-
-1. Page title
-2. Toolbar
-3. Filters
-4. DataTable
-5. Pagination
-6. Status bar
-
-Buttons should appear in a consistent order:
-
-* New
-* Edit
-* Delete
-* Refresh
-* Export
+Modules never communicate directly with the authentication mechanism.
 
 ---
 
-# Dashboard
+# Extensibility
 
-Dashboard widgets should present actionable information.
+New modules should require minimal infrastructure.
 
-Avoid decorative graphics.
+A typical module consists of:
 
-Every widget should help answer an operational question.
+* Model
+* Service
+* Routes
+* Templates
+* DataTable configuration
 
----
-
-# Reports
-
-Reports should be generated from reusable service classes.
-
-The same report should support:
-
-* HTML
-* CSV
-* PDF (future)
-
-without duplicating business logic.
+The shared framework provides the remaining functionality.
 
 ---
 
 # Guiding Principle
 
-Every new module should look as though it was written by the same developer, following the same conventions, using the same architecture, and providing a consistent user experience.
+The codebase should optimize for readability, consistency, and maintainability over cleverness.
 
-
+Reducing duplicated code is a primary architectural goal, but clarity should never be sacrificed in pursuit of abstraction.
