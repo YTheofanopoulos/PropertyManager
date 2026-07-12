@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from datetime import date
 from sqlalchemy import (
     create_engine,
