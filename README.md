@@ -44,3 +44,11 @@ source venv/bin/activate
 pip install -r requirements.txt
 python app.py
 ```
+
+
+## Full-package revision
+
+This archive is a complete Milestone 4.1 package, not a delta.
+
+It restores the full approved navigation. Features not yet implemented display
+working placeholder pages and remain visible in the sidebar.
