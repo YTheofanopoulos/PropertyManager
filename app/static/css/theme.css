@@ -1,0 +1,42 @@
+:root{
+  --pm-sidebar:#263238;
+  --pm-sidebar-hover:#37474f;
+  --pm-bg:#f4f6f9;
+  --pm-border:#e6e9ed;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pm-bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#2f3542}
+.app-shell{display:flex;min-height:100vh}
+.sidebar{width:250px;background:var(--pm-sidebar);color:white;position:fixed;top:0;bottom:0;left:0;z-index:1030;transition:.2s}
+.brand{height:64px;display:flex;align-items:center;padding:0 20px;font-weight:700;font-size:1.08rem;border-bottom:1px solid rgba(255,255,255,.08)}
+.brand i{margin-right:10px}
+.sidebar-nav{padding:12px 0}
+.nav-section{padding:18px 20px 7px;color:#90a4ae;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;padding:11px 20px;color:#cfd8dc;text-decoration:none!important}
+.nav-item i{width:24px;margin-right:8px}
+.nav-item:hover{color:white;background:var(--pm-sidebar-hover)}
+.main-panel{margin-left:250px;width:calc(100% - 250px);transition:.2s}
+.topbar{height:64px;background:white;border-bottom:1px solid var(--pm-border);display:flex;align-items:center;padding:0 22px;position:sticky;top:0;z-index:1020}
+.top-search{display:flex;align-items:center;background:#f5f6f8;border-radius:6px;padding:8px 12px;min-width:340px}
+.top-search input{border:0;background:transparent;outline:0;width:100%;margin-left:8px}
+.user-placeholder{font-size:.9rem}.user-placeholder i{font-size:1.2rem;margin-right:5px}
+.content{padding:24px}
+.page-heading{margin-bottom:22px}
+.page-heading h1{font-size:1.6rem;margin:0 0 4px}
+.card{border:1px solid var(--pm-border);box-shadow:0 1px 2px rgba(0,0,0,.03);border-radius:8px}
+.card-header{background:white;border-bottom:1px solid var(--pm-border);padding:.9rem 1.1rem}
+.kpi-card{border-left-width:4px!important}
+.kpi-value{font-size:1.7rem;font-weight:700}
+.kpi-icon{font-size:2rem;opacity:.8}
+.table td,.table th{vertical-align:middle}
+.report-icon{font-size:1.8rem;color:#007bff;margin-bottom:12px}
+.sidebar-collapsed .sidebar{width:72px}
+.sidebar-collapsed .sidebar span,.sidebar-collapsed .brand span,.sidebar-collapsed .nav-section{display:none}
+.sidebar-collapsed .main-panel{margin-left:72px;width:calc(100% - 72px)}
+.sidebar-collapsed .nav-item{justify-content:center}
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .main-panel{margin-left:0;width:100%}
+  .sidebar-open .sidebar{transform:translateX(0)}
+  .top-search{display:none}
+}

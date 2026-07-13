@@ -1,188 +1,34 @@
-# Property Manager
+# PropertyManager MVP — Milestone 3
 
-A lightweight, web-based property management application for managing residential rental properties.
+Milestone 3 introduces the reusable UI framework and realistic fake-data pages.
 
-This application is designed for small to medium portfolios (approximately 25–500 units) and focuses on simplicity, maintainability, and long-term extensibility rather than unnecessary complexity.
+## Included
 
----
+- Flask application factory
+- Feature blueprints
+- Bootstrap 4 application shell
+- Responsive/collapsible sidebar
+- Top navigation and search placeholder
+- Reusable Jinja components
+- Dashboard KPI cards and Chart.js charts
+- DataTables wrapper with CSV export
+- Fake data for 6 properties and 50 units
+- Properties, Units, Tenants, Leases, Payments, Maintenance, and Reports pages
+- Apache `wsgi.py` entry point
+- No authentication implementation
 
-## Objectives
+## Run locally
 
-* Manage properties and rental units
-* Track tenants and lease history
-* Generate monthly rent charges
-* Record and apply payments
-* Track maintenance requests and vendors
-* Record operating expenses
-* Store lease and property documents
-* Produce common management reports
-* Provide a responsive desktop-oriented user interface
+```bash
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python run.py
+```
 
----
+Open `http://127.0.0.1:5000`.
 
-# Technology Stack
+## Notes
 
-## Backend
-
-* Python 3.13
-* Flask
-* SQLAlchemy 2.x
-* Alembic
-* MariaDB
-
-## Frontend
-
-* Bootstrap 4.6
-* DataTables.net
-* jQuery
-* Font Awesome
-* Chart.js
-
-## Web Server
-
-* Apache
-* mod_wsgi
-
----
-
-# Design Philosophy
-
-The application follows several principles:
-
-* Thin route handlers
-* Business logic contained within service classes
-* SQLAlchemy models for persistence
-* Metadata-driven forms and tables
-* Generic CRUD framework
-* Server-side DataTables
-* Modular application structure
-* Minimal JavaScript
-* Bootstrap components used consistently
-
----
-
-# Major Modules
-
-* Dashboard
-* Properties
-* Units
-* Tenants
-* Leases
-* Accounting
-* Maintenance
-* Vendors
-* Expenses
-* Documents
-* Reports
-* Administration
-
----
-
-# Planned Features
-
-## Dashboard
-
-* Occupancy
-* Monthly rent
-* Vacancies
-* Past due balances
-* Recent payments
-* Lease expirations
-* Maintenance summary
-
-## Properties
-
-* Multiple properties
-* Unit management
-* Occupancy tracking
-
-## Tenants
-
-* Contact information
-* Lease history
-* Notes
-* Documents
-
-## Leases
-
-* Multiple tenants
-* Rent amount
-* Security deposits
-* Late fee configuration
-* Lease renewals
-
-## Accounting
-
-* Monthly charge generation
-* Payment entry
-* Partial payments
-* Payment applications
-* Expense tracking
-
-## Maintenance
-
-* Work orders
-* Vendor tracking
-* Cost tracking
-* Status history
-
-## Reports
-
-* Rent Roll
-* Delinquency
-* Occupancy
-* Cash Flow
-* Income
-* Expenses
-* Lease Expiration
-* Vendor Activity
-
----
-
-# Coding Standards
-
-* Use Black formatting.
-* Follow PEP 8.
-* Use type hints whenever practical.
-* Avoid inline SQL.
-* Database access through SQLAlchemy.
-* Services contain business logic.
-* Templates contain presentation only.
-* Keep JavaScript minimal.
-
----
-
-# Authentication
-
-Authentication is intentionally excluded from this project.
-
-The application integrates with the existing authentication mechanism already deployed within the hosting environment.
-
-An adapter layer will expose:
-
-* Current user
-* User display name
-* User permissions
-
-without requiring changes elsewhere in the application.
-
----
-
-# Database
-
-MariaDB is the primary database.
-
-Database migrations are managed with Alembic.
-
-All schema changes must be introduced through migrations.
-
----
-
-# Status
-
-This project is currently under active development.
-
-Phase 1 establishes the application framework and reusable infrastructure.
-
-Subsequent phases introduce business functionality incrementally.
-
+The data is generated deterministically for UI testing. A future milestone will replace
+the fake-data service with SQLAlchemy-backed services without changing the templates.
