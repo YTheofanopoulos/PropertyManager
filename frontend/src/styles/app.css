@@ -139,3 +139,38 @@ div.dt-container .dt-length select {
 }
 
 .nav-button{width:100%;display:flex;align-items:center;gap:10px;padding:11px 20px;color:#cfd8dc;background:transparent;border:0;text-align:left}.nav-button:hover{color:white;background:var(--pm-sidebar-hover)}.nav-button i{width:20px}
+
+
+.leaseholder-list {
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid #e6e9ed;
+  border-radius: 0.5rem;
+}
+
+.leaseholder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eef0f2;
+}
+
+.leaseholder-row:last-child {
+  border-bottom: 0;
+}
+
+.leaseholder-row .form-check-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.lease-review-card {
+  top: 88px;
+}
+
+.charge-row {
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #eef0f2;
+}

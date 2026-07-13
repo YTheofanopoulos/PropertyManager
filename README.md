@@ -1,6 +1,6 @@
-# PropertyManager — Milestone 4.3
+# PropertyManager — Milestone 4.4
 
-Milestone 4.3 modernizes the frontend foundation without persistence or CRUD.
+Milestone 4.4 modernizes the frontend foundation without persistence or CRUD.
 
 ## Stack
 
@@ -48,7 +48,7 @@ python app.py
 
 ## Full-package revision
 
-This archive is a complete Milestone 4.3 package, not a delta.
+This archive is a complete Milestone 4.4 package, not a delta.
 
 It restores the full approved navigation. Features not yet implemented display
 working placeholder pages and remain visible in the sidebar.
@@ -59,7 +59,7 @@ On first launch the app seeds the 41-apartment portfolio into IndexedDB. Later r
 Browser developer tools: Chrome/Edge **Application → IndexedDB**, Firefox **Storage → Indexed DB**, Safari **Storage → Indexed Databases**.
 
 
-## Milestone 4.3 testing
+## Milestone 4.4 testing
 
 Try adding or editing a Location, Building, Unit, or Tenant. Refresh the browser:
 the saved change should remain because it is stored in IndexedDB.
@@ -72,3 +72,17 @@ Deletion is intentionally restricted when related records exist:
 - Tenants attached to leases cannot be deleted; mark them inactive instead.
 
 The lease table remains read-only in this increment.
+
+
+## Milestone 4.4 lease testing
+
+1. Open **Leases** and choose **Create Lease**.
+2. Select a unit and one or more tenants.
+3. Choose exactly one primary leaseholder.
+4. Select a fixed or month-to-month term.
+5. Enter apartment rent and optional parking, storage, or other charges.
+6. Save the lease and confirm it appears in the table.
+7. Refresh the browser and confirm the lease remains.
+8. Attempt an overlapping lease for the same unit to verify validation.
+9. Edit an existing lease and confirm the unit is locked.
+10. Terminate a lease and confirm the historical record remains.

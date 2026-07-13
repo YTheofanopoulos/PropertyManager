@@ -1,6 +1,7 @@
 
 import { renderBuildings } from "../features/buildings/page";
 import { renderDashboard } from "../features/dashboard/page";
+import { renderLeaseEditor } from "../features/leases/editor";
 import { renderLeases } from "../features/leases/page";
 import { renderLocations } from "../features/locations/page";
 import { renderPlaceholder } from "../features/placeholder/page";
@@ -17,8 +18,13 @@ const placeholders: Record<string, [string, string]> = {
 
 export async function route(container: HTMLElement): Promise<void> {
   const path = location.hash.replace(/^#/, "") || "/";
+
   document.querySelectorAll<HTMLElement>("[data-route]").forEach((element) => {
-    element.classList.toggle("active", element.dataset.route === path);
+    const routePath = element.dataset.route;
+    const active = routePath === "/leases"
+      ? path === "/leases" || path.startsWith("/leases/")
+      : routePath === path;
+    element.classList.toggle("active", active);
   });
 
   if (path === "/locations") return renderLocations(container);
@@ -26,11 +32,16 @@ export async function route(container: HTMLElement): Promise<void> {
   if (path === "/units") return renderUnits(container);
   if (path === "/tenants") return renderTenants(container);
   if (path === "/leases") return renderLeases(container);
+  if (path === "/leases/new") return renderLeaseEditor(container);
+
+  const leaseMatch = path.match(/^\/leases\/(\d+)$/);
+  if (leaseMatch) return renderLeaseEditor(container, Number(leaseMatch[1]));
 
   const placeholder = placeholders[path];
   if (placeholder) {
     renderPlaceholder(container, placeholder[0], placeholder[1]);
     return;
   }
+
   await renderDashboard(container);
 }
