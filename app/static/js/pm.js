@@ -2,6 +2,7 @@ window.PM = {
   table: function(selector, options) {
     const defaults = {
       pageLength: 10,
+      lengthMenu: [[10, 25, 50], [10, 25, 50]],
       stateSave: true,
       responsive: true,
       dom: "<'row mb-3'<'col-md-6'f><'col-md-6 text-right'B>>rt<'row mt-3'<'col-md-6'i><'col-md-6'p>>",

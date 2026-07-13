@@ -8,6 +8,7 @@ from .leases.routes import leases_bp
 from .payments.routes import payments_bp
 from .maintenance.routes import maintenance_bp
 from .reports.routes import reports_bp
+from .bank_import.routes import bank_import_bp
 
 
 def create_app():
@@ -25,5 +26,6 @@ def create_app():
     app.register_blueprint(payments_bp, url_prefix="/payments")
     app.register_blueprint(maintenance_bp, url_prefix="/maintenance")
     app.register_blueprint(reports_bp, url_prefix="/reports")
+    app.register_blueprint(bank_import_bp, url_prefix="/bank-import")
 
     return app

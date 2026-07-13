@@ -1,69 +1,33 @@
 {% extends "layout.html" %}
-{% from "components/macros.html" import kpi, badge %}
+{% from "components/macros.html" import kpi %}
+
 {% block content %}
-<div class="row">{% for card in data.cards %}{{ kpi(card) }}{% endfor %}</div>
+<div class="row">
+  {% for card in data.cards %}
+    {{ kpi(card) }}
+  {% endfor %}
+</div>
 
 <div class="row">
   <div class="col-xl-8 mb-4">
     <div class="card h-100">
-      <div class="card-header"><strong>Monthly Rent Collected</strong></div>
-      <div class="card-body"><canvas id="incomeChart" height="105"></canvas></div>
+      <div class="card-header">
+        <strong>Monthly Rent Collected</strong>
+      </div>
+      <div class="card-body">
+        <canvas id="incomeChart" height="105"></canvas>
+      </div>
     </div>
   </div>
+
   <div class="col-xl-4 mb-4">
     <div class="card h-100">
-      <div class="card-header"><strong>Occupancy by Property</strong></div>
-      <div class="card-body"><canvas id="occupancyChart" height="220"></canvas></div>
-    </div>
-  </div>
-</div>
-
-<div class="row">
-  <div class="col-xl-6 mb-4">
-    <div class="card">
-      <div class="card-header"><strong>Properties</strong></div>
-      <div class="table-responsive"><table class="table table-hover mb-0">
-        <thead><tr><th>Property</th><th>Units</th><th>Occupied</th><th>Occupancy</th></tr></thead>
-        <tbody>{% for p in data.properties %}
-        <tr><td>{{ p.name }}</td><td>{{ p.units }}</td><td>{{ p.occupied }}</td><td>{{ p.occupancy_pct }}%</td></tr>
-        {% endfor %}</tbody>
-      </table></div>
-    </div>
-  </div>
-  <div class="col-xl-6 mb-4">
-    <div class="card">
-      <div class="card-header"><strong>Recent Payments</strong></div>
-      <div class="table-responsive"><table class="table table-hover mb-0">
-        <thead><tr><th>Date</th><th>Tenant</th><th>Unit</th><th class="text-right">Amount</th></tr></thead>
-        <tbody>{% for p in data.recent_payments %}
-        <tr><td>{{ p.date }}</td><td>{{ p.tenant }}</td><td>{{ p.unit }}</td><td class="text-right">${{ "{:,.0f}".format(p.amount) }}</td></tr>
-        {% endfor %}</tbody>
-      </table></div>
-    </div>
-  </div>
-</div>
-
-<div class="row">
-  <div class="col-xl-6 mb-4">
-    <div class="card">
-      <div class="card-header"><strong>Maintenance Queue</strong></div>
-      <div class="table-responsive"><table class="table table-hover mb-0">
-        <thead><tr><th>Property</th><th>Unit</th><th>Priority</th><th>Status</th></tr></thead>
-        <tbody>{% for m in data.maintenance %}
-        <tr><td>{{ m.property }}</td><td>{{ m.unit }}</td><td>{{ badge(m.priority) }}</td><td>{{ badge(m.status) }}</td></tr>
-        {% endfor %}</tbody>
-      </table></div>
-    </div>
-  </div>
-  <div class="col-xl-6 mb-4">
-    <div class="card">
-      <div class="card-header"><strong>Lease Expirations</strong></div>
-      <div class="table-responsive"><table class="table table-hover mb-0">
-        <thead><tr><th>Tenant</th><th>Property</th><th>Unit</th><th>End Date</th></tr></thead>
-        <tbody>{% for l in data.expiring_leases %}
-        <tr><td>{{ l.tenant }}</td><td>{{ l.property }}</td><td>{{ l.unit }}</td><td>{{ l.end_date }}</td></tr>
-        {% endfor %}</tbody>
-      </table></div>
+      <div class="card-header">
+        <strong>Occupancy by Location</strong>
+      </div>
+      <div class="card-body">
+        <canvas id="occupancyChart" height="220"></canvas>
+      </div>
     </div>
   </div>
 </div>
@@ -71,7 +35,18 @@
 
 {% block scripts %}
 <script>
-PM.charts.line("incomeChart", {{ data.income_labels|tojson }}, {{ data.income_values|tojson }}, "Collected");
-PM.charts.bar("occupancyChart", {{ data.occupancy_labels|tojson }}, {{ data.occupancy_values|tojson }}, "Occupancy %");
+PM.charts.line(
+  "incomeChart",
+  {{ data.income_labels|tojson }},
+  {{ data.income_values|tojson }},
+  "Collected"
+);
+
+PM.charts.bar(
+  "occupancyChart",
+  {{ data.occupancy_labels|tojson }},
+  {{ data.occupancy_values|tojson }},
+  "Occupancy %"
+);
 </script>
 {% endblock %}
