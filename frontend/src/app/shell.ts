@@ -28,10 +28,12 @@ export function renderShell(): HTMLElement {
 
         <div class="nav-heading">Administration</div>
         <a href="#/settings" data-route="/settings"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
+        <button class="nav-button" id="export-data"><i class="fa-solid fa-download"></i><span>Export JSON</span></button>
+        <button class="nav-button" id="reset-data"><i class="fa-solid fa-rotate-left"></i><span>Reset Sample Data</span></button>
       </nav>
     </aside>
     <main class="main-panel">
-      <header class="topbar"><span class="fw-semibold">Milestone 4.1 Update</span></header>
+      <header class="topbar"><span class="fw-semibold">Milestone 4.2</span></header>
       <section id="page-content" class="content"></section>
     </main>
   </div>`;

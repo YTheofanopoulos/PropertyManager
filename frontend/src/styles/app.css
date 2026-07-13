@@ -137,3 +137,5 @@ div.dt-container .dt-length select {
     width: calc(100% - 72px);
   }
 }
+
+.nav-button{width:100%;display:flex;align-items:center;gap:10px;padding:11px 20px;color:#cfd8dc;background:transparent;border:0;text-align:left}.nav-button:hover{color:white;background:var(--pm-sidebar-hover)}.nav-button i{width:20px}

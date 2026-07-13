@@ -1,6 +1,6 @@
-# PropertyManager — Milestone 4.1
+# PropertyManager — Milestone 4.2
 
-Milestone 4.1 modernizes the frontend foundation without persistence or CRUD.
+Milestone 4.2 modernizes the frontend foundation without persistence or CRUD.
 
 ## Stack
 
@@ -48,7 +48,12 @@ python app.py
 
 ## Full-package revision
 
-This archive is a complete Milestone 4.1 package, not a delta.
+This archive is a complete Milestone 4.2 package, not a delta.
 
 It restores the full approved navigation. Features not yet implemented display
 working placeholder pages and remain visible in the sidebar.
+
+## IndexedDB testing
+On first launch the app seeds the 41-apartment portfolio into IndexedDB. Later reloads reuse those records. Use **Reset Sample Data** to reseed and **Export JSON** to inspect or back up the data.
+
+Browser developer tools: Chrome/Edge **Application → IndexedDB**, Firefox **Storage → Indexed DB**, Safari **Storage → Indexed Databases**.

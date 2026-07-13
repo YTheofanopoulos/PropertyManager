@@ -1,6 +1,6 @@
 import DataTable from "datatables.net-bs5";
 
-export function createTable(selector: string, options: Record<string, unknown> = {}): DataTable.Api {
+export function createTable(selector: string, options: Record<string, unknown> = {}): any {
   return new DataTable(selector, {
     pageLength: 10,
     lengthMenu: [10, 25, 50],

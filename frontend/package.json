@@ -1,7 +1,7 @@
 {
   "name": "property-manager",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.4.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,8 @@
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.7",
     "datatables.net": "^2.1.8",
-    "datatables.net-bs5": "^2.1.8"
+    "datatables.net-bs5": "^2.1.8",
+    "dexie": "^4.0.10"
   },
   "devDependencies": {
     "typescript": "^5.7.3",
