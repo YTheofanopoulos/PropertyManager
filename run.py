@@ -1,12 +1,6 @@
-#!/usr/bin/python3
+from app import create_app
 
-from flask import Flask,render_template
-app=Flask(__name__,template_folder='app/templates',static_folder='app/static')
-@app.route('/')
-def i():
- return render_template('dashboard.html',
-                        cards=[('Occupancy','47/50','success'),('Monthly Rent','$52600','primary'),('Past Due','$1850','danger'),('Vacancies','3','warning')],
-                        props=[{'name':'Oakwood','units':'24/24'},{'name':'Maple Ridge','units':'11/12'}, {'name':'Clermont', 'units':'6/6'}])
+app=create_app()
 
-if __name__ == "__main__":
+if __name__=="__main__":
     app.run(debug=True)

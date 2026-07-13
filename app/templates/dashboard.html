@@ -1,1 +1,18 @@
-{% extends 'layout.html' %}{% block content %}<div class='row'>{% for t,v,c in cards %}<div class='col'><div class='card border-{{c}}'><div class='card-body'><small>{{t}}</small><h3>{{v}}</h3></div></div></div>{% endfor %}</div><table id='props'><thead><tr><th>Property</th><th>Occupied</th></tr></thead><tbody>{% for p in props %}<tr><td>{{p.name}}</td><td>{{p.units}}</td></tr>{% endfor %}</tbody></table>{% endblock %}
+{% extends "layout.html" %}
+{% block content %}
+<h2>Dashboard</h2>
+<div class="row">
+{% for c in data.cards %}
+<div class="col-md-3"><div class="card border-{{c.class}} mb-3"><div class="card-body">
+<small>{{c.title}}</small><h3>{{c.value}}</h3>
+</div></div></div>
+{% endfor %}
+</div>
+<table class="table table-striped">
+<thead><tr><th>Property</th><th>Occupied</th></tr></thead>
+<tbody>
+{% for p in data.properties %}
+<tr><td>{{p.name}}</td><td>{{p.occupied}}</td></tr>
+{% endfor %}
+</tbody></table>
+{% endblock %}
