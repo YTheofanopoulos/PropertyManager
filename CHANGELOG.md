@@ -1,18 +1,25 @@
 
 # Changelog
-## [0.4.2] - 2026-07-13
+
+## [0.4.3] - 2026-07-13
+
 ### Added
-- Dexie and IndexedDB schema.
-- Deterministic 41-apartment seed data.
-- Repository interfaces and Dexie implementations.
-- Dashboard service.
-- JSON export and sample-data reset.
+- Add, edit, and delete workflows for Locations.
+- Add, edit, and delete workflows for Buildings.
+- Add, edit, and delete workflows for Units.
+- Add, edit, deactivate, and delete workflows for Tenants.
+- Bootstrap modal editors and toast notifications.
+- Service-layer validation and relationship-aware deletion checks.
+- Immediate DataTable refresh after successful saves.
+
 ### Changed
-- Dashboard, Units, Tenants, and Leases now read from IndexedDB.
-- Router supports asynchronous pages.
-### Removed
-- Static sample arrays.
+- Locations and Buildings are now functional instead of placeholders.
+- Units and Tenants are now editable.
+- All changes persist in IndexedDB across browser reloads.
+
+### Deferred
+- Lease creation and editing remains read-only until the multi-participant workflow is designed.
+
 ### Notes
 - Full package.
-- No CRUD editors yet.
-- No MariaDB or JSON API yet.
+- `package-lock.json` is intentionally omitted. Generate it on the standard VM.

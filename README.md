@@ -1,6 +1,6 @@
-# PropertyManager — Milestone 4.2
+# PropertyManager — Milestone 4.3
 
-Milestone 4.2 modernizes the frontend foundation without persistence or CRUD.
+Milestone 4.3 modernizes the frontend foundation without persistence or CRUD.
 
 ## Stack
 
@@ -48,7 +48,7 @@ python app.py
 
 ## Full-package revision
 
-This archive is a complete Milestone 4.2 package, not a delta.
+This archive is a complete Milestone 4.3 package, not a delta.
 
 It restores the full approved navigation. Features not yet implemented display
 working placeholder pages and remain visible in the sidebar.
@@ -57,3 +57,18 @@ working placeholder pages and remain visible in the sidebar.
 On first launch the app seeds the 41-apartment portfolio into IndexedDB. Later reloads reuse those records. Use **Reset Sample Data** to reseed and **Export JSON** to inspect or back up the data.
 
 Browser developer tools: Chrome/Edge **Application → IndexedDB**, Firefox **Storage → Indexed DB**, Safari **Storage → Indexed Databases**.
+
+
+## Milestone 4.3 testing
+
+Try adding or editing a Location, Building, Unit, or Tenant. Refresh the browser:
+the saved change should remain because it is stored in IndexedDB.
+
+Deletion is intentionally restricted when related records exist:
+
+- Locations with buildings cannot be deleted.
+- Buildings with units cannot be deleted.
+- Units with lease history cannot be deleted.
+- Tenants attached to leases cannot be deleted; mark them inactive instead.
+
+The lease table remains read-only in this increment.
