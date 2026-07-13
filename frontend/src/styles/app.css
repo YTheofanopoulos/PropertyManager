@@ -1,0 +1,139 @@
+:root {
+  --pm-sidebar: #263238;
+  --pm-sidebar-hover: #37474f;
+  --pm-background: #f4f6f9;
+}
+
+body {
+  margin: 0;
+  background: var(--pm-background);
+  color: #2f3542;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+}
+
+.sidebar {
+  width: 250px;
+  position: fixed;
+  inset: 0 auto 0 0;
+  background: var(--pm-sidebar);
+  color: white;
+}
+
+.brand {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.sidebar nav {
+  padding: 12px 0;
+}
+
+.sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 20px;
+  color: #cfd8dc;
+  text-decoration: none;
+}
+
+.sidebar a:hover,
+.sidebar a.active {
+  color: white;
+  background: var(--pm-sidebar-hover);
+}
+
+.sidebar i {
+  width: 20px;
+}
+
+.nav-heading {
+  padding: 18px 20px 7px;
+  color: #90a4ae;
+  font-size: .7rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.main-panel {
+  margin-left: 250px;
+  width: calc(100% - 250px);
+}
+
+.topbar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  background: white;
+  border-bottom: 1px solid #e6e9ed;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.content {
+  padding: 24px;
+}
+
+.page-heading {
+  margin-bottom: 22px;
+}
+
+.page-heading h1 {
+  font-size: 1.7rem;
+  margin-bottom: 4px;
+}
+
+.card {
+  border: 1px solid #e6e9ed;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+
+.metric-value {
+  font-size: 1.7rem;
+  font-weight: 700;
+}
+
+div.dt-container .dt-length select {
+  margin: 0 .4rem;
+}
+
+@media (max-width: 850px) {
+  .sidebar {
+    width: 72px;
+  }
+
+  .sidebar .brand {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .sidebar .brand span,
+  .sidebar a span,
+  .nav-heading {
+    display: none;
+  }
+
+  .sidebar a {
+    justify-content: center;
+    padding: 14px 0;
+  }
+
+  .sidebar i {
+    width: auto;
+  }
+
+  .main-panel {
+    margin-left: 72px;
+    width: calc(100% - 72px);
+  }
+}
