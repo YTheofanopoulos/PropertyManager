@@ -86,3 +86,17 @@ The lease table remains read-only in this increment.
 8. Attempt an overlapping lease for the same unit to verify validation.
 9. Edit an existing lease and confirm the unit is locked.
 10. Terminate a lease and confirm the historical record remains.
+
+
+## Baseline 5.2 QFX testing
+
+1. Reset Sample Data.
+2. Open **Import Bank Statement**.
+3. Preview and import `docs/test-data/Baseline5_2_Reconciliation_Test.qfx`.
+4. Reconcile exact, partial, overpaid, and multi-month transactions.
+5. Mark the unmatched deposit as Not Rent.
+6. Import the same file again and confirm all entries are duplicates.
+7. Import `Baseline5_2_Overlap_Reimport_Test.qfx` and confirm only its additional
+   FITID is imported.
+8. Void a reconciled payment and confirm the bank transaction returns to
+   Unmatched and the rent becomes due again.

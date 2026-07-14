@@ -175,6 +175,30 @@ All notable changes to PropertyManager are documented here.
 - Client-side routing and responsive application shell.
 - Complete application navigation with placeholders for future features.
 
+## [0.5.2] - 2026-07-14
+
+### Added
+- Browser-based QFX/OFX SGML parser.
+- Statement preview with account, date range, credits, new entries, and duplicates.
+- Import batches and import history.
+- FITID-based duplicate detection scoped to the bank account.
+- Imported bank transaction queue with Unmatched, Reconciled, and Ignored states.
+- Amount-based unit suggestions for reconciliation.
+- Manual multi-period allocation during reconciliation.
+- Atomic creation of Payment, Payment Allocations, and bank-transaction linkage.
+- Synthetic QFX test statements covering exact, partial, overpaid, multi-month, unmatched, duplicate, and debit cases.
+
+### Changed
+- Voiding a bank-imported payment reopens its source bank transaction for reconciliation.
+- Reset Sample Data clears bank import batches and bank transactions.
+- JSON export includes financial and bank import records.
+
+### Deferred
+- CSV statement support.
+- Description-based payer matching.
+- Reconciliation undo without voiding the payment.
+- Finalized accounting periods.
+
 ## [0.5.2-data.1] - 2026-07-14
 
 ### Fixed

@@ -98,3 +98,59 @@ export interface RentObligation { id?: EntityId; leaseId: EntityId; rentPeriod: 
 export interface Payment { id?: EntityId; leaseId: EntityId; tenantId?: EntityId; receivedDate: string; amount: number; paymentMethod: PaymentMethod; reference: string; notes: string; source: PaymentSource; status?: PaymentStatus; voidedAt?: string; voidReason?: string; createdAt: string; }
 export interface PaymentAllocation { id?: EntityId; paymentId: EntityId; obligationId: EntityId; amount: number; }
 export interface RentRollRow { leaseId: EntityId; unitLabel: string; primaryTenant: string; selectedPeriod: string; currentMonthDue: number; currentMonthPaid: number; priorBalance: number; totalOutstanding: number; oldestUnpaidPeriod: string; monthsInArrears: number; status: "Current" | "Partial" | "In Arrears"; }
+
+
+export type BankImportStatus = "Previewed" | "Imported";
+export type BankTransactionStatus =
+  | "Unmatched"
+  | "Suggested"
+  | "Reconciled"
+  | "Ignored"
+  | "Duplicate";
+
+export interface BankImportBatch {
+  id?: EntityId;
+  filename: string;
+  importedAt: string;
+  accountLastFour: string;
+  currency: string;
+  statementStart: string;
+  statementEnd: string;
+  transactionCount: number;
+  totalCredits: number;
+  totalDebits: number;
+  newTransactionCount: number;
+  duplicateCount: number;
+  status: BankImportStatus;
+}
+
+export interface BankTransaction {
+  id?: EntityId;
+  importBatchId: EntityId;
+  externalId: string;
+  accountLastFour: string;
+  postedDate: string;
+  amount: number;
+  transactionType: string;
+  name: string;
+  memo: string;
+  status: BankTransactionStatus;
+  matchedPaymentId?: EntityId;
+  ignoredReason?: string;
+  createdAt: string;
+}
+
+export interface ParsedQfxStatement {
+  accountLastFour: string;
+  currency: string;
+  statementStart: string;
+  statementEnd: string;
+  transactions: Array<{
+    externalId: string;
+    postedDate: string;
+    amount: number;
+    transactionType: string;
+    name: string;
+    memo: string;
+  }>;
+}

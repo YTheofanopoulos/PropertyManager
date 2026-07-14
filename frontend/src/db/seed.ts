@@ -92,6 +92,8 @@ export async function seedDatabase(force = false): Promise<void> {
       db.rentObligations,
       db.payments,
       db.paymentAllocations,
+      db.bankImportBatches,
+      db.bankTransactions,
     ],
     async () => {
       await Promise.all([
@@ -105,6 +107,8 @@ export async function seedDatabase(force = false): Promise<void> {
         db.rentObligations.clear(),
         db.payments.clear(),
         db.paymentAllocations.clear(),
+        db.bankImportBatches.clear(),
+        db.bankTransactions.clear(),
       ]);
 
       const locationIds = new Map<string, number>();
