@@ -86,3 +86,12 @@ export interface LeaseListItem extends Lease {
   leaseholders: string[];
   monthlyTotal: number;
 }
+
+
+export type RentPeriodStatus = "Unpaid" | "Partially Paid" | "Paid" | "Overpaid";
+export type PaymentSource = "Manual" | "Bank Import";
+export type PaymentMethod = "Electronic Transfer" | "Cheque" | "Cash" | "Direct Deposit" | "Other";
+export interface RentObligation { id?: EntityId; leaseId: EntityId; rentPeriod: string; expectedAmount: number; status: RentPeriodStatus; createdAt: string; }
+export interface Payment { id?: EntityId; leaseId: EntityId; tenantId?: EntityId; receivedDate: string; amount: number; paymentMethod: PaymentMethod; reference: string; notes: string; source: PaymentSource; createdAt: string; }
+export interface PaymentAllocation { id?: EntityId; paymentId: EntityId; obligationId: EntityId; amount: number; }
+export interface RentRollRow { leaseId: EntityId; unitLabel: string; primaryTenant: string; selectedPeriod: string; currentMonthDue: number; currentMonthPaid: number; priorBalance: number; totalOutstanding: number; oldestUnpaidPeriod: string; monthsInArrears: number; status: "Current" | "Partial" | "In Arrears"; }

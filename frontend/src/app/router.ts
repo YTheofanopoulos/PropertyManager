@@ -5,13 +5,13 @@ import { renderLeaseEditor } from "../features/leases/editor";
 import { renderLeases } from "../features/leases/page";
 import { renderLocations } from "../features/locations/page";
 import { renderPlaceholder } from "../features/placeholder/page";
+import { renderPayments, renderPaymentEditor } from "../features/payments/page";
+import { renderRentRoll } from "../features/rentRoll/page";
 import { renderTenants } from "../features/tenants/page";
 import { renderUnits } from "../features/units/page";
 
 const placeholders: Record<string, [string, string]> = {
-  "/payments": ["Payments", "Review and record rent payments and payment history."],
   "/bank-import": ["Import Bank Statement", "Import electronic transactions and match deposits to tenants and leases."],
-  "/rent-roll": ["Rent Roll", "Review current rents, occupancy, leaseholders, and balances."],
   "/reports": ["Reports", "Run portfolio, occupancy, delinquency, income, and lease reports."],
   "/settings": ["Settings", "Configure application defaults and future integration options."],
 };
@@ -32,6 +32,9 @@ export async function route(container: HTMLElement): Promise<void> {
   if (path === "/units") return renderUnits(container);
   if (path === "/tenants") return renderTenants(container);
   if (path === "/leases") return renderLeases(container);
+  if (path.startsWith("/rent-roll")) return renderRentRoll(container);
+  if (path === "/payments") return renderPayments(container);
+  if (path.startsWith("/payments/new")) return renderPaymentEditor(container);
   if (path === "/leases/new") return renderLeaseEditor(container);
 
   const leaseMatch = path.match(/^\/leases\/(\d+)$/);

@@ -1,0 +1,9 @@
+
+import { db } from "../db/database";
+import type { Payment, PaymentAllocation, PaymentMethod } from "../models/domain";
+import { rentLedgerService } from "./rentLedgerService";
+export interface PaymentAllocationInput { obligationId:number; amount:number; }
+export interface PaymentSaveInput { leaseId:number; tenantId?:number; receivedDate:string; amount:number; paymentMethod:PaymentMethod; reference:string; notes:string; allocations:PaymentAllocationInput[]; }
+export class PaymentService { async save(input:PaymentSaveInput):Promise<number>{if(!input.leaseId)throw new Error("Select a lease.");if(!input.receivedDate)throw new Error("Received date is required.");if(input.amount<=0)throw new Error("Payment amount must be greater than zero.");const total=input.allocations.reduce((t,a)=>t+a.amount,0);if(total-input.amount>.005)throw new Error("Allocations cannot exceed the payment amount.");const obligations=await db.rentObligations.bulkGet(input.allocations.map(a=>a.obligationId));for(const a of input.allocations){const o=obligations.find(x=>x?.id===a.obligationId);if(!o||o.leaseId!==input.leaseId)throw new Error("An allocation does not belong to the selected lease.");}
+const id=await db.transaction("rw",db.payments,db.paymentAllocations,async()=>{const pid=Number(await db.payments.add({leaseId:input.leaseId,tenantId:input.tenantId,receivedDate:input.receivedDate,amount:input.amount,paymentMethod:input.paymentMethod,reference:input.reference.trim(),notes:input.notes.trim(),source:"Manual",createdAt:new Date().toISOString()} satisfies Payment));const rows=input.allocations.filter(a=>a.amount>0).map(a=>({paymentId:pid,obligationId:a.obligationId,amount:a.amount} satisfies PaymentAllocation));if(rows.length)await db.paymentAllocations.bulkAdd(rows);return pid});await rentLedgerService.refreshAllStatuses();return id;}}
+export const paymentService=new PaymentService();

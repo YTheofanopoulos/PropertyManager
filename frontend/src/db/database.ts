@@ -6,6 +6,9 @@ import type {
   LeaseParticipant,
   Location,
   RecurringCharge,
+  RentObligation,
+  Payment,
+  PaymentAllocation,
   Tenant,
   Unit,
 } from "../models/domain";
@@ -18,6 +21,9 @@ export class PropertyManagerDatabase extends Dexie {
   leases!: EntityTable<Lease, "id">;
   leaseParticipants!: EntityTable<LeaseParticipant, "id">;
   recurringCharges!: EntityTable<RecurringCharge, "id">;
+  rentObligations!: EntityTable<RentObligation, "id">;
+  payments!: EntityTable<Payment, "id">;
+  paymentAllocations!: EntityTable<PaymentAllocation, "id">;
 
   constructor() {
     super("PropertyManager");
@@ -80,6 +86,19 @@ export class PropertyManagerDatabase extends Dexie {
       }
 
       await transaction.table("leaseParticipants").bulkPut(participants);
+    });
+
+    this.version(4).stores({
+      locations: "++id, name, city",
+      buildings: "++id, locationId, civicAddress, [locationId+civicAddress]",
+      units: "++id, buildingId, apartmentNumber, status, active, [buildingId+apartmentNumber]",
+      tenants: "++id, lastName, firstName, email, active",
+      leases: "++id, unitId, startDate, endDate, termType, status",
+      leaseParticipants: "++id, leaseId, tenantId, primary, sortOrder, [leaseId+tenantId]",
+      recurringCharges: "++id, leaseId, chargeType, frequency, startDate, endDate",
+      rentObligations: "++id, leaseId, rentPeriod, status, [leaseId+rentPeriod]",
+      payments: "++id, leaseId, tenantId, receivedDate, source, reference",
+      paymentAllocations: "++id, paymentId, obligationId, [paymentId+obligationId]",
     });
 
   }

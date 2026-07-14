@@ -11,7 +11,7 @@
 
 ## 5.x Financial Operations
 
-- [ ] **5.1** Tenant and lease ledger
+- [x] **5.1** Tenant and lease ledger with manual payment allocation
 - [ ] **5.2** Bank statement import
 - [ ] **5.3** Automatic payment matching and review
 - [ ] **5.4** Outstanding balances and partial payments

@@ -1,6 +1,17 @@
 
 # Changelog
 
+## [0.5.1] - 2026-07-14
+
+### Added
+- Monthly rent obligations generated from recurring charges.
+- Rent Roll showing current month, prior arrears, total outstanding, oldest unpaid period, and months behind.
+- Manual payment entry and explicit allocation to rent periods.
+- Partial payments, split payments, multi-month payments, and unapplied credit.
+- IndexedDB tables for obligations, payments, and allocations.
+
+
+
 All notable changes to PropertyManager are documented here.
 
 ## [Unreleased]
