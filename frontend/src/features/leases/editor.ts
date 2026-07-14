@@ -157,7 +157,7 @@ export async function renderLeaseEditor(
             <div class="card-header fw-semibold">4. Recurring Charges</div>
             <div class="card-body">
               <p class="text-body-secondary">
-                Apartment rent is required. Parking and storage remain separate optional charges.
+                Apartment rent is required. Market Rent is used only as the initial suggestion; the saved lease rent becomes authoritative.
               </p>
               <div id="charge-list">
                 ${chargeTypes.map((type) => chargeRow(

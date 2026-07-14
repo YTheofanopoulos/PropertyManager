@@ -1,6 +1,22 @@
 
 # Changelog
 
+## [0.5.1.4] - 2026-07-14
+
+### Changed
+- Units now display an effective Rent value.
+- A currently applicable lease supplies the authoritative Apartment Rent.
+- Units without a lease applicable today display Market Rent.
+- The unit editor labels the stored amount as Market Rent.
+- The Units table identifies the displayed rent source.
+
+### Business Rules
+- Expired and Terminated leases do not determine current unit rent.
+- Future leases do not replace today's rent before their start date.
+- Editing Market Rent does not change an existing lease.
+- Editing lease rent does not overwrite Market Rent.
+- New leases continue to use Market Rent as the initial suggested apartment rent.
+
 ## [0.5.1.3] - 2026-07-14
 
 ### Added

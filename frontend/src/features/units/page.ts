@@ -17,7 +17,7 @@ export async function renderUnits(container: HTMLElement): Promise<void> {
     </div>
     <div class="card"><div class="card-body">
       <table id="units-table" class="table table-hover align-middle w-100">
-        <thead><tr><th>Street</th><th>Civic Address</th><th>Apartment Number</th><th>Bedrooms</th><th>Bathrooms</th><th>Monthly Rent</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Street</th><th>Civic Address</th><th>Apartment Number</th><th>Bedrooms</th><th>Bathrooms</th><th>Rent</th><th>Rent Source</th><th>Status</th><th>Actions</th></tr></thead>
       </table>
     </div></div>${editor()}
   `;
@@ -36,7 +36,12 @@ async function refresh(): Promise<void> {
       { data: "street" }, { data: "civicAddress" },
       { data: "apartmentNumber", render: (value: string) => value || "—" },
       { data: "bedrooms" }, { data: "bathrooms" },
-      { data: "monthlyRent", render: (value: number) => currency(value) },
+      { data: "effectiveRent", render: (value: number) => currency(value) },
+      {
+        data: "rentSource",
+        render: (value: string) =>
+          `<span class="badge text-bg-${value === "Active Lease" ? "primary" : "secondary"}">${value}</span>`,
+      },
       { data: "status", render: (value: string) => `<span class="badge text-bg-${value === "Occupied" ? "success" : value === "Vacant" ? "warning" : "secondary"}">${value}</span>` },
       { data: "id", orderable: false, searchable: false, render: buttons },
     ],
@@ -113,7 +118,8 @@ function editor(): string {
       <div class="mb-3"><label class="form-label">Apartment number</label><input class="form-control" id="unit-number"></div>
       <div class="row g-3"><div class="col"><label class="form-label">Bedrooms</label><input type="number" min="0" class="form-control" id="unit-bedrooms" required></div>
       <div class="col"><label class="form-label">Bathrooms</label><input type="number" min=".5" step=".5" class="form-control" id="unit-bathrooms" required></div></div>
-      <div class="mb-3 mt-3"><label class="form-label">Monthly rent</label><input type="number" min="0" class="form-control" id="unit-rent" required></div>
+      <div class="mb-3 mt-3"><label class="form-label">Market Rent</label><input type="number" min="0" class="form-control" id="unit-rent" required>
+      <div class="form-text">Used when no lease applies to the unit today.</div></div>
       <div class="mb-3"><label class="form-label">Status</label><select class="form-select" id="unit-status"><option>Occupied</option><option>Vacant</option><option>Maintenance</option></select></div>
     </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save</button></div>
     </form></div></div></div>`;

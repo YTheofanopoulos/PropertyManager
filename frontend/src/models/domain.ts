@@ -73,6 +73,8 @@ export interface RecurringCharge {
 export interface UnitListItem extends Unit {
   street: string;
   civicAddress: string;
+  effectiveRent: number;
+  rentSource: "Active Lease" | "Market Rent";
 }
 
 export interface TenantListItem extends Tenant {
