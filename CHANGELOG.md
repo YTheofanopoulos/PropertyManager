@@ -175,6 +175,24 @@ All notable changes to PropertyManager are documented here.
 - Client-side routing and responsive application shell.
 - Complete application navigation with placeholders for future features.
 
+## [0.5.2.1] - 2026-07-14
+
+### Added
+- JSON backup import from the Administration menu.
+- Structural validation for every PropertyManager data collection.
+- Transactional full-database replacement preserving exported record IDs and relationships.
+- Explicit confirmation warning before current browser data is replaced.
+
+### Changed
+- JSON exports now include a backup format version.
+- Failed validation or database writes roll back the entire import, leaving current data unchanged.
+- Successful imports reload the application so every screen reflects the restored dataset.
+
+### Business Rules
+- JSON import replaces all portfolio, lease, financial, and bank-import data.
+- Partial imports and merging are not supported.
+- Users should export the current dataset before importing when rollback may be needed.
+
 ## [0.5.2] - 2026-07-14
 
 ### Added

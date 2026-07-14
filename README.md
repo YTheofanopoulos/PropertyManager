@@ -100,3 +100,13 @@ The lease table remains read-only in this increment.
    FITID is imported.
 8. Void a reconciled payment and confirm the bank transaction returns to
    Unmatched and the rent becomes due again.
+
+
+## Baseline 5.2.1 JSON restore testing
+
+1. Export the current dataset from **Administration → Export JSON**.
+2. Make a visible change, such as recording a payment.
+3. Choose **Import JSON** and select the earlier export.
+4. Confirm the replacement warning.
+5. Verify the application reloads and the earlier dataset is fully restored.
+6. Try an invalid or incomplete JSON file and confirm the current data remains unchanged.

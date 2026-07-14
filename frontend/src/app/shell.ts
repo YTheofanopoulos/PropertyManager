@@ -29,11 +29,13 @@ export function renderShell(): HTMLElement {
         <div class="nav-heading">Administration</div>
         <a href="#/settings" data-route="/settings"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
         <button class="nav-button" id="export-data"><i class="fa-solid fa-download"></i><span>Export JSON</span></button>
+        <button class="nav-button" id="import-data"><i class="fa-solid fa-upload"></i><span>Import JSON</span></button>
+        <input id="import-data-file" type="file" accept="application/json,.json" class="d-none">
         <button class="nav-button" id="reset-data"><i class="fa-solid fa-rotate-left"></i><span>Reset Sample Data</span></button>
       </nav>
     </aside>
     <main class="main-panel">
-      <header class="topbar"><span class="fw-semibold">Baseline 5.2</span></header>
+      <header class="topbar"><span class="fw-semibold">Baseline 5.2.1</span></header>
       <section id="page-content" class="content"></section>
     </main>
   </div><div class="toast-container position-fixed top-0 end-0 p-3" id="toast-container"></div>`;
