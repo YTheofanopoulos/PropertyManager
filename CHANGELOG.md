@@ -1,6 +1,19 @@
 
 # Changelog
 
+## [0.5.1.1] - 2026-07-14
+
+### Changed
+- Payment entry identifies accounts by unit and address rather than internal lease numbers.
+- Lease selectors no longer include tenant names.
+- Leaseholders are shown only as secondary reference information.
+- Manual payments are recorded against the lease account, not an individual tenant.
+- Back and Save return to the originating screen.
+- Rent Roll preserves the selected period when entering and leaving payment entry.
+
+### Fixed
+- Removed the user-visible disconnect between Rent Roll units and internal lease identifiers.
+
 ## [0.5.1] - 2026-07-14
 
 ### Added

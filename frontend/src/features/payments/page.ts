@@ -5,8 +5,386 @@ import { paymentService } from "../../services/paymentService";
 import { rentLedgerService } from "../../services/rentLedgerService";
 import { createTable } from "../shared/table";
 import { currency } from "../shared/format";
-export async function renderPayments(container:HTMLElement){const [payments,allocs]=await Promise.all([db.payments.orderBy("receivedDate").reverse().toArray(),db.paymentAllocations.toArray()]);const rows=payments.map(p=>{const allocated=allocs.filter(a=>a.paymentId===p.id).reduce((t,a)=>t+a.amount,0);return {...p,allocated,unapplied:p.amount-allocated}});container.innerHTML=`<div class="page-heading d-flex justify-content-between align-items-center"><div><h1>Payments</h1><p class="text-body-secondary mb-0">Money received and its rent-period allocations.</p></div><a class="btn btn-primary" href="#/payments/new"><i class="fa-solid fa-plus me-1"></i>Record Payment</a></div><div class="card"><div class="card-body"><table id="payments-table" class="table table-hover align-middle w-100"><thead><tr><th>Received</th><th>Lease</th><th>Amount</th><th>Allocated</th><th>Unapplied</th><th>Method</th><th>Reference</th></tr></thead></table></div></div>`;createTable("#payments-table",{data:rows,columns:[{data:"receivedDate"},{data:"leaseId"},{data:"amount",render:(v:number)=>currency(v)},{data:"allocated",render:(v:number)=>currency(v)},{data:"unapplied",render:(v:number)=>currency(v)},{data:"paymentMethod"},{data:"reference"}]})}
-export async function renderPaymentEditor(container:HTMLElement){const params=new URLSearchParams(location.hash.split("?")[1]??"");const requested=Number(params.get("leaseId")??0);await rentLedgerService.ensureObligationsThrough(new Date().toISOString().slice(0,7));const leases=await db.leases.toArray();container.innerHTML=`<div class="page-heading d-flex justify-content-between align-items-center"><div><h1>Record Payment</h1><p class="text-body-secondary mb-0">Received date and rent period are separate.</p></div><a class="btn btn-outline-secondary" href="#/payments">Back</a></div><form id="payment-form"><div class="row g-4"><div class="col-xl-5"><div class="card"><div class="card-header fw-semibold">Payment</div><div class="card-body"><div class="mb-3"><label class="form-label">Lease</label><select id="payment-lease" class="form-select" required><option value="">Choose...</option>${leases.map(l=>`<option value="${l.id}" ${requested===l.id?"selected":""}>Lease ${l.id}</option>`).join("")}</select></div><div class="row g-3"><div class="col-md-6"><label class="form-label">Date Received</label><input id="payment-date" type="date" class="form-control" value="${new Date().toISOString().slice(0,10)}" required></div><div class="col-md-6"><label class="form-label">Amount</label><input id="payment-amount" type="number" min=".01" step=".01" class="form-control" required></div><div class="col-md-6"><label class="form-label">Method</label><select id="payment-method" class="form-select"><option>Electronic Transfer</option><option>Cheque</option><option>Cash</option><option>Direct Deposit</option><option>Other</option></select></div><div class="col-md-6"><label class="form-label">Reference</label><input id="payment-reference" class="form-control"></div><div class="col-12"><label class="form-label">Notes</label><textarea id="payment-notes" class="form-control"></textarea></div></div></div></div></div><div class="col-xl-7"><div class="card"><div class="card-header fw-semibold">Allocate to Rent Periods</div><div class="card-body"><div id="allocation-list">Select a lease.</div><div class="border-top pt-3 mt-3"><div class="d-flex justify-content-between"><span>Payment</span><strong id="review-payment">${currency(0)}</strong></div><div class="d-flex justify-content-between"><span>Allocated</span><strong id="review-allocated">${currency(0)}</strong></div><div class="d-flex justify-content-between"><span>Unapplied Credit</span><strong id="review-unapplied">${currency(0)}</strong></div></div><button class="btn btn-primary w-100 mt-4">Save Payment</button></div></div></div></div></form>`;document.getElementById("payment-lease")?.addEventListener("change",load);document.getElementById("payment-amount")?.addEventListener("input",review);document.getElementById("payment-form")?.addEventListener("submit",save);if(requested)await load();}
-async function load(){const leaseId=Number((document.getElementById("payment-lease") as HTMLSelectElement).value),list=document.getElementById("allocation-list");if(!list)return;const obs=leaseId?await rentLedgerService.getOutstandingObligations(leaseId):[];list.innerHTML=obs.length?obs.map(o=>`<div class="row g-2 align-items-center mb-2 allocation-row" data-obligation-id="${o.id}"><div class="col-4"><strong>${o.rentPeriod}</strong></div><div class="col-3 text-end">${currency(o.balance)}</div><div class="col-5"><input type="number" min="0" max="${o.balance}" step=".01" class="form-control allocation-amount"></div></div>`).join(""):"<div class='alert alert-success'>No unpaid periods.</div>";document.querySelectorAll<HTMLInputElement>(".allocation-amount").forEach(i=>i.addEventListener("input",review));review()}
-function review(){const payment=Number((document.getElementById("payment-amount") as HTMLInputElement)?.value||0),allocated=Array.from(document.querySelectorAll<HTMLInputElement>(".allocation-amount")).reduce((t,i)=>t+Number(i.value||0),0);document.getElementById("review-payment")!.textContent=currency(payment);document.getElementById("review-allocated")!.textContent=currency(allocated);document.getElementById("review-unapplied")!.textContent=currency(Math.max(payment-allocated,0))}
-async function save(e:Event){e.preventDefault();try{const leaseId=Number((document.getElementById("payment-lease") as HTMLSelectElement).value);const primary=await db.leaseParticipants.where("leaseId").equals(leaseId).filter(x=>x.primary).first();const allocations=Array.from(document.querySelectorAll<HTMLElement>(".allocation-row")).map(r=>({obligationId:Number(r.dataset.obligationId),amount:Number((r.querySelector(".allocation-amount") as HTMLInputElement).value||0)})).filter(x=>x.amount>0);await paymentService.save({leaseId,tenantId:primary?.tenantId,receivedDate:(document.getElementById("payment-date") as HTMLInputElement).value,amount:Number((document.getElementById("payment-amount") as HTMLInputElement).value),paymentMethod:(document.getElementById("payment-method") as HTMLSelectElement).value as PaymentMethod,reference:(document.getElementById("payment-reference") as HTMLInputElement).value,notes:(document.getElementById("payment-notes") as HTMLTextAreaElement).value,allocations});location.hash="#/payments"}catch(err){alert((err as Error).message)}}
+
+export async function renderPayments(container: HTMLElement): Promise<void> {
+  const [payments, allocations, leases, units, buildings, locations] =
+    await Promise.all([
+      db.payments.orderBy("receivedDate").reverse().toArray(),
+      db.paymentAllocations.toArray(),
+      db.leases.toArray(),
+      db.units.toArray(),
+      db.buildings.toArray(),
+      db.locations.toArray(),
+    ]);
+
+  const leaseMap = new Map(leases.map((item) => [item.id, item]));
+  const unitMap = new Map(units.map((item) => [item.id, item]));
+  const buildingMap = new Map(buildings.map((item) => [item.id, item]));
+  const locationMap = new Map(locations.map((item) => [item.id, item]));
+
+  const rows = payments.map((payment) => {
+    const allocated = allocations
+      .filter((allocation) => allocation.paymentId === payment.id)
+      .reduce((total, allocation) => total + allocation.amount, 0);
+
+    const lease = leaseMap.get(payment.leaseId);
+    const unit = lease ? unitMap.get(lease.unitId) : undefined;
+    const building = unit ? buildingMap.get(unit.buildingId) : undefined;
+    const location = building ? locationMap.get(building.locationId) : undefined;
+    const unitLabel =
+      `${building?.civicAddress ?? "?"}` +
+      `${unit?.apartmentNumber ? ` ${unit.apartmentNumber}` : ""}` +
+      `${location?.name ? ` ${location.name}` : ""}`;
+
+    return {
+      ...payment,
+      unitLabel: unitLabel.trim(),
+      allocated,
+      unapplied: payment.amount - allocated,
+    };
+  });
+
+  container.innerHTML = `
+    <div class="page-heading d-flex justify-content-between align-items-center">
+      <div>
+        <h1>Payments</h1>
+        <p class="text-body-secondary mb-0">
+          Money received and its rent-period allocations.
+        </p>
+      </div>
+      <a class="btn btn-primary" href="#/payments/new">
+        <i class="fa-solid fa-plus me-1"></i>Record Payment
+      </a>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <table id="payments-table" class="table table-hover align-middle w-100">
+          <thead>
+            <tr>
+              <th>Received</th>
+              <th>Unit</th>
+              <th>Amount</th>
+              <th>Allocated</th>
+              <th>Unapplied</th>
+              <th>Method</th>
+              <th>Reference</th>
+            </tr>
+          </thead>
+        </table>
+      </div>
+    </div>
+  `;
+
+  createTable("#payments-table", {
+    data: rows,
+    columns: [
+      { data: "receivedDate" },
+      { data: "unitLabel" },
+      { data: "amount", render: (value: number) => currency(value) },
+      { data: "allocated", render: (value: number) => currency(value) },
+      { data: "unapplied", render: (value: number) => currency(value) },
+      { data: "paymentMethod" },
+      { data: "reference" },
+    ],
+  });
+}
+
+export async function renderPaymentEditor(
+  container: HTMLElement,
+): Promise<void> {
+  const params = new URLSearchParams(location.hash.split("?")[1] ?? "");
+  const requestedLeaseId = Number(params.get("leaseId") ?? 0);
+  const returnTo = params.get("returnTo") ?? "payments";
+  const returnPeriod =
+    params.get("period") ?? new Date().toISOString().slice(0, 7);
+  const returnHash =
+    returnTo === "rent-roll"
+      ? `#/rent-roll?period=${returnPeriod}`
+      : "#/payments";
+
+  await rentLedgerService.ensureObligationsThrough(
+    new Date().toISOString().slice(0, 7),
+  );
+
+  const [leases, units, buildings, locations, participants, tenants] =
+    await Promise.all([
+      db.leases.toArray(),
+      db.units.toArray(),
+      db.buildings.toArray(),
+      db.locations.toArray(),
+      db.leaseParticipants.toArray(),
+      db.tenants.toArray(),
+    ]);
+
+  const unitMap = new Map(units.map((item) => [item.id, item]));
+  const buildingMap = new Map(buildings.map((item) => [item.id, item]));
+  const locationMap = new Map(locations.map((item) => [item.id, item]));
+  const tenantMap = new Map(tenants.map((item) => [item.id, item]));
+
+  const leaseOptions = leases.map((lease) => {
+    const unit = unitMap.get(lease.unitId);
+    const building = unit ? buildingMap.get(unit.buildingId) : undefined;
+    const location = building ? locationMap.get(building.locationId) : undefined;
+    const unitLabel =
+      `${building?.civicAddress ?? "?"}` +
+      `${unit?.apartmentNumber ? ` ${unit.apartmentNumber}` : ""}` +
+      `${location?.name ? ` ${location.name}` : ""}`;
+
+    const leaseholders = participants
+      .filter((item) => item.leaseId === lease.id)
+      .sort((left, right) => Number(right.primary) - Number(left.primary))
+      .map((item) => tenantMap.get(item.tenantId))
+      .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant))
+      .map((tenant) => `${tenant.firstName} ${tenant.lastName}`);
+
+    return {
+      leaseId: lease.id as number,
+      unitLabel: unitLabel.trim(),
+      leaseholders,
+    };
+  });
+
+  const options = leaseOptions
+    .map(
+      (item) =>
+        `<option value="${item.leaseId}" ${
+          requestedLeaseId === item.leaseId ? "selected" : ""
+        }>${item.unitLabel}</option>`,
+    )
+    .join("");
+
+  container.innerHTML = `
+    <div class="page-heading d-flex justify-content-between align-items-center">
+      <div>
+        <h1>Record Payment</h1>
+        <p class="text-body-secondary mb-0">
+          Received date and rent period are separate.
+        </p>
+      </div>
+      <a class="btn btn-outline-secondary" href="${returnHash}">
+        ${returnTo === "rent-roll" ? "Back to Rent Roll" : "Back to Payments"}
+      </a>
+    </div>
+
+    <form id="payment-form">
+      <div class="row g-4">
+        <div class="col-xl-5">
+          <div class="card">
+            <div class="card-header fw-semibold">Payment</div>
+            <div class="card-body">
+              <div class="mb-3">
+                <label class="form-label">Unit</label>
+                <select id="payment-lease" class="form-select" required>
+                  <option value="">Choose a unit...</option>
+                  ${options}
+                </select>
+                <div class="form-text">
+                  Payments are recorded against the lease account for the unit.
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Leaseholders</label>
+                <div id="payment-leaseholders" class="form-control bg-body-tertiary">
+                  Select a unit to view the leaseholders.
+                </div>
+              </div>
+
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Date Received</label>
+                  <input id="payment-date" type="date" class="form-control"
+                         value="${new Date().toISOString().slice(0, 10)}" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Amount</label>
+                  <input id="payment-amount" type="number" min=".01" step=".01"
+                         class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Method</label>
+                  <select id="payment-method" class="form-select">
+                    <option>Electronic Transfer</option>
+                    <option>Cheque</option>
+                    <option>Cash</option>
+                    <option>Direct Deposit</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Reference</label>
+                  <input id="payment-reference" class="form-control">
+                </div>
+                <div class="col-12">
+                  <label class="form-label">Notes</label>
+                  <textarea id="payment-notes" class="form-control"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-xl-7">
+          <div class="card">
+            <div class="card-header fw-semibold">Allocate to Rent Periods</div>
+            <div class="card-body">
+              <div id="allocation-list">Select a unit.</div>
+              <div class="border-top pt-3 mt-3">
+                <div class="d-flex justify-content-between">
+                  <span>Payment</span>
+                  <strong id="review-payment">${currency(0)}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <span>Allocated</span>
+                  <strong id="review-allocated">${currency(0)}</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <span>Unapplied Credit</span>
+                  <strong id="review-unapplied">${currency(0)}</strong>
+                </div>
+              </div>
+              <button class="btn btn-primary w-100 mt-4">Save Payment</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  `;
+
+  const leaseSelect = document.getElementById(
+    "payment-lease",
+  ) as HTMLSelectElement;
+
+  const updateLeaseContext = (): void => {
+    const selectedLeaseId = Number(leaseSelect.value);
+    const selected = leaseOptions.find(
+      (item) => item.leaseId === selectedLeaseId,
+    );
+    const leaseholderElement = document.getElementById(
+      "payment-leaseholders",
+    );
+
+    if (leaseholderElement) {
+      leaseholderElement.textContent =
+        selected && selected.leaseholders.length > 0
+          ? selected.leaseholders.join(", ")
+          : "No leaseholders found.";
+    }
+  };
+
+  leaseSelect.addEventListener("change", () => {
+    updateLeaseContext();
+    void loadOutstanding();
+  });
+
+  document
+    .getElementById("payment-amount")
+    ?.addEventListener("input", updateReview);
+  document
+    .getElementById("payment-form")
+    ?.addEventListener("submit", savePayment);
+
+  if (requestedLeaseId) {
+    updateLeaseContext();
+    await loadOutstanding();
+  }
+
+  async function loadOutstanding(): Promise<void> {
+    const leaseId = Number(leaseSelect.value);
+    const list = document.getElementById("allocation-list");
+    if (!list) return;
+
+    const obligations = leaseId
+      ? await rentLedgerService.getOutstandingObligations(leaseId)
+      : [];
+
+    list.innerHTML = obligations.length
+      ? obligations
+          .map(
+            (obligation) => `
+              <div class="row g-2 align-items-center mb-2 allocation-row"
+                   data-obligation-id="${obligation.id}">
+                <div class="col-4">
+                  <strong>${obligation.rentPeriod}</strong>
+                </div>
+                <div class="col-3 text-end">
+                  ${currency(obligation.balance)}
+                </div>
+                <div class="col-5">
+                  <input type="number" min="0" max="${obligation.balance}"
+                         step=".01" class="form-control allocation-amount">
+                </div>
+              </div>
+            `,
+          )
+          .join("")
+      : "<div class='alert alert-success'>No unpaid periods.</div>";
+
+    document
+      .querySelectorAll<HTMLInputElement>(".allocation-amount")
+      .forEach((input) => input.addEventListener("input", updateReview));
+
+    updateReview();
+  }
+
+  function updateReview(): void {
+    const payment = Number(
+      (document.getElementById("payment-amount") as HTMLInputElement)?.value || 0,
+    );
+    const allocated = Array.from(
+      document.querySelectorAll<HTMLInputElement>(".allocation-amount"),
+    ).reduce((total, input) => total + Number(input.value || 0), 0);
+
+    document.getElementById("review-payment")!.textContent = currency(payment);
+    document.getElementById("review-allocated")!.textContent =
+      currency(allocated);
+    document.getElementById("review-unapplied")!.textContent = currency(
+      Math.max(payment - allocated, 0),
+    );
+  }
+
+  async function savePayment(event: Event): Promise<void> {
+    event.preventDefault();
+
+    try {
+      const leaseId = Number(leaseSelect.value);
+      const allocations = Array.from(
+        document.querySelectorAll<HTMLElement>(".allocation-row"),
+      )
+        .map((row) => ({
+          obligationId: Number(row.dataset.obligationId),
+          amount: Number(
+            (row.querySelector(".allocation-amount") as HTMLInputElement).value ||
+              0,
+          ),
+        }))
+        .filter((item) => item.amount > 0);
+
+      await paymentService.save({
+        leaseId,
+        tenantId: undefined,
+        receivedDate: (
+          document.getElementById("payment-date") as HTMLInputElement
+        ).value,
+        amount: Number(
+          (document.getElementById("payment-amount") as HTMLInputElement).value,
+        ),
+        paymentMethod: (
+          document.getElementById("payment-method") as HTMLSelectElement
+        ).value as PaymentMethod,
+        reference: (
+          document.getElementById("payment-reference") as HTMLInputElement
+        ).value,
+        notes: (
+          document.getElementById("payment-notes") as HTMLTextAreaElement
+        ).value,
+        allocations,
+      });
+
+      location.hash = returnHash;
+    } catch (error) {
+      window.alert((error as Error).message);
+    }
+  }
+}
