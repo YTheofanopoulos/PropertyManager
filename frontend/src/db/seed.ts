@@ -10,39 +10,70 @@ import type {
   Unit,
 } from "../models/domain";
 
-const portfolio = [
-  { name: "Edouard-Charles", buildings: [
-    { address: "383", apartments: ["1", "2", "3", "4"] },
-    { address: "385", apartments: ["5", "6", "7", "8", "9", "10", "11"] },
-    { address: "387", apartments: ["1", "2", "3", "4", "5", "6"] },
-    { address: "389", apartments: ["1", "2", "3", "4", "5", "6", "7", "8"] },
-  ]},
-  { name: "Jeanne Mance", buildings: [
-    { address: "5213", apartments: ["A", "B"] },
-    { address: "5215", apartments: ["A", "B"] },
-    { address: "5217", apartments: [""] },
-    { address: "5219", apartments: [""] },
-    { address: "5221", apartments: ["A", "B"] },
-    { address: "5223", apartments: ["A", "B"] },
-  ]},
-  { name: "Clermont", buildings: [
-    { address: "116", apartments: [""] },
-    { address: "118", apartments: [""] },
-    { address: "120", apartments: [""] },
-    { address: "122", apartments: [""] },
-    { address: "124", apartments: [""] },
-    { address: "126", apartments: [""] },
-  ]},
-] as const;
+interface SeedUnit {
+  street: string;
+  address: string;
+  apartment: string;
+  bedrooms: number;
+  bathrooms: number;
+  marketRent: number;
+  occupied: boolean;
+}
 
-const first = ["Marie","Jean","Sophie","Luc","Camille","Marc","Julie","Daniel","Nathalie","Andre","Isabelle","Robert","Chloe","Olivier","Louise","Patrick","Amelie","Francois","Mireille","Etienne","Claire","Michel","Anne","Louis","Caroline","Pierre","Genevieve","Paul","Monique","Alexandre","Diane","Gabriel","Sylvie","Hugo","Valerie","Martin","Emma","Benoit","Noemie","Thomas","Audrey","Denis","Helene","Mathieu","Celine"];
-const last = ["Tremblay","Gagnon","Roy","Cote","Bouchard","Gauthier","Morin","Lavoie","Fortin","Gagne","Ouellet","Pelletier","Belanger","Levesque","Bergeron","Leblanc","Paquette","Girard","Simard","Boucher","Caron","Beaulieu","Cloutier","Poirier","Fournier","Lapointe","Rousseau","Desjardins","Hebert","Bernier"];
+const units: SeedUnit[] = [
+  { street: "Clermont", address: "116", apartment: "", bedrooms: 2, bathrooms: 1.0, marketRent: 1125, occupied: false },
+  { street: "Clermont", address: "118", apartment: "", bedrooms: 2, bathrooms: 2.0, marketRent: 1175, occupied: true },
+  { street: "Clermont", address: "120", apartment: "", bedrooms: 3, bathrooms: 1.5, marketRent: 875, occupied: true },
+  { street: "Clermont", address: "122", apartment: "", bedrooms: 3, bathrooms: 1.0, marketRent: 1650, occupied: true },
+  { street: "Clermont", address: "124", apartment: "", bedrooms: 2, bathrooms: 2.0, marketRent: 1075, occupied: true },
+  { street: "Clermont", address: "126", apartment: "", bedrooms: 2, bathrooms: 1.0, marketRent: 1225, occupied: true },
+  { street: "Edouard-Charles", address: "383", apartment: "1", bedrooms: 2, bathrooms: 1.0, marketRent: 1300, occupied: true },
+  { street: "Edouard-Charles", address: "383", apartment: "2", bedrooms: 2, bathrooms: 1.5, marketRent: 1375, occupied: true },
+  { street: "Edouard-Charles", address: "383", apartment: "3", bedrooms: 2, bathrooms: 1.0, marketRent: 1625, occupied: true },
+  { street: "Edouard-Charles", address: "383", apartment: "4", bedrooms: 2, bathrooms: 1.0, marketRent: 1025, occupied: false },
+  { street: "Edouard-Charles", address: "385", apartment: "5", bedrooms: 2, bathrooms: 2.0, marketRent: 975, occupied: true },
+  { street: "Edouard-Charles", address: "385", apartment: "6", bedrooms: 2, bathrooms: 1.5, marketRent: 900, occupied: true },
+  { street: "Edouard-Charles", address: "385", apartment: "7", bedrooms: 2, bathrooms: 1.5, marketRent: 1325, occupied: true },
+  { street: "Edouard-Charles", address: "385", apartment: "8", bedrooms: 2, bathrooms: 2.0, marketRent: 1625, occupied: true },
+  { street: "Edouard-Charles", address: "385", apartment: "9", bedrooms: 2, bathrooms: 1.0, marketRent: 1150, occupied: true },
+  { street: "Edouard-Charles", address: "385", apartment: "10", bedrooms: 3, bathrooms: 1.5, marketRent: 1275, occupied: true },
+  { street: "Edouard-Charles", address: "385", apartment: "11", bedrooms: 2, bathrooms: 1.5, marketRent: 1600, occupied: true },
+  { street: "Edouard-Charles", address: "387", apartment: "1", bedrooms: 3, bathrooms: 1.5, marketRent: 1275, occupied: false },
+  { street: "Edouard-Charles", address: "387", apartment: "2", bedrooms: 2, bathrooms: 2.0, marketRent: 1475, occupied: true },
+  { street: "Edouard-Charles", address: "387", apartment: "3", bedrooms: 3, bathrooms: 1.5, marketRent: 1350, occupied: true },
+  { street: "Edouard-Charles", address: "387", apartment: "4", bedrooms: 2, bathrooms: 1.5, marketRent: 1425, occupied: true },
+  { street: "Edouard-Charles", address: "387", apartment: "5", bedrooms: 1, bathrooms: 2.0, marketRent: 1300, occupied: true },
+  { street: "Edouard-Charles", address: "387", apartment: "6", bedrooms: 2, bathrooms: 1.0, marketRent: 1225, occupied: true },
+  { street: "Edouard-Charles", address: "389", apartment: "1", bedrooms: 3, bathrooms: 2.0, marketRent: 1250, occupied: true },
+  { street: "Edouard-Charles", address: "389", apartment: "2", bedrooms: 1, bathrooms: 1.0, marketRent: 1075, occupied: true },
+  { street: "Edouard-Charles", address: "389", apartment: "3", bedrooms: 3, bathrooms: 2.0, marketRent: 1575, occupied: true },
+  { street: "Edouard-Charles", address: "389", apartment: "4", bedrooms: 1, bathrooms: 1.5, marketRent: 900, occupied: true },
+  { street: "Edouard-Charles", address: "389", apartment: "5", bedrooms: 2, bathrooms: 1.0, marketRent: 900, occupied: true },
+  { street: "Edouard-Charles", address: "389", apartment: "6", bedrooms: 1, bathrooms: 1.0, marketRent: 975, occupied: true },
+  { street: "Edouard-Charles", address: "389", apartment: "7", bedrooms: 2, bathrooms: 1.0, marketRent: 1050, occupied: true },
+  { street: "Edouard-Charles", address: "389", apartment: "8", bedrooms: 2, bathrooms: 2.0, marketRent: 1450, occupied: true },
+  { street: "Jeanne Mance", address: "5213", apartment: "A", bedrooms: 3, bathrooms: 2.0, marketRent: 1325, occupied: true },
+  { street: "Jeanne Mance", address: "5213", apartment: "B", bedrooms: 1, bathrooms: 1.5, marketRent: 1475, occupied: true },
+  { street: "Jeanne Mance", address: "5215", apartment: "A", bedrooms: 2, bathrooms: 1.0, marketRent: 1200, occupied: true },
+  { street: "Jeanne Mance", address: "5215", apartment: "B", bedrooms: 1, bathrooms: 1.0, marketRent: 1175, occupied: true },
+  { street: "Jeanne Mance", address: "5217", apartment: "", bedrooms: 2, bathrooms: 2.0, marketRent: 975, occupied: true },
+  { street: "Jeanne Mance", address: "5219", apartment: "", bedrooms: 2, bathrooms: 2.0, marketRent: 1325, occupied: true },
+  { street: "Jeanne Mance", address: "5221", apartment: "A", bedrooms: 3, bathrooms: 2.0, marketRent: 900, occupied: true },
+  { street: "Jeanne Mance", address: "5221", apartment: "B", bedrooms: 3, bathrooms: 1.0, marketRent: 1425, occupied: true },
+  { street: "Jeanne Mance", address: "5223", apartment: "A", bedrooms: 2, bathrooms: 1.0, marketRent: 1025, occupied: true },
+  { street: "Jeanne Mance", address: "5223", apartment: "B", bedrooms: 2, bathrooms: 1.0, marketRent: 1175, occupied: true }
+];
 
-function addMonths(dateText: string, months: number): string {
-  const date = new Date(`${dateText}T12:00:00`);
-  date.setMonth(date.getMonth() + months);
-  date.setDate(date.getDate() - 1);
-  return date.toISOString().slice(0, 10);
+const firstNames = ['Marie', 'Jean', 'Sophie', 'Luc', 'Camille', 'Marc', 'Julie', 'Daniel', 'Nathalie', 'Andre', 'Isabelle', 'Robert', 'Chloe', 'Olivier', 'Louise', 'Patrick', 'Amelie', 'Francois', 'Mireille', 'Etienne', 'Claire', 'Michel', 'Anne', 'Louis', 'Caroline', 'Pierre', 'Genevieve', 'Paul', 'Monique', 'Alexandre', 'Diane', 'Gabriel', 'Sylvie', 'Hugo', 'Valerie', 'Martin', 'Emma', 'Benoit', 'Noemie', 'Thomas', 'Audrey', 'Denis', 'Helene', 'Mathieu', 'Celine', 'Rene', 'Josiane', 'Samuel', 'Elise', 'Victor', 'Manon', 'Philippe', 'Ariane', 'Simon', 'Madeleine', 'Antoine'].map(String);
+const lastNames = ['Tremblay', 'Gagnon', 'Roy', 'Cote', 'Bouchard', 'Gauthier', 'Morin', 'Lavoie', 'Fortin', 'Gagne', 'Ouellet', 'Pelletier', 'Belanger', 'Levesque', 'Bergeron', 'Leblanc', 'Paquette', 'Girard', 'Simard', 'Boucher', 'Caron', 'Beaulieu', 'Cloutier', 'Poirier', 'Fournier', 'Lapointe', 'Rousseau', 'Desjardins', 'Hebert', 'Bernier'].map(String);
+
+const twoTenantUnits = new Set([2, 5, 9, 13, 18, 24, 29, 33]);
+const threeTenantUnits = new Set([7, 21, 36]);
+
+function participantCount(index: number): number {
+  if (threeTenantUnits.has(index)) return 3;
+  if (twoTenantUnits.has(index)) return 2;
+  return 1;
 }
 
 export async function seedDatabase(force = false): Promise<void> {
@@ -58,6 +89,9 @@ export async function seedDatabase(force = false): Promise<void> {
       db.leases,
       db.leaseParticipants,
       db.recurringCharges,
+      db.rentObligations,
+      db.payments,
+      db.paymentAllocations,
     ],
     async () => {
       await Promise.all([
@@ -68,84 +102,103 @@ export async function seedDatabase(force = false): Promise<void> {
         db.leases.clear(),
         db.leaseParticipants.clear(),
         db.recurringCharges.clear(),
+        db.rentObligations.clear(),
+        db.payments.clear(),
+        db.paymentAllocations.clear(),
       ]);
 
-      let unitSeq = 0;
-      let tenantSeq = 0;
+      const locationIds = new Map<string, number>();
+      const buildingIds = new Map<string, number>();
+      let tenantSequence = 0;
+      let occupiedIndex = 0;
 
-      for (const location of portfolio) {
-        const locationId = Number(await db.locations.add({
-          name: location.name,
-          city: "Montréal",
-        } satisfies Location));
+      for (const seedUnit of units) {
+        let locationId = locationIds.get(seedUnit.street);
+        if (!locationId) {
+          locationId = Number(
+            await db.locations.add({
+              name: seedUnit.street,
+              city: "Montréal",
+            } satisfies Location),
+          );
+          locationIds.set(seedUnit.street, locationId);
+        }
 
-        for (const building of location.buildings) {
-          const buildingId = Number(await db.buildings.add({
-            locationId,
-            civicAddress: building.address,
-          } satisfies Building));
+        const buildingKey = `${seedUnit.street}|${seedUnit.address}`;
+        let buildingId = buildingIds.get(buildingKey);
+        if (!buildingId) {
+          buildingId = Number(
+            await db.buildings.add({
+              locationId,
+              civicAddress: seedUnit.address,
+            } satisfies Building),
+          );
+          buildingIds.set(buildingKey, buildingId);
+        }
 
-          for (const apartmentNumber of building.apartments) {
-            unitSeq += 1;
-            const occupied = unitSeq <= 38;
-            const monthlyRent = 850 + ((unitSeq * 75) % 825);
+        const unitId = Number(
+          await db.units.add({
+            buildingId,
+            apartmentNumber: seedUnit.apartment,
+            bedrooms: seedUnit.bedrooms,
+            bathrooms: seedUnit.bathrooms,
+            monthlyRent: seedUnit.marketRent,
+            status: seedUnit.occupied ? "Occupied" : "Vacant",
+            active: true,
+          } satisfies Unit),
+        );
 
-            const unitId = Number(await db.units.add({
-              buildingId,
-              apartmentNumber,
-              bedrooms: unitSeq % 4 === 0 ? 3 : unitSeq % 3 === 0 ? 1 : 2,
-              bathrooms: unitSeq % 5 === 0 ? 1.5 : 1,
-              monthlyRent,
-              status: occupied ? "Occupied" : "Vacant",
+        if (!seedUnit.occupied) continue;
+
+        occupiedIndex += 1;
+        const startDate = "2026-07-01";
+        const endDate = "2027-06-30";
+
+        const leaseId = Number(
+          await db.leases.add({
+            unitId,
+            startDate,
+            endDate,
+            termType: "Fixed",
+            status: "Active",
+            notes: "Baseline 5.2 realistic test lease",
+          } satisfies Lease),
+        );
+
+        await db.recurringCharges.add({
+          leaseId,
+          chargeType: "Apartment Rent",
+          description: "Monthly apartment rent",
+          amount: seedUnit.marketRent,
+          frequency: "Monthly",
+          startDate,
+          endDate,
+        } satisfies RecurringCharge);
+
+        for (let i = 0; i < participantCount(occupiedIndex); i += 1) {
+          const firstName =
+            firstNames[tenantSequence % firstNames.length] ?? "Tenant";
+          const lastName =
+            lastNames[(tenantSequence * 5) % lastNames.length] ?? "Resident";
+          tenantSequence += 1;
+
+          const tenantId = Number(
+            await db.tenants.add({
+              firstName,
+              lastName,
+              email:
+                `${firstName}.${lastName}.${tenantSequence}@example.ca`.toLowerCase(),
+              phone: `514-555-${String(1000 + tenantSequence).slice(-4)}`,
               active: true,
-            } satisfies Unit));
+            } satisfies Tenant),
+          );
 
-            if (!occupied) continue;
-
-            const startDate = `2025-${String((unitSeq % 12) + 1).padStart(2, "0")}-01`;
-            const leaseId = Number(await db.leases.add({
-              unitId,
-              startDate,
-              endDate: addMonths(startDate, 12),
-              termType: "Fixed",
-              status: "Active",
-              notes: "",
-            } satisfies Lease));
-
-            await db.recurringCharges.add({
-              leaseId,
-              chargeType: "Apartment Rent",
-              description: "Monthly apartment rent",
-              amount: monthlyRent,
-              frequency: "Monthly",
-              startDate,
-              endDate: addMonths(startDate, 12),
-            } satisfies RecurringCharge);
-
-            const participantCount = [3, 8, 14, 21, 29].includes(unitSeq)
-              ? [8, 21].includes(unitSeq) ? 3 : 2
-              : 1;
-
-            for (let index = 0; index < participantCount; index += 1) {
-              const firstName = first[tenantSeq % first.length] ?? "Tenant";
-              const lastName = last[(tenantSeq * 3) % last.length] ?? "Resident";
-              tenantSeq += 1;
-
-              const tenantId = Number(await db.tenants.add({
-                firstName,
-                lastName,
-                email: `${firstName}.${lastName}${tenantSeq}@example.ca`.toLowerCase(),
-                phone: `514-555-${String(1000 + tenantSeq).slice(-4)}`,
-                active: true,
-              } satisfies Tenant));
-
-              await db.leaseParticipants.add({
-                leaseId,
-                tenantId,
-                primary: index === 0,
-              } satisfies LeaseParticipant);
-            }
-          }
+          await db.leaseParticipants.add({
+            leaseId,
+            tenantId,
+            primary: i === 0,
+            sortOrder: i,
+          } satisfies LeaseParticipant);
         }
       }
     },

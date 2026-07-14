@@ -174,3 +174,11 @@ All notable changes to PropertyManager are documented here.
 - DataTables 2.
 - Client-side routing and responsive application shell.
 - Complete application navigation with placeholders for future features.
+
+## [0.5.2-data.1] - 2026-07-14
+
+### Fixed
+- Corrected the Baseline 5.2 vacancies to 116 Clermont, 383-4 Edouard-Charles, and 387-1 Edouard-Charles.
+- All other units now receive active leases for July 1, 2026 through June 30, 2027.
+- Updated the normalized test-data reference file and documentation.
+
