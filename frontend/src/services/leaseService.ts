@@ -64,84 +64,118 @@ export class LeaseService {
       throw new Error("Charge amounts cannot be negative.");
     }
 
-    const leases = await db.leases.where("unitId").equals(input.unitId).toArray();
-    const overlap = leases.find(
-      (lease) =>
-        lease.id !== input.id &&
-        lease.status !== "Terminated" &&
-        datesOverlap(
-          input.startDate,
-          input.termType === "Month-to-Month" ? "" : input.endDate,
-          lease.startDate,
-          lease.termType === "Month-to-Month" ? "" : lease.endDate,
-        ),
-    );
-    if (overlap) {
-      throw new Error("These dates overlap another lease for the selected unit.");
-    }
-
-    const participantLinks = await db.leaseParticipants
-      .where("tenantId")
-      .anyOf(input.participantIds)
-      .toArray();
-
-    const otherLeaseIds = Array.from(
-      new Set(
-        participantLinks
-          .map((participant) => participant.leaseId)
-          .filter((leaseId) => leaseId !== input.id),
-      ),
-    );
-
-    const otherLeases = otherLeaseIds.length > 0
-      ? await db.leases.bulkGet(otherLeaseIds)
+    const existingLease = input.id
+      ? await db.leases.get(input.id)
+      : undefined;
+    const existingParticipants = input.id
+      ? await db.leaseParticipants.where("leaseId").equals(input.id).toArray()
       : [];
 
-    const selectedTenants = await db.tenants.bulkGet(input.participantIds);
-    const tenants = new Map(
-      selectedTenants
-        .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant))
-        .map((tenant) => [tenant.id, tenant]),
-    );
+    const effectiveEndDate =
+      input.termType === "Month-to-Month" ? "" : input.endDate;
+    const existingParticipantIds = existingParticipants
+      .map((participant) => participant.tenantId)
+      .sort((left, right) => left - right);
+    const incomingParticipantIds = [...input.participantIds]
+      .sort((left, right) => left - right);
 
-    for (const participantId of input.participantIds) {
-      const conflictingLink = participantLinks.find((participant) => {
-        if (participant.tenantId !== participantId || participant.leaseId === input.id) {
-          return false;
+    const occupancyDefinitionChanged =
+      !existingLease ||
+      existingLease.unitId !== input.unitId ||
+      existingLease.startDate !== input.startDate ||
+      existingLease.endDate !== effectiveEndDate ||
+      (existingLease.termType ?? "Fixed") !== input.termType ||
+      existingParticipantIds.length !== incomingParticipantIds.length ||
+      existingParticipantIds.some(
+        (tenantId, index) => tenantId !== incomingParticipantIds[index],
+      );
+
+    if (occupancyDefinitionChanged) {
+      const leases = await db.leases.where("unitId").equals(input.unitId).toArray();
+      const overlap = leases.find(
+        (lease) =>
+          lease.id !== input.id &&
+          lease.status !== "Terminated" &&
+          datesOverlap(
+            input.startDate,
+            effectiveEndDate,
+            lease.startDate,
+            lease.termType === "Month-to-Month" ? "" : lease.endDate,
+          ),
+      );
+
+      if (overlap) {
+        throw new Error("These dates overlap another lease for the selected unit.");
+      }
+
+      const participantLinks = await db.leaseParticipants
+        .where("tenantId")
+        .anyOf(input.participantIds)
+        .toArray();
+
+      const otherLeaseIds = Array.from(
+        new Set(
+          participantLinks
+            .map((participant) => participant.leaseId)
+            .filter((leaseId) => leaseId !== input.id),
+        ),
+      );
+
+      const otherLeases = otherLeaseIds.length > 0
+        ? await db.leases.bulkGet(otherLeaseIds)
+        : [];
+
+      const selectedTenants = await db.tenants.bulkGet(input.participantIds);
+      const tenants = new Map(
+        selectedTenants
+          .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant))
+          .map((tenant) => [tenant.id, tenant]),
+      );
+
+      for (const participantId of input.participantIds) {
+        const conflictingLink = participantLinks.find((participant) => {
+          if (
+            participant.tenantId !== participantId ||
+            participant.leaseId === input.id
+          ) {
+            return false;
+          }
+
+          const conflictingLease = otherLeases.find(
+            (lease) => lease?.id === participant.leaseId,
+          );
+
+          if (!conflictingLease || conflictingLease.status === "Terminated") {
+            return false;
+          }
+
+          return datesOverlap(
+            input.startDate,
+            effectiveEndDate,
+            conflictingLease.startDate,
+            conflictingLease.termType === "Month-to-Month"
+              ? ""
+              : conflictingLease.endDate,
+          );
+        });
+
+        if (conflictingLink) {
+          const conflictingLease = otherLeases.find(
+            (lease) => lease?.id === conflictingLink.leaseId,
+          );
+          const tenant = tenants.get(participantId);
+          const tenantName = tenant
+            ? `${tenant.firstName} ${tenant.lastName}`
+            : "The selected tenant";
+
+          throw new Error(
+            `${tenantName} already belongs to another lease covering this timeframe ` +
+            `(${conflictingLease?.startDate ?? "unknown start"} to ` +
+            `${conflictingLease?.termType === "Month-to-Month"
+              ? "month-to-month"
+              : conflictingLease?.endDate ?? "unknown end"}).`,
+          );
         }
-
-        const existingLease = otherLeases.find(
-          (lease) => lease?.id === participant.leaseId,
-        );
-
-        if (!existingLease || existingLease.status === "Terminated") {
-          return false;
-        }
-
-        return datesOverlap(
-          input.startDate,
-          input.termType === "Month-to-Month" ? "" : input.endDate,
-          existingLease.startDate,
-          existingLease.termType === "Month-to-Month" ? "" : existingLease.endDate,
-        );
-      });
-
-      if (conflictingLink) {
-        const conflictingLease = otherLeases.find(
-          (lease) => lease?.id === conflictingLink.leaseId,
-        );
-        const tenant = tenants.get(participantId);
-        const tenantName = tenant
-          ? `${tenant.firstName} ${tenant.lastName}`
-          : "The selected tenant";
-
-        throw new Error(
-          `${tenantName} already belongs to another lease covering this timeframe ` +
-          `(${conflictingLease?.startDate ?? "unknown start"} to ` +
-          `${conflictingLease?.termType === "Month-to-Month"
-            ? "month-to-month"
-            : conflictingLease?.endDate ?? "unknown end"}).`,
-        );
       }
     }
 

@@ -13,6 +13,10 @@ All notable changes to PropertyManager are documented here.
 ### Changed
 - Replaced the inline tenant-entry panel with a focused modal workflow.
 - Lease validation now rejects overlapping date ranges for any selected leaseholder.
+- Overlap validation now runs only when the unit, dates, term type, or leaseholder list changes.
+
+### Fixed
+- Status-only edits, including moving a lease to Expired, are no longer blocked by historical overlap validation.
 
 ### Added
 - Tenant overlap validation across primary and additional leaseholders.
