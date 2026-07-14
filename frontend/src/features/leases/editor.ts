@@ -5,7 +5,7 @@ import { leaseRepository } from "../../repositories/leaseRepository";
 import { leaseService } from "../../services/leaseService";
 import { tenantService } from "../../services/tenantService";
 import { currency, escapeHtml } from "../shared/format";
-import { notify } from "../shared/ui";
+import { modal, notify } from "../shared/ui";
 
 const chargeTypes: ChargeType[] = [
   "Apartment Rent",
@@ -87,7 +87,7 @@ export async function renderLeaseEditor(
             <div class="card-header d-flex justify-content-between align-items-center">
               <span class="fw-semibold">2. Leaseholders</span>
               <button class="btn btn-sm btn-outline-primary" type="button" id="show-new-tenant">
-                Add New Person
+                <i class="fa-solid fa-user-plus me-1"></i>New Tenant
               </button>
             </div>
             <div class="card-body">
@@ -119,19 +119,6 @@ export async function renderLeaseEditor(
                     </div>
                   `;
                 }).join("")}
-              </div>
-
-              <div id="new-tenant-panel" class="border rounded p-3 mt-3 d-none">
-                <h3 class="h6">Create tenant during lease setup</h3>
-                <div class="row g-3">
-                  <div class="col-md-6"><input id="new-first" class="form-control" placeholder="First name"></div>
-                  <div class="col-md-6"><input id="new-last" class="form-control" placeholder="Last name"></div>
-                  <div class="col-md-6"><input id="new-email" type="email" class="form-control" placeholder="Email"></div>
-                  <div class="col-md-6"><input id="new-phone" class="form-control" placeholder="Phone"></div>
-                </div>
-                <button class="btn btn-sm btn-primary mt-3" type="button" id="create-tenant">
-                  Create and Select
-                </button>
               </div>
             </div>
           </div>
@@ -215,6 +202,52 @@ export async function renderLeaseEditor(
         </div>
       </div>
     </form>
+
+    <div class="modal fade" id="new-tenant-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form id="new-tenant-form">
+            <div class="modal-header">
+              <h2 class="modal-title fs-5">New Tenant</h2>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p class="text-body-secondary">
+                The tenant will be saved and added to this lease.
+              </p>
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">First Name</label>
+                  <input id="new-first" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Last Name</label>
+                  <input id="new-last" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Email</label>
+                  <input id="new-email" type="email" class="form-control" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Phone</label>
+                  <input id="new-phone" class="form-control">
+                </div>
+              </div>
+              <div class="form-check mt-3">
+                <input class="form-check-input" type="checkbox" id="new-primary" checked>
+                <label class="form-check-label" for="new-primary">
+                  Make this person the primary leaseholder
+                </label>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">Create and Add</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   `;
 
   bindEditor(container, leaseId);
@@ -282,11 +315,16 @@ function bindEditor(container: HTMLElement, leaseId?: number): void {
   document.getElementById("lease-end")?.addEventListener("change", refreshReview);
 
   document.getElementById("show-new-tenant")?.addEventListener("click", () => {
-    document.getElementById("new-tenant-panel")?.classList.toggle("d-none");
+    (document.getElementById("new-tenant-form") as HTMLFormElement).reset();
+    (document.getElementById("new-primary") as HTMLInputElement).checked = true;
+    modal("new-tenant-modal").show();
   });
 
-  document.getElementById("create-tenant")?.addEventListener("click", async () => {
+  document.getElementById("new-tenant-form")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
     try {
+      const makePrimary = (document.getElementById("new-primary") as HTMLInputElement).checked;
       const tenantId = await tenantService.save({
         firstName: (document.getElementById("new-first") as HTMLInputElement).value,
         lastName: (document.getElementById("new-last") as HTMLInputElement).value,
@@ -294,15 +332,54 @@ function bindEditor(container: HTMLElement, leaseId?: number): void {
         phone: (document.getElementById("new-phone") as HTMLInputElement).value,
         active: true,
       });
-      notify("Tenant created. Reloading lease editor...");
-      await renderLeaseEditor(container, leaseId);
-      setTimeout(() => {
-        const checkbox = document.getElementById(`participant-${tenantId}`) as HTMLInputElement | null;
-        if (checkbox) {
-          checkbox.checked = true;
-          checkbox.dispatchEvent(new Event("change"));
+
+      const tenant = await db.tenants.get(tenantId);
+      const list = document.querySelector(".leaseholder-list");
+
+      if (!tenant || !list) {
+        throw new Error("The tenant was saved but could not be added to the lease.");
+      }
+
+      const row = document.createElement("div");
+      row.className = "leaseholder-row";
+      row.innerHTML = `
+        <div class="form-check">
+          <input class="form-check-input participant-check" type="checkbox"
+                 value="${tenantId}" id="participant-${tenantId}" checked>
+          <label class="form-check-label" for="participant-${tenantId}">
+            ${escapeHtml(tenant.firstName)} ${escapeHtml(tenant.lastName)}
+            <span class="text-body-secondary small">${escapeHtml(tenant.email)}</span>
+          </label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input primary-radio" type="radio"
+                 name="primaryTenant" value="${tenantId}">
+          <label class="form-check-label">Primary</label>
+        </div>
+      `;
+
+      list.appendChild(row);
+
+      const checkbox = row.querySelector<HTMLInputElement>(".participant-check");
+      const radio = row.querySelector<HTMLInputElement>(".primary-radio");
+
+      checkbox?.addEventListener("change", () => {
+        if (radio) {
+          radio.disabled = !checkbox.checked;
+          if (!checkbox.checked) radio.checked = false;
         }
-      }, 0);
+        refreshReview();
+      });
+
+      radio?.addEventListener("change", refreshReview);
+
+      if (makePrimary && radio) {
+        radio.checked = true;
+      }
+
+      modal("new-tenant-modal").hide();
+      refreshReview();
+      notify("Tenant created and added to the lease.");
     } catch (error) {
       notify((error as Error).message, "danger");
     }

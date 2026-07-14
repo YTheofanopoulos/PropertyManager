@@ -5,6 +5,14 @@ All notable changes to PropertyManager are documented here.
 
 ## [Unreleased]
 
+### Added
+- Create a tenant directly from the lease editor using a Bootstrap modal.
+- Automatically add the new tenant to the in-progress lease.
+- Optionally make the new tenant the primary leaseholder.
+
+### Changed
+- Replaced the inline tenant-entry panel with a focused modal workflow.
+
 ### Planned
 - Payment ledger and bank-statement workflows.
 - Bulk portfolio onboarding in Milestone 6.x.
