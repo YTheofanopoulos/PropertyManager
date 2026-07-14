@@ -5,6 +5,24 @@ All notable changes to PropertyManager are documented here.
 
 ## [Unreleased]
 
+## [0.4.5] - 2026-07-14
+
+### Added
+- Searchable **Add Existing Tenant** modal in the lease create/edit form.
+- Prominent leaseholder cards showing name, email, phone, and Primary/Secondary status.
+- Change and Remove actions for each selected leaseholder.
+- Ordered lease participants with IndexedDB schema version 3 migration.
+
+### Changed
+- Replaced the long embedded tenant checklist with a filtered modal workflow.
+- The first leaseholder in the ordered list is always the primary tenant.
+- Removing the primary automatically promotes the first secondary tenant.
+- Newly created tenants are appended to the current lease as secondary unless they are the first leaseholder.
+
+### Preserved
+- Milestone 4.4 unit and tenant overlap validation, including status-transition behavior.
+
+
 ### Added
 - Create a tenant directly from the lease editor using a Bootstrap modal.
 - Automatically add the new tenant to the in-progress lease.

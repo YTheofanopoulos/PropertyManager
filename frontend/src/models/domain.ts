@@ -53,6 +53,7 @@ export interface LeaseParticipant {
   leaseId: EntityId;
   tenantId: EntityId;
   primary: boolean;
+  sortOrder?: number;
 }
 
 export type ChargeType = "Apartment Rent" | "Parking" | "Storage" | "Other";

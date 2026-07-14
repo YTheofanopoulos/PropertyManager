@@ -1,6 +1,10 @@
-
 import { db } from "../../db/database";
-import type { ChargeType, LeaseStatus, LeaseTermType } from "../../models/domain";
+import type {
+  ChargeType,
+  LeaseStatus,
+  LeaseTermType,
+  Tenant,
+} from "../../models/domain";
 import { leaseRepository } from "../../repositories/leaseRepository";
 import { leaseService } from "../../services/leaseService";
 import { tenantService } from "../../services/tenantService";
@@ -27,6 +31,11 @@ export async function renderLeaseEditor(
 
   const buildingMap = new Map(buildings.map((item) => [item.id, item]));
   const locationMap = new Map(locations.map((item) => [item.id, item]));
+  const tenantMap = new Map(
+    tenants
+      .filter((tenant): tenant is Tenant & { id: number } => tenant.id !== undefined)
+      .map((tenant) => [tenant.id, tenant]),
+  );
 
   const lease = leaseId ? await leaseRepository.getById(leaseId) : undefined;
   if (leaseId && !lease) {
@@ -41,6 +50,15 @@ export async function renderLeaseEditor(
     ? await leaseRepository.getCharges(leaseId)
     : [];
 
+  const selectedTenantIds = participants
+    .sort((left, right) =>
+      Number(right.primary) - Number(left.primary) ||
+      (left.sortOrder ?? Number.MAX_SAFE_INTEGER) -
+        (right.sortOrder ?? Number.MAX_SAFE_INTEGER) ||
+      Number(left.id ?? 0) - Number(right.id ?? 0),
+    )
+    .map((participant) => participant.tenantId);
+
   const unitOptions = units
     .filter((unit) => unit.active !== false)
     .map((unit) => {
@@ -50,9 +68,6 @@ export async function renderLeaseEditor(
       return `<option value="${unit.id}" ${lease?.unitId === unit.id ? "selected" : ""}>${escapeHtml(label)}</option>`;
     })
     .join("");
-
-  const selectedTenantIds = new Set(participants.map((item) => item.tenantId));
-  const primaryTenantId = participants.find((item) => item.primary)?.tenantId;
 
   container.innerHTML = `
     <div class="page-heading d-flex justify-content-between align-items-center">
@@ -77,49 +92,27 @@ export async function renderLeaseEditor(
                 ${unitOptions}
               </select>
               ${lease ? `<input type="hidden" id="lease-unit-hidden" value="${lease.unitId}">` : ""}
-              <div class="form-text">
-                Existing leases remain attached to their original unit.
-              </div>
+              <div class="form-text">Existing leases remain attached to their original unit.</div>
             </div>
           </div>
 
           <div class="card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
               <span class="fw-semibold">2. Leaseholders</span>
-              <button class="btn btn-sm btn-outline-primary" type="button" id="show-new-tenant">
-                <i class="fa-solid fa-user-plus me-1"></i>New Tenant
-              </button>
+              <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-outline-primary" type="button" id="add-existing-tenant">
+                  <i class="fa-solid fa-user-check me-1"></i>Add Existing Tenant
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" type="button" id="show-new-tenant">
+                  <i class="fa-solid fa-user-plus me-1"></i>New Tenant
+                </button>
+              </div>
             </div>
             <div class="card-body">
-              <div class="alert alert-light border">
-                Select one or more people and choose exactly one primary leaseholder.
-              </div>
-              <div class="leaseholder-list">
-                ${tenants.map((tenant) => {
-                  const checked = selectedTenantIds.has(tenant.id as number);
-                  const primary = primaryTenantId === tenant.id;
-                  return `
-                    <div class="leaseholder-row">
-                      <div class="form-check">
-                        <input class="form-check-input participant-check" type="checkbox"
-                               value="${tenant.id}" id="participant-${tenant.id}"
-                               ${checked ? "checked" : ""}>
-                        <label class="form-check-label" for="participant-${tenant.id}">
-                          ${escapeHtml(tenant.firstName)} ${escapeHtml(tenant.lastName)}
-                          <span class="text-body-secondary small">${escapeHtml(tenant.email)}</span>
-                        </label>
-                      </div>
-                      <div class="form-check">
-                        <input class="form-check-input primary-radio" type="radio"
-                               name="primaryTenant" value="${tenant.id}"
-                               ${primary ? "checked" : ""}
-                               ${checked ? "" : "disabled"}>
-                        <label class="form-check-label">Primary</label>
-                      </div>
-                    </div>
-                  `;
-                }).join("")}
-              </div>
+              <p class="text-body-secondary mb-3">
+                The first leaseholder is primary. Removing the primary automatically promotes the first secondary.
+              </p>
+              <div id="selected-leaseholders"></div>
             </div>
           </div>
 
@@ -147,8 +140,8 @@ export async function renderLeaseEditor(
                 <div class="col-md-4">
                   <label class="form-label">Status</label>
                   <select id="lease-status" class="form-select">
-                    ${(["Future","Active","Expired","Terminated"] as LeaseStatus[]).map((status) =>
-                      `<option ${lease?.status === status || (!lease && status === "Active") ? "selected" : ""}>${status}</option>`
+                    ${(["Future", "Active", "Expired", "Terminated"] as LeaseStatus[]).map((status) =>
+                      `<option ${lease?.status === status || (!lease && status === "Active") ? "selected" : ""}>${status}</option>`,
                     ).join("")}
                   </select>
                 </div>
@@ -203,6 +196,28 @@ export async function renderLeaseEditor(
       </div>
     </form>
 
+    <div class="modal fade" id="tenant-picker-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 class="modal-title fs-5" id="tenant-picker-title">Add Existing Tenant</h2>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <label class="form-label" for="tenant-search">Search tenants</label>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input id="tenant-search" class="form-control" placeholder="Name, email, or phone" autocomplete="off">
+            </div>
+            <div id="tenant-picker-results" class="tenant-picker-results"></div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="modal fade" id="new-tenant-modal" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
@@ -212,32 +227,12 @@ export async function renderLeaseEditor(
               <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-              <p class="text-body-secondary">
-                The tenant will be saved and added to this lease.
-              </p>
+              <p class="text-body-secondary">The tenant will be saved and added to this lease.</p>
               <div class="row g-3">
-                <div class="col-md-6">
-                  <label class="form-label">First Name</label>
-                  <input id="new-first" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Last Name</label>
-                  <input id="new-last" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Email</label>
-                  <input id="new-email" type="email" class="form-control" required>
-                </div>
-                <div class="col-md-6">
-                  <label class="form-label">Phone</label>
-                  <input id="new-phone" class="form-control">
-                </div>
-              </div>
-              <div class="form-check mt-3">
-                <input class="form-check-input" type="checkbox" id="new-primary" checked>
-                <label class="form-check-label" for="new-primary">
-                  Make this person the primary leaseholder
-                </label>
+                <div class="col-md-6"><label class="form-label">First Name</label><input id="new-first" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">Last Name</label><input id="new-last" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">Email</label><input id="new-email" type="email" class="form-control" required></div>
+                <div class="col-md-6"><label class="form-label">Phone</label><input id="new-phone" class="form-control"></div>
               </div>
             </div>
             <div class="modal-footer">
@@ -250,25 +245,15 @@ export async function renderLeaseEditor(
     </div>
   `;
 
-  bindEditor(container, leaseId);
-  refreshReview();
+  bindEditor(container, leaseId, tenants, tenantMap, selectedTenantIds);
 }
 
 function chargeRow(type: ChargeType, amount: number, description: string): string {
   return `
     <div class="row g-2 align-items-end charge-row mb-3" data-type="${type}">
-      <div class="col-md-4">
-        <label class="form-label">${type}</label>
-        <input class="form-control charge-description" value="${escapeHtml(description)}">
-      </div>
-      <div class="col-md-4">
-        <label class="form-label">Monthly Amount</label>
-        <input class="form-control charge-amount" type="number" min="0" step="0.01"
-               value="${amount}">
-      </div>
-      <div class="col-md-4 small text-body-secondary pb-2">
-        ${type === "Apartment Rent" ? "Required base rent" : "Optional"}
-      </div>
+      <div class="col-md-4"><label class="form-label">${type}</label><input class="form-control charge-description" value="${escapeHtml(description)}"></div>
+      <div class="col-md-4"><label class="form-label">Monthly Amount</label><input class="form-control charge-amount" type="number" min="0" step="0.01" value="${amount}"></div>
+      <div class="col-md-4 small text-body-secondary pb-2">${type === "Apartment Rent" ? "Required base rent" : "Optional"}</div>
     </div>
   `;
 }
@@ -280,51 +265,129 @@ function defaultEndDate(): string {
   return date.toISOString().slice(0, 10);
 }
 
-function bindEditor(container: HTMLElement, leaseId?: number): void {
-  document.querySelectorAll<HTMLInputElement>(".participant-check").forEach((checkbox) => {
-    checkbox.addEventListener("change", () => {
-      const radio = document.querySelector<HTMLInputElement>(
-        `.primary-radio[value="${checkbox.value}"]`,
-      );
-      if (radio) {
-        radio.disabled = !checkbox.checked;
-        if (!checkbox.checked) radio.checked = false;
-      }
-      refreshReview();
+function bindEditor(
+  container: HTMLElement,
+  leaseId: number | undefined,
+  tenants: Tenant[],
+  tenantMap: Map<number, Tenant & { id: number }>,
+  selectedTenantIds: number[],
+): void {
+  let replacementIndex: number | null = null;
+
+  const renderSelected = (): void => {
+    const host = document.getElementById("selected-leaseholders");
+    if (!host) return;
+
+    if (selectedTenantIds.length === 0) {
+      host.innerHTML = `
+        <div class="leaseholder-empty text-center">
+          <i class="fa-regular fa-user fs-3 d-block mb-2"></i>
+          <strong>No leaseholders selected</strong>
+          <div class="small text-body-secondary">Use Add Existing Tenant or New Tenant to begin.</div>
+        </div>`;
+    } else {
+      host.innerHTML = `<div class="selected-leaseholder-list">${selectedTenantIds.map((tenantId, index) => {
+        const tenant = tenantMap.get(tenantId);
+        if (!tenant) return "";
+        return `
+          <div class="selected-leaseholder-card">
+            <div class="leaseholder-avatar" aria-hidden="true">${escapeHtml(tenant.firstName.charAt(0))}${escapeHtml(tenant.lastName.charAt(0))}</div>
+            <div class="flex-grow-1 min-width-0">
+              <div class="d-flex align-items-center gap-2 flex-wrap">
+                <strong>${escapeHtml(tenant.firstName)} ${escapeHtml(tenant.lastName)}</strong>
+                <span class="badge ${index === 0 ? "text-bg-primary" : "text-bg-secondary"}">${index === 0 ? "Primary" : "Secondary"}</span>
+              </div>
+              <div class="small text-body-secondary text-truncate">${escapeHtml(tenant.email)}</div>
+              ${tenant.phone ? `<div class="small text-body-secondary">${escapeHtml(tenant.phone)}</div>` : ""}
+            </div>
+            <div class="d-flex gap-2 flex-wrap justify-content-end">
+              <button type="button" class="btn btn-sm btn-outline-secondary change-leaseholder" data-index="${index}">Change</button>
+              <button type="button" class="btn btn-sm btn-outline-danger remove-leaseholder" data-index="${index}">Remove</button>
+            </div>
+          </div>`;
+      }).join("")}</div>`;
+    }
+
+    host.querySelectorAll<HTMLButtonElement>(".change-leaseholder").forEach((button) => {
+      button.addEventListener("click", () => openPicker(Number(button.dataset.index)));
     });
-  });
+    host.querySelectorAll<HTMLButtonElement>(".remove-leaseholder").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectedTenantIds.splice(Number(button.dataset.index), 1);
+        renderSelected();
+        refreshReview(selectedTenantIds.length);
+      });
+    });
+  };
 
-  document.querySelectorAll<HTMLInputElement>(".primary-radio").forEach((radio) => {
-    radio.addEventListener("change", refreshReview);
-  });
+  const renderPickerResults = (): void => {
+    const host = document.getElementById("tenant-picker-results");
+    const search = (document.getElementById("tenant-search") as HTMLInputElement | null)?.value.trim().toLowerCase() ?? "";
+    if (!host) return;
 
-  document.querySelectorAll<HTMLInputElement>(".charge-amount").forEach((input) => {
-    input.addEventListener("input", refreshReview);
-  });
+    const currentReplacementId = replacementIndex === null ? undefined : selectedTenantIds[replacementIndex];
+    const unavailableIds = new Set(selectedTenantIds.filter((id) => id !== currentReplacementId));
+    const matches = tenants
+      .filter((tenant): tenant is Tenant & { id: number } => tenant.id !== undefined && tenant.active !== false)
+      .filter((tenant) => !unavailableIds.has(tenant.id))
+      .filter((tenant) => `${tenant.firstName} ${tenant.lastName} ${tenant.email} ${tenant.phone}`.toLowerCase().includes(search));
 
-  document.getElementById("lease-unit")?.addEventListener("change", refreshReview);
+    host.innerHTML = matches.length === 0
+      ? `<div class="alert alert-light border mb-0">No available tenants match this search.</div>`
+      : matches.map((tenant) => `
+          <button type="button" class="tenant-picker-row" data-tenant-id="${tenant.id}">
+            <span class="leaseholder-avatar">${escapeHtml(tenant.firstName.charAt(0))}${escapeHtml(tenant.lastName.charAt(0))}</span>
+            <span class="text-start flex-grow-1 min-width-0">
+              <strong class="d-block">${escapeHtml(tenant.firstName)} ${escapeHtml(tenant.lastName)}</strong>
+              <span class="small text-body-secondary d-block text-truncate">${escapeHtml(tenant.email)}${tenant.phone ? ` · ${escapeHtml(tenant.phone)}` : ""}</span>
+            </span>
+            <span class="btn btn-sm btn-primary">Select</span>
+          </button>`).join("");
+
+    host.querySelectorAll<HTMLButtonElement>(".tenant-picker-row").forEach((button) => {
+      button.addEventListener("click", () => {
+        const tenantId = Number(button.dataset.tenantId);
+        if (replacementIndex === null) selectedTenantIds.push(tenantId);
+        else selectedTenantIds[replacementIndex] = tenantId;
+        modal("tenant-picker-modal").hide();
+        renderSelected();
+        refreshReview(selectedTenantIds.length);
+      });
+    });
+  };
+
+  const openPicker = (index: number | null): void => {
+    replacementIndex = index;
+    const title = document.getElementById("tenant-picker-title");
+    const search = document.getElementById("tenant-search") as HTMLInputElement;
+    if (title) title.textContent = index === null ? "Add Existing Tenant" : "Change Leaseholder";
+    search.value = "";
+    renderPickerResults();
+    modal("tenant-picker-modal").show();
+    setTimeout(() => search.focus(), 150);
+  };
+
+  document.getElementById("add-existing-tenant")?.addEventListener("click", () => openPicker(null));
+  document.getElementById("tenant-search")?.addEventListener("input", renderPickerResults);
+
+  document.querySelectorAll<HTMLInputElement>(".charge-amount").forEach((input) => input.addEventListener("input", () => refreshReview(selectedTenantIds.length)));
+  document.getElementById("lease-unit")?.addEventListener("change", () => refreshReview(selectedTenantIds.length));
   document.getElementById("lease-term")?.addEventListener("change", () => {
     const term = (document.getElementById("lease-term") as HTMLSelectElement).value;
-    document.getElementById("end-date-column")?.classList.toggle(
-      "d-none",
-      term === "Month-to-Month",
-    );
-    refreshReview();
+    document.getElementById("end-date-column")?.classList.toggle("d-none", term === "Month-to-Month");
+    refreshReview(selectedTenantIds.length);
   });
-  document.getElementById("lease-start")?.addEventListener("change", refreshReview);
-  document.getElementById("lease-end")?.addEventListener("change", refreshReview);
+  document.getElementById("lease-start")?.addEventListener("change", () => refreshReview(selectedTenantIds.length));
+  document.getElementById("lease-end")?.addEventListener("change", () => refreshReview(selectedTenantIds.length));
 
   document.getElementById("show-new-tenant")?.addEventListener("click", () => {
     (document.getElementById("new-tenant-form") as HTMLFormElement).reset();
-    (document.getElementById("new-primary") as HTMLInputElement).checked = true;
     modal("new-tenant-modal").show();
   });
 
   document.getElementById("new-tenant-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
-
     try {
-      const makePrimary = (document.getElementById("new-primary") as HTMLInputElement).checked;
       const tenantId = await tenantService.save({
         firstName: (document.getElementById("new-first") as HTMLInputElement).value,
         lastName: (document.getElementById("new-last") as HTMLInputElement).value,
@@ -332,53 +395,15 @@ function bindEditor(container: HTMLElement, leaseId?: number): void {
         phone: (document.getElementById("new-phone") as HTMLInputElement).value,
         active: true,
       });
-
       const tenant = await db.tenants.get(tenantId);
-      const list = document.querySelector(".leaseholder-list");
-
-      if (!tenant || !list) {
-        throw new Error("The tenant was saved but could not be added to the lease.");
-      }
-
-      const row = document.createElement("div");
-      row.className = "leaseholder-row";
-      row.innerHTML = `
-        <div class="form-check">
-          <input class="form-check-input participant-check" type="checkbox"
-                 value="${tenantId}" id="participant-${tenantId}" checked>
-          <label class="form-check-label" for="participant-${tenantId}">
-            ${escapeHtml(tenant.firstName)} ${escapeHtml(tenant.lastName)}
-            <span class="text-body-secondary small">${escapeHtml(tenant.email)}</span>
-          </label>
-        </div>
-        <div class="form-check">
-          <input class="form-check-input primary-radio" type="radio"
-                 name="primaryTenant" value="${tenantId}">
-          <label class="form-check-label">Primary</label>
-        </div>
-      `;
-
-      list.appendChild(row);
-
-      const checkbox = row.querySelector<HTMLInputElement>(".participant-check");
-      const radio = row.querySelector<HTMLInputElement>(".primary-radio");
-
-      checkbox?.addEventListener("change", () => {
-        if (radio) {
-          radio.disabled = !checkbox.checked;
-          if (!checkbox.checked) radio.checked = false;
-        }
-        refreshReview();
-      });
-
-      radio?.addEventListener("change", refreshReview);
-
-      if (makePrimary && radio) {
-        radio.checked = true;
-      }
-
+      if (!tenant || tenant.id === undefined) throw new Error("The tenant was saved but could not be added to the lease.");
+      tenants.push(tenant);
+      tenants.sort((left, right) => left.lastName.localeCompare(right.lastName) || left.firstName.localeCompare(right.firstName));
+      tenantMap.set(tenant.id, tenant as Tenant & { id: number });
+      selectedTenantIds.push(tenant.id);
       modal("new-tenant-modal").hide();
-      refreshReview();
+      renderSelected();
+      refreshReview(selectedTenantIds.length);
       notify("Tenant created and added to the lease.");
     } catch (error) {
       notify((error as Error).message, "danger");
@@ -387,26 +412,15 @@ function bindEditor(container: HTMLElement, leaseId?: number): void {
 
   document.getElementById("lease-form")?.addEventListener("submit", async (event) => {
     event.preventDefault();
-
     try {
-      const participantIds = Array.from(
-        document.querySelectorAll<HTMLInputElement>(".participant-check:checked"),
-      ).map((item) => Number(item.value));
-      const primary = document.querySelector<HTMLInputElement>(".primary-radio:checked");
-
-      const charges = Array.from(
-        document.querySelectorAll<HTMLElement>(".charge-row"),
-      ).map((row) => ({
+      const charges = Array.from(document.querySelectorAll<HTMLElement>(".charge-row")).map((row) => ({
         chargeType: row.dataset.type as ChargeType,
         description: (row.querySelector(".charge-description") as HTMLInputElement).value,
         amount: Number((row.querySelector(".charge-amount") as HTMLInputElement).value || 0),
       }));
-
-      const unitId = Number(
-        leaseId
-          ? (document.getElementById("lease-unit-hidden") as HTMLInputElement).value
-          : (document.getElementById("lease-unit") as HTMLSelectElement).value,
-      );
+      const unitId = Number(leaseId
+        ? (document.getElementById("lease-unit-hidden") as HTMLInputElement).value
+        : (document.getElementById("lease-unit") as HTMLSelectElement).value);
 
       await leaseService.save({
         id: leaseId,
@@ -416,8 +430,8 @@ function bindEditor(container: HTMLElement, leaseId?: number): void {
         termType: (document.getElementById("lease-term") as HTMLSelectElement).value as LeaseTermType,
         status: (document.getElementById("lease-status") as HTMLSelectElement).value as LeaseStatus,
         notes: (document.getElementById("lease-notes") as HTMLTextAreaElement).value,
-        participantIds,
-        primaryTenantId: Number(primary?.value ?? 0),
+        participantIds: [...selectedTenantIds],
+        primaryTenantId: selectedTenantIds[0] ?? 0,
         charges,
       });
 
@@ -427,38 +441,28 @@ function bindEditor(container: HTMLElement, leaseId?: number): void {
       notify((error as Error).message, "danger");
     }
   });
+
+  const term = (document.getElementById("lease-term") as HTMLSelectElement).value;
+  document.getElementById("end-date-column")?.classList.toggle("d-none", term === "Month-to-Month");
+  renderSelected();
+  refreshReview(selectedTenantIds.length);
 }
 
-function refreshReview(): void {
+function refreshReview(selectedPeople: number): void {
   const unitSelect = document.getElementById("lease-unit") as HTMLSelectElement | null;
   const hiddenUnit = document.getElementById("lease-unit-hidden") as HTMLInputElement | null;
-  const unitLabel = unitSelect?.selectedOptions[0]?.textContent ??
-    (hiddenUnit ? "Locked unit" : "—");
-
-  const selectedPeople = document.querySelectorAll(".participant-check:checked").length;
-  const total = Array.from(
-    document.querySelectorAll<HTMLInputElement>(".charge-amount"),
-  ).reduce((sum, input) => sum + Number(input.value || 0), 0);
-
+  const unitLabel = unitSelect?.selectedOptions[0]?.textContent ?? (hiddenUnit ? "Locked unit" : "—");
+  const total = Array.from(document.querySelectorAll<HTMLInputElement>(".charge-amount")).reduce((sum, input) => sum + Number(input.value || 0), 0);
   const term = (document.getElementById("lease-term") as HTMLSelectElement | null)?.value ?? "Fixed";
   const start = (document.getElementById("lease-start") as HTMLInputElement | null)?.value ?? "";
   const end = (document.getElementById("lease-end") as HTMLInputElement | null)?.value ?? "";
-
   const totalText = currency(total);
-  const monthlyTotal = document.getElementById("monthly-total");
-  const reviewTotal = document.getElementById("review-total");
-  const reviewUnit = document.getElementById("review-unit");
-  const reviewPeople = document.getElementById("review-people");
-  const reviewTerm = document.getElementById("review-term");
 
-  if (monthlyTotal) monthlyTotal.textContent = totalText;
-  if (reviewTotal) reviewTotal.textContent = totalText;
-  if (reviewUnit) reviewUnit.textContent = unitLabel;
-  if (reviewPeople) reviewPeople.textContent = String(selectedPeople);
-  if (reviewTerm) {
-    reviewTerm.textContent =
-      term === "Month-to-Month"
-        ? `${start || "Start date"} onward`
-        : `${start || "Start"} to ${end || "End"}`;
-  }
+  document.getElementById("monthly-total")!.textContent = totalText;
+  document.getElementById("review-total")!.textContent = totalText;
+  document.getElementById("review-unit")!.textContent = unitLabel;
+  document.getElementById("review-people")!.textContent = String(selectedPeople);
+  document.getElementById("review-term")!.textContent = term === "Month-to-Month"
+    ? `${start || "Start date"} onward`
+    : `${start || "Start"} to ${end || "End"}`;
 }

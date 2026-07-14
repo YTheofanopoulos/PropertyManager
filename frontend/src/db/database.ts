@@ -49,6 +49,39 @@ export class PropertyManagerDatabase extends Dexie {
         if (!lease.notes) lease.notes = "";
       });
     });
+
+    this.version(3).stores({
+      locations: "++id, name, city",
+      buildings: "++id, locationId, civicAddress, [locationId+civicAddress]",
+      units: "++id, buildingId, apartmentNumber, status, active, [buildingId+apartmentNumber]",
+      tenants: "++id, lastName, firstName, email, active",
+      leases: "++id, unitId, startDate, endDate, termType, status",
+      leaseParticipants: "++id, leaseId, tenantId, primary, sortOrder, [leaseId+tenantId]",
+      recurringCharges: "++id, leaseId, chargeType, frequency, startDate, endDate",
+    }).upgrade(async (transaction) => {
+      const participants = await transaction.table("leaseParticipants").toArray();
+      const byLease = new Map<number, typeof participants>();
+
+      participants.forEach((participant) => {
+        const list = byLease.get(participant.leaseId) ?? [];
+        list.push(participant);
+        byLease.set(participant.leaseId, list);
+      });
+
+      for (const list of byLease.values()) {
+        list
+          .sort((left, right) =>
+            Number(right.primary) - Number(left.primary) ||
+            Number(left.id ?? 0) - Number(right.id ?? 0),
+          )
+          .forEach((participant, index) => {
+            participant.sortOrder = index;
+          });
+      }
+
+      await transaction.table("leaseParticipants").bulkPut(participants);
+    });
+
   }
 }
 

@@ -54,7 +54,12 @@ export class DexieLeaseRepository implements Repository<Lease> {
       const location = building ? locations.get(building.locationId) : undefined;
       const leaseholders = participants
         .filter((item) => item.leaseId === lease.id)
-        .sort((left, right) => Number(right.primary) - Number(left.primary))
+        .sort((left, right) =>
+          Number(right.primary) - Number(left.primary) ||
+          (left.sortOrder ?? Number.MAX_SAFE_INTEGER) -
+            (right.sortOrder ?? Number.MAX_SAFE_INTEGER) ||
+          Number(left.id ?? 0) - Number(right.id ?? 0),
+        )
         .map((item) => tenants.get(item.tenantId))
         .filter((item): item is NonNullable<typeof item> => Boolean(item))
         .map((item) => `${item.firstName} ${item.lastName}`);

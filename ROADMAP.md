@@ -7,6 +7,7 @@
 - [x] **4.2** IndexedDB, repositories, services, browser persistence
 - [x] **4.3** CRUD for Locations, Buildings, Units, and Tenants
 - [x] **4.4** Lease management, multiple leaseholders, recurring charges, occupancy
+- [x] **4.5** Searchable leaseholder selection and ordered primary/secondary management
 
 ## 5.x Financial Operations
 

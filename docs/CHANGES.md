@@ -1,3 +1,7 @@
+# Milestone 4.5 Changes
+
+The lease editor now uses an ordered, searchable leaseholder workflow. Selected people are presented as cards, the first person is primary, and primary removal promotes the first secondary. Existing participant records are migrated to a stable sort order through IndexedDB schema version 3.
+
 
 # PropertyManager Milestone 4.1 Update
 

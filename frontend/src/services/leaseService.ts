@@ -223,10 +223,11 @@ export class LeaseService {
         }
 
         await db.leaseParticipants.bulkAdd(
-          input.participantIds.map((tenantId) => ({
+          input.participantIds.map((tenantId, index) => ({
             leaseId: leaseId as number,
             tenantId,
-            primary: tenantId === input.primaryTenantId,
+            primary: index === 0,
+            sortOrder: index,
           } satisfies LeaseParticipant)),
         );
 
