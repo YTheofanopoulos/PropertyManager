@@ -1,6 +1,16 @@
 
 # Changelog
 
+## [0.5.1.2] - 2026-07-14
+
+### Changed
+- Payment entry launched from Rent Roll automatically allocates the entered amount to the selected rent period, up to that period's remaining balance.
+- Users can still manually change the allocation after the default is applied.
+
+### Fixed
+- Rent Roll payments can no longer be silently saved with no allocation.
+- Entering a payment from a unit's Rent Roll row now updates that unit's selected monthly obligation.
+
 ## [0.5.1.1] - 2026-07-14
 
 ### Changed

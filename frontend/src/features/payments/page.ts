@@ -98,6 +98,8 @@ export async function renderPaymentEditor(
   const returnTo = params.get("returnTo") ?? "payments";
   const returnPeriod =
     params.get("period") ?? new Date().toISOString().slice(0, 7);
+  const requestedRentPeriod =
+    returnTo === "rent-roll" ? returnPeriod : "";
   const returnHash =
     returnTo === "rent-roll"
       ? `#/rent-roll?period=${returnPeriod}`
@@ -255,6 +257,7 @@ export async function renderPaymentEditor(
   const leaseSelect = document.getElementById(
     "payment-lease",
   ) as HTMLSelectElement;
+  let allocationEditedByUser = false;
 
   const updateLeaseContext = (): void => {
     const selectedLeaseId = Number(leaseSelect.value);
@@ -280,7 +283,10 @@ export async function renderPaymentEditor(
 
   document
     .getElementById("payment-amount")
-    ?.addEventListener("input", updateReview);
+    ?.addEventListener("input", () => {
+      autoAllocateRequestedPeriod();
+      updateReview();
+    });
   document
     .getElementById("payment-form")
     ?.addEventListener("submit", savePayment);
@@ -323,9 +329,46 @@ export async function renderPaymentEditor(
 
     document
       .querySelectorAll<HTMLInputElement>(".allocation-amount")
-      .forEach((input) => input.addEventListener("input", updateReview));
+      .forEach((input) => {
+        input.addEventListener("input", () => {
+          allocationEditedByUser = true;
+          updateReview();
+        });
+      });
 
+    allocationEditedByUser = false;
+    autoAllocateRequestedPeriod();
     updateReview();
+  }
+
+  function autoAllocateRequestedPeriod(): void {
+    if (!requestedRentPeriod || allocationEditedByUser) {
+      return;
+    }
+
+    const paymentAmount = Number(
+      (document.getElementById("payment-amount") as HTMLInputElement | null)?.value || 0,
+    );
+
+    const rows = Array.from(
+      document.querySelectorAll<HTMLElement>(".allocation-row"),
+    );
+
+    rows.forEach((row) => {
+      const period = row.querySelector("strong")?.textContent?.trim() ?? "";
+      const input = row.querySelector<HTMLInputElement>(".allocation-amount");
+      if (!input) return;
+
+      if (period === requestedRentPeriod) {
+        const balance = Number(input.max || 0);
+        input.value =
+          paymentAmount > 0
+            ? String(Math.min(paymentAmount, balance))
+            : "";
+      } else {
+        input.value = "";
+      }
+    });
   }
 
   function updateReview(): void {
@@ -360,6 +403,15 @@ export async function renderPaymentEditor(
           ),
         }))
         .filter((item) => item.amount > 0);
+
+      if (
+        returnTo === "rent-roll" &&
+        allocations.length === 0
+      ) {
+        throw new Error(
+          "Enter an allocation for the selected rent period before saving.",
+        );
+      }
 
       await paymentService.save({
         leaseId,
