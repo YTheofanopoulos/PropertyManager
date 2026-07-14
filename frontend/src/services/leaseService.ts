@@ -80,6 +80,71 @@ export class LeaseService {
       throw new Error("These dates overlap another lease for the selected unit.");
     }
 
+    const participantLinks = await db.leaseParticipants
+      .where("tenantId")
+      .anyOf(input.participantIds)
+      .toArray();
+
+    const otherLeaseIds = Array.from(
+      new Set(
+        participantLinks
+          .map((participant) => participant.leaseId)
+          .filter((leaseId) => leaseId !== input.id),
+      ),
+    );
+
+    const otherLeases = otherLeaseIds.length > 0
+      ? await db.leases.bulkGet(otherLeaseIds)
+      : [];
+
+    const selectedTenants = await db.tenants.bulkGet(input.participantIds);
+    const tenants = new Map(
+      selectedTenants
+        .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant))
+        .map((tenant) => [tenant.id, tenant]),
+    );
+
+    for (const participantId of input.participantIds) {
+      const conflictingLink = participantLinks.find((participant) => {
+        if (participant.tenantId !== participantId || participant.leaseId === input.id) {
+          return false;
+        }
+
+        const existingLease = otherLeases.find(
+          (lease) => lease?.id === participant.leaseId,
+        );
+
+        if (!existingLease || existingLease.status === "Terminated") {
+          return false;
+        }
+
+        return datesOverlap(
+          input.startDate,
+          input.termType === "Month-to-Month" ? "" : input.endDate,
+          existingLease.startDate,
+          existingLease.termType === "Month-to-Month" ? "" : existingLease.endDate,
+        );
+      });
+
+      if (conflictingLink) {
+        const conflictingLease = otherLeases.find(
+          (lease) => lease?.id === conflictingLink.leaseId,
+        );
+        const tenant = tenants.get(participantId);
+        const tenantName = tenant
+          ? `${tenant.firstName} ${tenant.lastName}`
+          : "The selected tenant";
+
+        throw new Error(
+          `${tenantName} already belongs to another lease covering this timeframe ` +
+          `(${conflictingLease?.startDate ?? "unknown start"} to ` +
+          `${conflictingLease?.termType === "Month-to-Month"
+            ? "month-to-month"
+            : conflictingLease?.endDate ?? "unknown end"}).`,
+        );
+      }
+    }
+
     return db.transaction(
       "rw",
       db.leases,
