@@ -90,12 +90,25 @@ export class LeaseService {
         (tenantId, index) => tenantId !== incomingParticipantIds[index],
       );
 
-    if (occupancyDefinitionChanged) {
+    const incomingStatusReservesOccupancy =
+      input.status === "Active" || input.status === "Future";
+    const existingStatusReservedOccupancy =
+      existingLease?.status === "Active" || existingLease?.status === "Future";
+    const leaseIsBeingReactivated =
+      Boolean(existingLease) &&
+      !existingStatusReservedOccupancy &&
+      incomingStatusReservesOccupancy;
+
+    const shouldValidateOverlap =
+      incomingStatusReservesOccupancy &&
+      (occupancyDefinitionChanged || leaseIsBeingReactivated);
+
+    if (shouldValidateOverlap) {
       const leases = await db.leases.where("unitId").equals(input.unitId).toArray();
       const overlap = leases.find(
         (lease) =>
           lease.id !== input.id &&
-          lease.status !== "Terminated" &&
+          (lease.status === "Active" || lease.status === "Future") &&
           datesOverlap(
             input.startDate,
             effectiveEndDate,
@@ -145,7 +158,11 @@ export class LeaseService {
             (lease) => lease?.id === participant.leaseId,
           );
 
-          if (!conflictingLease || conflictingLease.status === "Terminated") {
+          if (
+            !conflictingLease ||
+            (conflictingLease.status !== "Active" &&
+              conflictingLease.status !== "Future")
+          ) {
             return false;
           }
 

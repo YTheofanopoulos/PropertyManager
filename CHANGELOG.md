@@ -16,7 +16,9 @@ All notable changes to PropertyManager are documented here.
 - Overlap validation now runs only when the unit, dates, term type, or leaseholder list changes.
 
 ### Fixed
-- Status-only edits, including moving a lease to Expired, are no longer blocked by historical overlap validation.
+- Status-only edits, including moving a lease to Expired or Terminated, are no longer blocked by overlap validation.
+- Reactivating an Expired or Terminated lease now reruns unit and tenant overlap validation.
+- Expired and Terminated leases no longer block active or future occupancy; only Active and Future leases reserve a unit or tenant timeframe.
 
 ### Added
 - Tenant overlap validation across primary and additional leaseholders.
