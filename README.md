@@ -110,3 +110,8 @@ The lease table remains read-only in this increment.
 4. Confirm the replacement warning.
 5. Verify the application reloads and the earlier dataset is fully restored.
 6. Try an invalid or incomplete JSON file and confirm the current data remains unchanged.
+
+
+## Baseline 5.3.1 testing
+
+See `docs/test-data/baseline5_3_1/TEST_PLAN.md`. Reset sample data first, then import and reconcile the three monthly QFX files in order.

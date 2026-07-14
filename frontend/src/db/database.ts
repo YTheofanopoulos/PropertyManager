@@ -11,6 +11,7 @@ import type {
   PaymentAllocation,
   BankImportBatch,
   BankTransaction,
+  ReconciliationHistory,
   Tenant,
   Unit,
 } from "../models/domain";
@@ -28,6 +29,7 @@ export class PropertyManagerDatabase extends Dexie {
   paymentAllocations!: EntityTable<PaymentAllocation, "id">;
   bankImportBatches!: EntityTable<BankImportBatch, "id">;
   bankTransactions!: EntityTable<BankTransaction, "id">;
+  reconciliationHistory!: EntityTable<ReconciliationHistory, "id">;
 
   constructor() {
     super("PropertyManager");
@@ -136,6 +138,22 @@ export class PropertyManagerDatabase extends Dexie {
       paymentAllocations: "++id, paymentId, obligationId, [paymentId+obligationId]",
       bankImportBatches: "++id, importedAt, accountLastFour, statementStart, statementEnd, status",
       bankTransactions: "++id, importBatchId, externalId, accountLastFour, postedDate, amount, status, matchedPaymentId, [accountLastFour+externalId]",
+    });
+
+    this.version(7).stores({
+      locations: "++id, name, city",
+      buildings: "++id, locationId, civicAddress, [locationId+civicAddress]",
+      units: "++id, buildingId, apartmentNumber, status, active, [buildingId+apartmentNumber]",
+      tenants: "++id, lastName, firstName, email, active",
+      leases: "++id, unitId, startDate, endDate, termType, status",
+      leaseParticipants: "++id, leaseId, tenantId, primary, sortOrder, [leaseId+tenantId]",
+      recurringCharges: "++id, leaseId, chargeType, frequency, startDate, endDate",
+      rentObligations: "++id, leaseId, rentPeriod, status, [leaseId+rentPeriod]",
+      payments: "++id, leaseId, tenantId, receivedDate, source, reference, status",
+      paymentAllocations: "++id, paymentId, obligationId, [paymentId+obligationId]",
+      bankImportBatches: "++id, importedAt, accountLastFour, statementStart, statementEnd, status",
+      bankTransactions: "++id, importBatchId, externalId, accountLastFour, postedDate, amount, status, matchedPaymentId, [accountLastFour+externalId]",
+      reconciliationHistory: "++id, bankTransactionId, paymentId, leaseId, amount, postedDate, normalizedName, normalizedMemo, [leaseId+amount]",
     });
   }
 }

@@ -193,6 +193,27 @@ All notable changes to PropertyManager are documented here.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
 
+## [0.5.3.1] - 2026-07-14
+
+### Added
+- Deterministic reconciliation-history records.
+- Explainable candidate scoring with visible point-by-point diagnostics.
+- High Confidence, Suggested, Ambiguous, and Manual Review classifications.
+- Hard safeguards preventing amount-only high-confidence matches.
+- Tie and small-margin ambiguity detection.
+- Three controlled monthly QFX fixtures for 383 Edouard-Charles.
+- Expected-results CSV files and a repeatable test plan.
+
+### Changed
+- Corrected 383-1, 383-2, and 383-3 rents to $636, $1,045, and $1,081.
+- Voiding an imported payment also removes its learning-history record.
+- JSON backup/restore includes reconciliation history.
+
+### Financial Integrity
+- Suggestions never reconcile automatically.
+- Vacant units and units without outstanding obligations are excluded.
+- Amount equality alone is evidence, not proof.
+
 ## [0.5.2] - 2026-07-14
 
 ### Added

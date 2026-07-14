@@ -27,9 +27,9 @@ const units: SeedUnit[] = [
   { street: "Clermont", address: "122", apartment: "", bedrooms: 3, bathrooms: 1.0, marketRent: 1650, occupied: true },
   { street: "Clermont", address: "124", apartment: "", bedrooms: 2, bathrooms: 2.0, marketRent: 1075, occupied: true },
   { street: "Clermont", address: "126", apartment: "", bedrooms: 2, bathrooms: 1.0, marketRent: 1225, occupied: true },
-  { street: "Edouard-Charles", address: "383", apartment: "1", bedrooms: 2, bathrooms: 1.0, marketRent: 1300, occupied: true },
-  { street: "Edouard-Charles", address: "383", apartment: "2", bedrooms: 2, bathrooms: 1.5, marketRent: 1375, occupied: true },
-  { street: "Edouard-Charles", address: "383", apartment: "3", bedrooms: 2, bathrooms: 1.0, marketRent: 1625, occupied: true },
+  { street: "Edouard-Charles", address: "383", apartment: "1", bedrooms: 2, bathrooms: 1.0, marketRent: 636, occupied: true },
+  { street: "Edouard-Charles", address: "383", apartment: "2", bedrooms: 2, bathrooms: 1.5, marketRent: 1045, occupied: true },
+  { street: "Edouard-Charles", address: "383", apartment: "3", bedrooms: 2, bathrooms: 1.0, marketRent: 1081, occupied: true },
   { street: "Edouard-Charles", address: "383", apartment: "4", bedrooms: 2, bathrooms: 1.0, marketRent: 1025, occupied: false },
   { street: "Edouard-Charles", address: "385", apartment: "5", bedrooms: 2, bathrooms: 2.0, marketRent: 975, occupied: true },
   { street: "Edouard-Charles", address: "385", apartment: "6", bedrooms: 2, bathrooms: 1.5, marketRent: 900, occupied: true },
@@ -94,6 +94,7 @@ export async function seedDatabase(force = false): Promise<void> {
       db.paymentAllocations,
       db.bankImportBatches,
       db.bankTransactions,
+      db.reconciliationHistory,
     ],
     async () => {
       await Promise.all([
@@ -109,6 +110,7 @@ export async function seedDatabase(force = false): Promise<void> {
         db.paymentAllocations.clear(),
         db.bankImportBatches.clear(),
         db.bankTransactions.clear(),
+        db.reconciliationHistory.clear(),
       ]);
 
       const locationIds = new Map<string, number>();

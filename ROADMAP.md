@@ -44,3 +44,12 @@
 - [ ] MariaDB repository implementation
 - [ ] Existing authentication integration
 - [ ] Expense application integration using the simplest reliable building/unit mapping
+
+## Baseline 5.3 Assisted Reconciliation
+
+- [x] **5.3.1** Historical learning, deterministic scoring, diagnostics, and controlled QFX fixtures
+- [ ] **5.3.2** Reconciliation dashboard and queue classifications
+- [ ] **5.3.3** User-defined suggestion rules
+- [ ] **5.3.4** Reviewed bulk confirmation workflow
+
+CSV financial import remains deferred.

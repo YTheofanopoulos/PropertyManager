@@ -1,0 +1,5 @@
+FITID,Expected Classification,Expected Leading Unit,Test Purpose
+B531-AUG-001,High Confidence,383 1 Edouard-Charles,Prior amount/name/timing history plus exact balance
+B531-AUG-002,High Confidence,383 2 Edouard-Charles,Prior amount/name/timing history plus exact balance
+B531-AUG-003A,Suggested,383 3 Edouard-Charles,Split payment; name/history should lead despite non-exact amount
+B531-AUG-003B,High Confidence after Part 1,383 3 Edouard-Charles,"After $600 allocation, remaining balance is exactly $481"

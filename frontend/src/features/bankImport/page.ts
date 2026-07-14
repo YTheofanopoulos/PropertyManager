@@ -279,11 +279,24 @@ export async function renderReconciliation(
                 <button type="button"
                         class="list-group-item list-group-item-action suggestion-item ${index === 0 ? "active" : ""}"
                         data-lease-id="${suggestion.leaseId}">
-                  <div class="d-flex justify-content-between">
+                  <div class="d-flex justify-content-between gap-3">
                     <strong>${suggestion.unitLabel}</strong>
-                    <span>${suggestion.exact ? "Exact amount" : `Difference ${currency(suggestion.difference)}`}</span>
+                    <span class="badge text-bg-${
+                      suggestion.classification === "High Confidence"
+                        ? "success"
+                        : suggestion.classification === "Suggested"
+                          ? "primary"
+                          : suggestion.classification === "Ambiguous"
+                            ? "warning"
+                            : "secondary"
+                    }">${suggestion.classification}</span>
                   </div>
-                  <div class="small">Outstanding ${currency(suggestion.amountDue)} · Oldest ${suggestion.oldestPeriod}</div>
+                  <div class="small mt-1">
+                    Score ${suggestion.score} · Outstanding ${currency(suggestion.amountDue)} · Oldest ${suggestion.oldestPeriod}
+                  </div>
+                  <ul class="small mb-0 mt-2 text-start">
+                    ${suggestion.reasons.map((reason) => `<li>${reason}</li>`).join("")}
+                  </ul>
                 </button>
               `).join("") || '<div class="alert alert-warning mb-0">No outstanding leases found.</div>'}
             </div>

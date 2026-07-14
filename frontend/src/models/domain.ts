@@ -154,3 +154,23 @@ export interface ParsedQfxStatement {
     memo: string;
   }>;
 }
+
+
+export interface ReconciliationHistory {
+  id?: EntityId;
+  bankTransactionId: EntityId;
+  paymentId: EntityId;
+  leaseId: EntityId;
+  amount: number;
+  postedDate: string;
+  postedDay: number;
+  normalizedName: string;
+  normalizedMemo: string;
+  createdAt: string;
+}
+
+export type MatchClassification =
+  | "High Confidence"
+  | "Suggested"
+  | "Ambiguous"
+  | "Manual Review";

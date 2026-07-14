@@ -13,6 +13,7 @@ const tableNames = [
   "paymentAllocations",
   "bankImportBatches",
   "bankTransactions",
+  "reconciliationHistory",
 ] as const;
 
 type TableName = (typeof tableNames)[number];
@@ -56,6 +57,7 @@ export class BackupService {
       paymentAllocations: await db.paymentAllocations.toArray(),
       bankImportBatches: await db.bankImportBatches.toArray(),
       bankTransactions: await db.bankTransactions.toArray(),
+      reconciliationHistory: await db.reconciliationHistory.toArray(),
     };
 
     const blob = new Blob([JSON.stringify(backup, null, 2)], {
@@ -96,6 +98,7 @@ export class BackupService {
         db.paymentAllocations,
         db.bankImportBatches,
         db.bankTransactions,
+        db.reconciliationHistory,
       ],
       async () => {
         // Clear child/financial records first for readability. IndexedDB does not

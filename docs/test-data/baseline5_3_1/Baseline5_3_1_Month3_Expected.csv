@@ -1,0 +1,6 @@
+FITID,Expected Classification,Expected Leading Unit,Test Purpose
+B531-SEP-001,High Confidence,383 1 Edouard-Charles,Established repeat pattern
+B531-SEP-002,Suggested,383 2 Edouard-Charles,Changed amount lowers confidence
+B531-SEP-003,High Confidence,383 3 Edouard-Charles,Return to full payment pattern
+B531-SEP-004,Ambiguous or Manual Review,,Amount points to 383-2 while name resembles 383-1; conflicting evidence
+B531-SEP-005,Manual Review,,No amount or history support
