@@ -101,6 +101,23 @@ export class PropertyManagerDatabase extends Dexie {
       paymentAllocations: "++id, paymentId, obligationId, [paymentId+obligationId]",
     });
 
+
+    this.version(5).stores({
+      locations: "++id, name, city",
+      buildings: "++id, locationId, civicAddress, [locationId+civicAddress]",
+      units: "++id, buildingId, apartmentNumber, status, active, [buildingId+apartmentNumber]",
+      tenants: "++id, lastName, firstName, email, active",
+      leases: "++id, unitId, startDate, endDate, termType, status",
+      leaseParticipants: "++id, leaseId, tenantId, primary, order, [leaseId+tenantId]",
+      recurringCharges: "++id, leaseId, chargeType, frequency, startDate, endDate",
+      rentObligations: "++id, leaseId, rentPeriod, status, [leaseId+rentPeriod]",
+      payments: "++id, leaseId, tenantId, receivedDate, source, reference, status",
+      paymentAllocations: "++id, paymentId, obligationId, [paymentId+obligationId]",
+    }).upgrade(async (transaction) => {
+      await transaction.table("payments").toCollection().modify((payment) => {
+        if (!payment.status) payment.status = "Posted";
+      });
+    });
   }
 }
 

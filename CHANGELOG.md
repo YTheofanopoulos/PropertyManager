@@ -1,6 +1,25 @@
 
 # Changelog
 
+## [0.5.1.3] - 2026-07-14
+
+### Added
+- Void action for posted payments.
+- Required reason, void timestamp, and retained voided-payment history.
+- IndexedDB migration that marks existing payments as Posted.
+
+### Changed
+- Voiding a payment removes all of its allocations in the same transaction.
+- Affected rent obligations and Rent Roll balances are recalculated immediately.
+- Voided payments remain visible with a Voided status and no active allocated amount.
+- Ledger calculations ignore voided payments and their allocations.
+
+### Business Rules
+- Voided payments cannot be voided again.
+- A void reason is required.
+- The original payment amount, received date, reference, and notes are retained.
+- Rent becomes outstanding again when its supporting payment is voided.
+
 ## [0.5.1.2] - 2026-07-14
 
 ### Changed

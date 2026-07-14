@@ -23,9 +23,12 @@ export async function renderPayments(container: HTMLElement): Promise<void> {
   const locationMap = new Map(locations.map((item) => [item.id, item]));
 
   const rows = payments.map((payment) => {
-    const allocated = allocations
-      .filter((allocation) => allocation.paymentId === payment.id)
-      .reduce((total, allocation) => total + allocation.amount, 0);
+    const isVoided = (payment.status ?? "Posted") === "Voided";
+    const allocated = isVoided
+      ? 0
+      : allocations
+          .filter((allocation) => allocation.paymentId === payment.id)
+          .reduce((total, allocation) => total + allocation.amount, 0);
 
     const lease = leaseMap.get(payment.leaseId);
     const unit = lease ? unitMap.get(lease.unitId) : undefined;
@@ -40,7 +43,8 @@ export async function renderPayments(container: HTMLElement): Promise<void> {
       ...payment,
       unitLabel: unitLabel.trim(),
       allocated,
-      unapplied: payment.amount - allocated,
+      unapplied: isVoided ? 0 : payment.amount - allocated,
+      effectiveStatus: payment.status ?? "Posted",
     };
   });
 
@@ -69,6 +73,8 @@ export async function renderPayments(container: HTMLElement): Promise<void> {
               <th>Unapplied</th>
               <th>Method</th>
               <th>Reference</th>
+              <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
         </table>
@@ -86,7 +92,45 @@ export async function renderPayments(container: HTMLElement): Promise<void> {
       { data: "unapplied", render: (value: number) => currency(value) },
       { data: "paymentMethod" },
       { data: "reference" },
+      {
+        data: "effectiveStatus",
+        render: (value: string) =>
+          `<span class="badge text-bg-${value === "Voided" ? "secondary" : "success"}">${value}</span>`,
+      },
+      {
+        data: "id",
+        orderable: false,
+        searchable: false,
+        render: (id: number, _type: unknown, row: typeof rows[number]) =>
+          row.effectiveStatus === "Voided"
+            ? `<span class="text-body-secondary small" title="${row.voidReason ?? ""}">Voided</span>`
+            : `<button class="btn btn-sm btn-outline-danger void-payment" data-id="${id}">Void</button>`,
+      },
     ],
+  });
+
+  document.getElementById("payments-table")?.addEventListener("click", async (event) => {
+    const target = event.target as HTMLElement;
+    if (!target.classList.contains("void-payment")) return;
+
+    const paymentId = Number(target.dataset.id);
+    const payment = rows.find((item) => item.id === paymentId);
+    if (!payment) return;
+
+    const reason = window.prompt(
+      `Void this payment of ${currency(payment.amount)}?\n\n` +
+      "Its rent allocations will be removed and the affected balances will become outstanding again.\n\n" +
+      "Enter a reason:",
+    );
+
+    if (reason === null) return;
+
+    try {
+      await paymentService.voidPayment(paymentId, reason);
+      await renderPayments(container);
+    } catch (error) {
+      window.alert((error as Error).message);
+    }
   });
 }
 
