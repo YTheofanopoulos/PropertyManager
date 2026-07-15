@@ -265,14 +265,26 @@ export async function renderRentStatus(
         font-size: .9rem;
         color: var(--bs-body-color);
         white-space: nowrap;
+        background: transparent !important;
       }
 
       .rent-legend-dot {
         width: .72rem;
         height: .72rem;
         border-radius: 50%;
-        background: currentColor;
         flex: 0 0 auto;
+        display: inline-block;
+      }
+
+      .rent-legend-dot.rent-paid { background-color: var(--bs-success); }
+      .rent-legend-dot.rent-partial { background-color: var(--bs-warning); }
+      .rent-legend-dot.rent-unpaid { background-color: var(--bs-danger); }
+      .rent-legend-dot.rent-ahead { background-color: var(--bs-primary); }
+      .rent-legend-dot.rent-future { background-color: var(--bs-secondary); }
+
+      .rent-legend-dot.rent-na {
+        background-color: var(--bs-body-bg);
+        box-shadow: inset 0 0 0 1px var(--bs-secondary-color);
       }
 
       #rent-status-table th,
@@ -299,30 +311,23 @@ export async function renderRentStatus(
         box-shadow: 0 1px 0 var(--bs-border-color);
       }
 
-      .rent-unit-primary {
-        display: block;
-        font-weight: 600;
-      }
-
-      .rent-unit-secondary {
-        display: block;
-        color: var(--bs-secondary-color);
-        font-size: .875rem;
-      }
-
-      .rent-tenant-list {
-        display: flex;
-        flex-direction: column;
-        gap: .15rem;
-      }
-
-      .rent-outstanding-positive {
-        color: var(--bs-danger);
-      }
-
-      .rent-outstanding-zero {
+      .rent-unit-button {
+        border: 0;
+        padding: 0;
+        background: transparent;
         color: var(--bs-body-color);
+        font-weight: 600;
+        text-align: left;
+        cursor: pointer;
       }
+
+      .rent-unit-button:hover,
+      .rent-unit-button:focus-visible {
+        text-decoration: underline;
+      }
+
+      .rent-outstanding-positive { color: var(--bs-danger); }
+      .rent-outstanding-zero { color: var(--bs-body-color); }
 
     </style>
 
@@ -394,12 +399,12 @@ export async function renderRentStatus(
     </div>
 
     <div class="card">
-      <div class="card-header">
-        <div class="fw-semibold mb-2">
+      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span class="fw-semibold">
           ${monthLabel(startPeriod)} – ${monthLabel(endPeriod)}
-        </div>
+        </span>
 
-        <div class="rent-legend justify-content-start">
+        <div class="rent-legend">
           ${legend("rent-paid", "Paid")}
           ${legend("rent-partial", "Partial")}
           ${legend("rent-unpaid", "Unpaid")}
@@ -415,7 +420,6 @@ export async function renderRentStatus(
           <thead>
             <tr>
               <th class="rent-unit-column">Unit</th>
-              <th class="rent-tenant-column">Tenant(s)</th>
               ${monthSummaries
                 .map(
                   (summary) => `
@@ -445,6 +449,21 @@ export async function renderRentStatus(
               .join("")}
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <div class="modal fade" id="unit-occupants-detail" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="unit-occupants-title">Unit Details</h5>
+            <button type="button" class="btn-close unit-modal-close" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="unit-occupants-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary unit-modal-close">Close</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -480,14 +499,14 @@ export async function renderRentStatus(
       {
         targets: Array.from(
           { length: periods.length },
-          (_value, index) => index + 2,
+          (_value, index) => index + 1,
         ),
         orderable: false,
         searchable: false,
         className: "text-center",
       },
       {
-        targets: periods.length + 2,
+        targets: periods.length + 1,
         className: "text-end",
       },
     ],
@@ -503,6 +522,7 @@ export async function renderRentStatus(
           element: Element,
         ) => {
           show(): void;
+          hide(): void;
         };
       };
     }
@@ -531,31 +551,99 @@ export async function renderRentStatus(
       if (!row || !month) return;
 
       showMonthDetail(row, month);
+      modal?.show();
+    });
 
-      if (modal) {
-        modal.show();
-      } else if (modalElement) {
-        modalElement.classList.add("show");
-        modalElement.style.display = "block";
-        modalElement.removeAttribute("aria-hidden");
-        modalElement.setAttribute("aria-modal", "true");
+  const occupantModalElement = document.getElementById(
+    "unit-occupants-detail",
+  );
+  const occupantModal =
+    occupantModalElement && ModalClass
+      ? new ModalClass(occupantModalElement)
+      : undefined;
+
+  document
+    .getElementById("rent-status-table")
+    ?.addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      const unitButton = target.closest<HTMLButtonElement>(
+        ".rent-unit-button",
+      );
+      if (!unitButton) return;
+
+      const rowIndex = Number(unitButton.dataset.unitRowIndex);
+      const row = rows[rowIndex];
+      if (!row) return;
+
+      const title = document.getElementById(
+        "unit-occupants-title",
+      );
+      const body = document.getElementById(
+        "unit-occupants-body",
+      );
+
+      if (title) title.textContent = row.unitLabel;
+
+      if (body) {
+        body.innerHTML = row.tenantNames
+          ? `
+              <h6>Occupants</h6>
+              <div class="list-group">
+                ${row.tenantNames
+                  .split(",")
+                  .map(
+                    (name, index) => `
+                      <div class="list-group-item">
+                        <div class="fw-semibold">${name.trim()}</div>
+                        <div class="small text-body-secondary">
+                          ${index === 0 ? "Primary tenant" : "Additional tenant"}
+                        </div>
+                      </div>
+                    `,
+                  )
+                  .join("")}
+              </div>
+              <div class="small text-body-secondary mt-3">
+                Contact details are available from the Tenants page.
+              </div>
+            `
+          : `
+              <div class="alert alert-secondary mb-0">
+                This unit is vacant or has no active lease.
+              </div>
+            `;
+      }
+
+      if (occupantModal) {
+        occupantModal.show();
+      } else if (occupantModalElement) {
+        occupantModalElement.classList.add("show");
+        occupantModalElement.style.display = "block";
+        occupantModalElement.removeAttribute("aria-hidden");
+        occupantModalElement.setAttribute("aria-modal", "true");
         document.body.classList.add("modal-open");
       }
     });
 
-  modalElement
-    ?.querySelectorAll<HTMLElement>("[data-bs-dismiss='modal']")
+  occupantModalElement
+    ?.querySelectorAll<HTMLElement>(".unit-modal-close")
     .forEach((button) => {
-      button.addEventListener("click", () => {
-        if (!modal || !modalElement) {
-          modalElement?.classList.remove("show");
-          if (modalElement) {
-            modalElement.style.display = "none";
-            modalElement.setAttribute("aria-hidden", "true");
-            modalElement.removeAttribute("aria-modal");
-          }
-          document.body.classList.remove("modal-open");
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+
+        if (occupantModal) {
+          occupantModal.hide();
+          return;
         }
+
+        occupantModalElement.classList.remove("show");
+        occupantModalElement.style.display = "none";
+        occupantModalElement.setAttribute("aria-hidden", "true");
+        occupantModalElement.removeAttribute("aria-modal");
+        document.body.classList.remove("modal-open");
+        document
+          .querySelectorAll(".modal-backdrop")
+          .forEach((backdrop) => backdrop.remove());
       });
     });
 
@@ -610,11 +698,11 @@ export async function renderRentStatus(
       <dl class="row mb-3">
         <dt class="col-6">Status</dt>
         <dd class="col-6">${month.state}</dd>
-        <dt class="col-6">Expected Rent</dt>
+        <dt class="col-6">Expected</dt>
         <dd class="col-6">${currency(month.expected)}</dd>
-        <dt class="col-6">Collected</dt>
+        <dt class="col-6">Paid</dt>
         <dd class="col-6">${currency(month.paid)}</dd>
-        <dt class="col-6">Outstanding</dt>
+        <dt class="col-6">Remaining</dt>
         <dd class="col-6">${currency(month.remaining)}</dd>
       </dl>
 
@@ -681,37 +769,26 @@ function renderRow(
   rowIndex: number,
 ): string {
   const unitParts = row.unitLabel.split(" ");
-  const unitPrimary =
-    unitParts.length > 1
-      ? `${unitParts[0]}-${unitParts[1]}`
-      : row.unitLabel;
-  const unitSecondary =
-    unitParts.length > 2
-      ? `${unitParts[0]} ${unitParts.slice(2).join(" ")}`
-      : "";
+  const civic = unitParts[0] ?? "";
+  const apartment = unitParts[1] ?? "";
+  const street = unitParts.slice(2).join(" ");
 
-  const tenantMarkup = row.tenantNames
-    ? `<div class="rent-tenant-list">${row.tenantNames
-        .split(",")
-        .map(
-          (name) =>
-            `<span>${name.trim()}</span>`,
-        )
-        .join("")}</div>`
-    : '<span class="text-body-secondary">— Vacant —</span>';
+  const unitDisplay =
+    apartment && street
+      ? `${civic}-${apartment} ${street}`
+      : row.unitLabel;
 
   return `
     <tr>
       <td class="rent-unit-column">
-        <span class="rent-unit-primary">${unitPrimary}</span>
-        ${
-          unitSecondary
-            ? `<span class="rent-unit-secondary">${unitSecondary}</span>`
-            : ""
-        }
-      </td>
-      <td class="rent-tenant-column">
-        ${tenantMarkup}
+        <button
+          type="button"
+          class="rent-unit-button"
+          data-unit-row-index="${rowIndex}"
+          title="View occupants and contact information"
+        >
+          ${unitDisplay}
+        </button>
       </td>
       ${row.months
         .map(
@@ -763,9 +840,9 @@ function legend(
   label: string,
 ): string {
   return `
-    <span class="rent-legend-item ${className}">
-      <span class="rent-legend-dot"></span>
-      <span class="text-body-secondary">${label}</span>
+    <span class="rent-legend-item">
+      <span class="rent-legend-dot ${className}"></span>
+      <span>${label}</span>
     </span>
   `;
 }

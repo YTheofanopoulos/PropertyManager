@@ -196,23 +196,23 @@ All notable changes to PropertyManager are documented here.
 ## [0.5.4.2] - 2026-07-15
 
 ### Changed
-- Restored the compact legend with small solid color bullets.
-- Removed late-payment and vacancy row background highlighting.
-- Removed redundant months-behind text from the Outstanding Today column.
-- Outstanding balances now use red text only when greater than zero.
-- Unit labels display on two lines for faster scanning.
-- Multiple tenants display on separate lines.
-- Future month headers display Future instead of 0% collected.
-- Current-month headers identify collection as through today.
-- Status tooltips no longer promise an action.
+- Rent Status Unit labels now use the single-line format `383-1 Edouard Charles`.
+- Removed the Tenant(s) column from the Rent Status dashboard.
+- Unit labels remain black and become clickable for occupant details.
+- Restored the compact legend with color applied only to the small dots.
+- Removed row background highlighting and redundant months-behind text.
+- Positive outstanding balances display in red.
+- Future month headers display Future; current-month values identify collection through today.
+
+### Added
+- Read-only unit occupant dialog launched from the Unit label.
+- Occupant dialog displays primary and additional tenant names.
+- Sticky Rent Status table headers.
 
 ### Fixed
-- Clicking a status indicator now reliably opens the read-only monthly details.
-- Added a modal fallback for environments where Bootstrap's JavaScript modal helper is unavailable.
-
-### Usability
-- Rent Status table headers remain visible while scrolling.
-- Displayed application version updated to 0.5.4.2 / Baseline 5.4.2.
+- Both Close and X buttons reliably dismiss Rent Status dialogs.
+- Status indicators reliably open read-only monthly details.
+- Tooltips no longer promise an action.
 
 ## [0.5.4.1] - 2026-07-15
 

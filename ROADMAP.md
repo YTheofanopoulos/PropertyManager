@@ -143,11 +143,9 @@ CSV financial import remains deferred.
 - [x] Outstanding and vacant row emphasis
 
 
-### Baseline 5.4.2
+### Baseline 5.4.2 Revised
 
-- [x] Rent Status visual polish
-- [x] Compact legend restored
-- [x] Redundant row highlighting and months-behind text removed
-- [x] Two-line unit labels and multi-line tenants
-- [x] Reliable read-only month details
-- [x] Sticky reporting headers
+- [x] Single-line unit identifiers
+- [x] Tenant column removed from Rent Status
+- [x] Clickable black unit label with occupant popup
+- [x] Compact legend and reliable modal close behavior
