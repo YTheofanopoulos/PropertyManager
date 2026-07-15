@@ -193,6 +193,26 @@ All notable changes to PropertyManager are documented here.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
 
+## [0.5.3.3] - 2026-07-15
+
+### Added
+- Queue-focused Import Bank Statement page.
+- Default Needs Attention filter.
+- Suggested, Ambiguous, Manual Review, Ignored, Reconciled, and All filters.
+- Summary counts for outstanding reconciliation work.
+- Batch progress showing imported, reconciled, ignored, remaining, and completion status.
+- Success feedback after reconciliation.
+
+### Changed
+- Reconciled transactions are hidden from the default queue and remain accessible through the Reconciled and All filters.
+- Queue ordering prioritizes Suggested, Ambiguous, Manual Review, and then oldest transactions.
+- Import batches display Complete when no actionable transactions remain.
+- Voiding an imported payment returns its source transaction to Needs Attention and moves its batch back to In Progress.
+
+### Workflow
+- Import Bank Statement is now a work queue rather than a transaction-history screen.
+- Payments remains the primary location for reviewing completed reconciliations.
+
 ## [0.5.3.2] - 2026-07-15
 
 ### Fixed

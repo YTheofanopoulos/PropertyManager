@@ -59,3 +59,12 @@ CSV financial import remains deferred.
 - [x] Outstanding calculations use today's date
 - [x] Preserve bank transaction dates for accounting
 - [x] Zero-evidence candidates require Manual Review
+
+
+## Baseline 5.3.3
+
+- [x] Queue-focused reconciliation workflow
+- [x] Hide reconciled transactions by default
+- [x] Reconciliation filters and counts
+- [x] Batch completion progress
+- [x] Reopened voided transactions return to Needs Attention

@@ -1,5 +1,6 @@
 
 import { db } from "../../db/database";
+import type { BankTransaction } from "../../models/domain";
 import type { ImportPreview } from "../../services/bankImportService";
 import { bankImportService } from "../../services/bankImportService";
 import { parseQfx } from "../../services/qfxParser";
@@ -10,20 +11,219 @@ import { currency } from "../shared/format";
 
 let currentPreview: ImportPreview | undefined;
 
-export async function renderBankImport(container: HTMLElement): Promise<void> {
-  const [batches, transactions] = await Promise.all([
+type QueueFilter =
+  | "needs-attention"
+  | "suggested"
+  | "ambiguous"
+  | "manual-review"
+  | "ignored"
+  | "reconciled"
+  | "all";
+
+interface QueueTransaction extends BankTransaction {
+  queueClassification: string;
+}
+
+function filterFromHash(): QueueFilter {
+  const value = new URLSearchParams(
+    location.hash.split("?")[1] ?? "",
+  ).get("filter");
+
+  const allowed: QueueFilter[] = [
+    "needs-attention",
+    "suggested",
+    "ambiguous",
+    "manual-review",
+    "ignored",
+    "reconciled",
+    "all",
+  ];
+
+  return allowed.includes(value as QueueFilter)
+    ? (value as QueueFilter)
+    : "needs-attention";
+}
+
+function badgeClass(value: string): string {
+  if (value === "Reconciled" || value === "Suggested") return "success";
+  if (value === "Ambiguous") return "warning";
+  if (value === "Ignored") return "secondary";
+  if (value === "Manual Review") return "dark";
+  return "primary";
+}
+
+export async function renderBankImport(
+  container: HTMLElement,
+): Promise<void> {
+  const activeFilter = filterFromHash();
+
+  const [batches, rawTransactions] = await Promise.all([
     db.bankImportBatches.orderBy("importedAt").reverse().toArray(),
     db.bankTransactions.orderBy("postedDate").reverse().toArray(),
   ]);
 
   const batchMap = new Map(batches.map((batch) => [batch.id, batch]));
 
+  const successPayload = sessionStorage.getItem(
+    "bank-reconciliation-success",
+  );
+  if (successPayload) {
+    sessionStorage.removeItem("bank-reconciliation-success");
+  }
+
+  const transactions: QueueTransaction[] = await Promise.all(
+    rawTransactions.map(async (transaction) => {
+      if (
+        transaction.status === "Reconciled" ||
+        transaction.status === "Ignored" ||
+        transaction.amount <= 0
+      ) {
+        return {
+          ...transaction,
+          queueClassification: transaction.status,
+        };
+      }
+
+      try {
+        const suggestions =
+          await reconciliationService.suggestions(
+            transaction.id as number,
+          );
+        return {
+          ...transaction,
+          queueClassification:
+            suggestions[0]?.classification ?? "Manual Review",
+        };
+      } catch {
+        return {
+          ...transaction,
+          queueClassification: "Manual Review",
+        };
+      }
+    }),
+  );
+
+  const counts = {
+    suggested: transactions.filter(
+      (item) => item.queueClassification === "Suggested",
+    ).length,
+    ambiguous: transactions.filter(
+      (item) => item.queueClassification === "Ambiguous",
+    ).length,
+    manualReview: transactions.filter(
+      (item) =>
+        item.queueClassification === "Manual Review" ||
+        item.queueClassification === "Unmatched",
+    ).length,
+    ignored: transactions.filter(
+      (item) => item.status === "Ignored",
+    ).length,
+    reconciled: transactions.filter(
+      (item) => item.status === "Reconciled",
+    ).length,
+    all: transactions.length,
+  };
+
+  const needsAttention =
+    counts.suggested + counts.ambiguous + counts.manualReview;
+
+  const visibleTransactions = transactions
+    .filter((item) => {
+      switch (activeFilter) {
+        case "suggested":
+          return item.queueClassification === "Suggested";
+        case "ambiguous":
+          return item.queueClassification === "Ambiguous";
+        case "manual-review":
+          return (
+            item.queueClassification === "Manual Review" ||
+            item.queueClassification === "Unmatched"
+          );
+        case "ignored":
+          return item.status === "Ignored";
+        case "reconciled":
+          return item.status === "Reconciled";
+        case "all":
+          return true;
+        default:
+          return (
+            item.status !== "Reconciled" &&
+            item.status !== "Ignored" &&
+            item.amount > 0
+          );
+      }
+    })
+    .sort((left, right) => {
+      const rank = (item: QueueTransaction): number => {
+        if (item.queueClassification === "Suggested") return 1;
+        if (item.queueClassification === "Ambiguous") return 2;
+        if (
+          item.queueClassification === "Manual Review" ||
+          item.queueClassification === "Unmatched"
+        ) {
+          return 3;
+        }
+        if (item.status === "Ignored") return 4;
+        if (item.status === "Reconciled") return 5;
+        return 6;
+      };
+
+      return (
+        rank(left) - rank(right) ||
+        left.postedDate.localeCompare(right.postedDate)
+      );
+    });
+
+  const batchProgress = batches.map((batch) => {
+    const batchTransactions = transactions.filter(
+      (transaction) => transaction.importBatchId === batch.id,
+    );
+    const reconciled = batchTransactions.filter(
+      (transaction) => transaction.status === "Reconciled",
+    ).length;
+    const ignored = batchTransactions.filter(
+      (transaction) => transaction.status === "Ignored",
+    ).length;
+    const remaining = batchTransactions.filter(
+      (transaction) =>
+        transaction.amount > 0 &&
+        transaction.status !== "Reconciled" &&
+        transaction.status !== "Ignored",
+    ).length;
+
+    return {
+      ...batch,
+      reconciled,
+      ignored,
+      remaining,
+      completionStatus:
+        remaining === 0 ? "Complete" : "In Progress",
+    };
+  });
+
   container.innerHTML = `
+    ${
+      successPayload
+        ? `<div class="alert alert-success alert-dismissible fade show" role="alert">
+            <strong>Payment reconciled.</strong>
+            The completed transaction has been removed from the Needs Attention queue.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>`
+        : ""
+    }
+
     <div class="page-heading">
       <h1>Import Bank Statement</h1>
       <p class="text-body-secondary mb-0">
-        Import QFX transactions, detect duplicates, and reconcile deposits to rent.
+        Import statements and work only the transactions that still need attention.
       </p>
+    </div>
+
+    <div class="row g-3 mb-4">
+      ${summaryCard("Needs Attention", needsAttention, "primary")}
+      ${summaryCard("Suggested", counts.suggested, "success")}
+      ${summaryCard("Ambiguous", counts.ambiguous, "warning")}
+      ${summaryCard("Manual Review", counts.manualReview, "dark")}
     </div>
 
     <div class="card mb-4">
@@ -32,10 +232,13 @@ export async function renderBankImport(container: HTMLElement): Promise<void> {
         <div class="row g-3 align-items-end">
           <div class="col-lg-8">
             <label class="form-label">QFX statement</label>
-            <input id="qfx-file" type="file" accept=".qfx,.ofx" class="form-control">
+            <input id="qfx-file" type="file"
+                   accept=".qfx,.ofx"
+                   class="form-control">
           </div>
           <div class="col-lg-4">
-            <button id="preview-qfx" class="btn btn-primary w-100">
+            <button id="preview-qfx"
+                    class="btn btn-primary w-100">
               Preview Statement
             </button>
           </div>
@@ -45,9 +248,60 @@ export async function renderBankImport(container: HTMLElement): Promise<void> {
     </div>
 
     <div class="card mb-4">
-      <div class="card-header fw-semibold">Imported Transactions</div>
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+        <span>Reconciliation Queue</span>
+        <span class="small text-body-secondary">
+          ${visibleTransactions.length} displayed
+        </span>
+      </div>
       <div class="card-body">
-        <table id="bank-transactions-table" class="table table-hover align-middle w-100">
+        <div class="btn-group flex-wrap mb-3" role="group" aria-label="Transaction filters">
+          ${filterButton(
+            "needs-attention",
+            "Needs Attention",
+            needsAttention,
+            activeFilter,
+          )}
+          ${filterButton(
+            "suggested",
+            "Suggested",
+            counts.suggested,
+            activeFilter,
+          )}
+          ${filterButton(
+            "ambiguous",
+            "Ambiguous",
+            counts.ambiguous,
+            activeFilter,
+          )}
+          ${filterButton(
+            "manual-review",
+            "Manual Review",
+            counts.manualReview,
+            activeFilter,
+          )}
+          ${filterButton(
+            "ignored",
+            "Ignored",
+            counts.ignored,
+            activeFilter,
+          )}
+          ${filterButton(
+            "reconciled",
+            "Reconciled",
+            counts.reconciled,
+            activeFilter,
+          )}
+          ${filterButton(
+            "all",
+            "All",
+            counts.all,
+            activeFilter,
+          )}
+        </div>
+
+        <table id="bank-transactions-table"
+               class="table table-hover align-middle w-100">
           <thead>
             <tr>
               <th>Date</th>
@@ -55,7 +309,7 @@ export async function renderBankImport(container: HTMLElement): Promise<void> {
               <th>Amount</th>
               <th>Reference</th>
               <th>Batch</th>
-              <th>Status</th>
+              <th>Classification</th>
               <th>Action</th>
             </tr>
           </thead>
@@ -66,16 +320,19 @@ export async function renderBankImport(container: HTMLElement): Promise<void> {
     <div class="card">
       <div class="card-header fw-semibold">Import History</div>
       <div class="card-body">
-        <table id="import-history-table" class="table table-sm w-100">
+        <table id="import-history-table"
+               class="table table-sm align-middle w-100">
           <thead>
             <tr>
               <th>Imported</th>
               <th>File</th>
               <th>Period</th>
               <th>Account</th>
-              <th>Transactions</th>
-              <th>New</th>
-              <th>Duplicates</th>
+              <th>Imported</th>
+              <th>Reconciled</th>
+              <th>Ignored</th>
+              <th>Remaining</th>
+              <th>Status</th>
             </tr>
           </thead>
         </table>
@@ -84,50 +341,65 @@ export async function renderBankImport(container: HTMLElement): Promise<void> {
   `;
 
   createTable("#bank-transactions-table", {
-    data: transactions,
+    data: visibleTransactions,
     columns: [
       { data: "postedDate" },
       {
         data: "name",
-        render: (value: string, _type: unknown, row: typeof transactions[number]) =>
-          `${value || "Bank transaction"}${row.memo ? `<div class="small text-body-secondary">${row.memo}</div>` : ""}`,
+        render: (
+          value: string,
+          _type: unknown,
+          row: QueueTransaction,
+        ) =>
+          `${value || "Bank transaction"}${
+            row.memo
+              ? `<div class="small text-body-secondary">${row.memo}</div>`
+              : ""
+          }`,
       },
-      { data: "amount", render: (value: number) => currency(value) },
+      {
+        data: "amount",
+        render: (value: number) => currency(value),
+      },
       { data: "externalId" },
       {
         data: "importBatchId",
-        render: (value: number) => batchMap.get(value)?.filename ?? "Unknown",
+        render: (value: number) =>
+          batchMap.get(value)?.filename ?? "Unknown",
       },
       {
-        data: "status",
+        data: "queueClassification",
         render: (value: string) =>
-          `<span class="badge text-bg-${
-            value === "Reconciled"
-              ? "success"
-              : value === "Ignored"
-                ? "secondary"
-                : "warning"
-          }">${value}</span>`,
+          `<span class="badge text-bg-${badgeClass(value)}">${value}</span>`,
       },
       {
         data: "id",
         orderable: false,
         searchable: false,
-        render: (id: number, _type: unknown, row: typeof transactions[number]) => {
+        render: (
+          id: number,
+          _type: unknown,
+          row: QueueTransaction,
+        ) => {
           if (row.status === "Reconciled") {
-            return '<span class="text-body-secondary small">Complete</span>';
+            return '<a class="btn btn-sm btn-outline-secondary" href="#/payments">View Payment</a>';
           }
+
           if (row.status === "Ignored") {
             return '<span class="text-body-secondary small">Ignored</span>';
           }
+
           if (row.amount <= 0) {
             return '<span class="text-body-secondary small">Debit</span>';
           }
+
           return `
-            <a class="btn btn-sm btn-outline-primary" href="#/bank-import/reconcile/${id}">
+            <a class="btn btn-sm btn-outline-primary"
+               href="#/bank-import/reconcile/${id}">
               Reconcile
             </a>
-            <button class="btn btn-sm btn-outline-secondary ignore-bank-transaction" data-id="${id}">
+            <button class="btn btn-sm btn-outline-secondary ignore-bank-transaction"
+                    data-id="${id}">
               Ignore
             </button>
           `;
@@ -137,100 +409,226 @@ export async function renderBankImport(container: HTMLElement): Promise<void> {
   });
 
   createTable("#import-history-table", {
-    data: batches,
+    data: batchProgress,
     columns: [
-      { data: "importedAt", render: (value: string) => value.slice(0, 19).replace("T", " ") },
+      {
+        data: "importedAt",
+        render: (value: string) =>
+          value.slice(0, 19).replace("T", " "),
+      },
       { data: "filename" },
       {
         data: null,
-        render: (_value: unknown, _type: unknown, row: typeof batches[number]) =>
-          `${row.statementStart || "?"} to ${row.statementEnd || "?"}`,
+        render: (
+          _value: unknown,
+          _type: unknown,
+          row: typeof batchProgress[number],
+        ) =>
+          `${row.statementStart || "?"} to ${
+            row.statementEnd || "?"
+          }`,
       },
-      { data: "accountLastFour", render: (value: string) => value ? `…${value}` : "Unknown" },
-      { data: "transactionCount" },
+      {
+        data: "accountLastFour",
+        render: (value: string) =>
+          value ? `…${value}` : "Unknown",
+      },
       { data: "newTransactionCount" },
-      { data: "duplicateCount" },
+      { data: "reconciled" },
+      { data: "ignored" },
+      { data: "remaining" },
+      {
+        data: "completionStatus",
+        render: (value: string) =>
+          `<span class="badge text-bg-${
+            value === "Complete" ? "success" : "warning"
+          }">${value}</span>`,
+      },
     ],
   });
 
-  document.getElementById("preview-qfx")?.addEventListener("click", async () => {
-    const input = document.getElementById("qfx-file") as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) {
-      window.alert("Choose a QFX file.");
-      return;
-    }
+  document
+    .getElementById("preview-qfx")
+    ?.addEventListener("click", async () => {
+      const input = document.getElementById(
+        "qfx-file",
+      ) as HTMLInputElement;
+      const file = input.files?.[0];
 
-    try {
-      const statement = parseQfx(await file.text());
-      currentPreview = await bankImportService.preview(file.name, statement);
-      renderPreview();
-    } catch (error) {
-      window.alert((error as Error).message);
-    }
-  });
+      if (!file) {
+        window.alert("Choose a QFX file.");
+        return;
+      }
 
-  document.getElementById("bank-transactions-table")?.addEventListener("click", async (event) => {
-    const target = event.target as HTMLElement;
-    if (!target.classList.contains("ignore-bank-transaction")) return;
-    const id = Number(target.dataset.id);
-    const reason = window.prompt("Reason this transaction is not rent:");
-    if (reason === null) return;
-    try {
-      await bankImportService.ignore(id, reason);
-      await renderBankImport(container);
-    } catch (error) {
-      window.alert((error as Error).message);
-    }
-  });
-
-  function renderPreview(): void {
-    const previewElement = document.getElementById("import-preview");
-    if (!previewElement || !currentPreview) return;
-
-    previewElement.innerHTML = `
-      <div class="alert alert-light border">
-        <div class="row g-3">
-          <div class="col-md-3"><strong>Account</strong><br>…${currentPreview.statement.accountLastFour || "Unknown"}</div>
-          <div class="col-md-3"><strong>Period</strong><br>${currentPreview.statement.statementStart} to ${currentPreview.statement.statementEnd}</div>
-          <div class="col-md-2"><strong>New</strong><br>${currentPreview.newCount}</div>
-          <div class="col-md-2"><strong>Duplicates</strong><br>${currentPreview.duplicateCount}</div>
-          <div class="col-md-2"><strong>Credits</strong><br>${currency(currentPreview.totalCredits)}</div>
-        </div>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm">
-          <thead><tr><th>Date</th><th>Description</th><th>Amount</th><th>FITID</th><th>Result</th></tr></thead>
-          <tbody>
-            ${currentPreview.rows.map((row) => `
-              <tr>
-                <td>${row.postedDate}</td>
-                <td>${row.name || row.memo}</td>
-                <td>${currency(row.amount)}</td>
-                <td>${row.externalId}</td>
-                <td><span class="badge text-bg-${row.result === "New" ? "success" : "secondary"}">${row.result}</span></td>
-              </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-      <button id="commit-import" class="btn btn-success" ${currentPreview.newCount === 0 ? "disabled" : ""}>
-        Import ${currentPreview.newCount} New Transactions
-      </button>
-    `;
-
-    document.getElementById("commit-import")?.addEventListener("click", async () => {
-      if (!currentPreview) return;
       try {
-        await bankImportService.commit(currentPreview);
-        currentPreview = undefined;
+        const statement = parseQfx(await file.text());
+        currentPreview = await bankImportService.preview(
+          file.name,
+          statement,
+        );
+        renderPreview();
+      } catch (error) {
+        window.alert((error as Error).message);
+      }
+    });
+
+  document
+    .getElementById("bank-transactions-table")
+    ?.addEventListener("click", async (event) => {
+      const target = event.target as HTMLElement;
+      if (
+        !target.classList.contains(
+          "ignore-bank-transaction",
+        )
+      ) {
+        return;
+      }
+
+      const id = Number(target.dataset.id);
+      const reason = window.prompt(
+        "Reason this transaction is not rent:",
+      );
+      if (reason === null) return;
+
+      try {
+        await bankImportService.ignore(id, reason);
         await renderBankImport(container);
       } catch (error) {
         window.alert((error as Error).message);
       }
     });
+
+  function renderPreview(): void {
+    const previewElement =
+      document.getElementById("import-preview");
+
+    if (!previewElement || !currentPreview) return;
+
+    previewElement.innerHTML = `
+      <div class="alert alert-light border">
+        <div class="row g-3">
+          <div class="col-md-3">
+            <strong>Account</strong><br>
+            …${currentPreview.statement.accountLastFour || "Unknown"}
+          </div>
+          <div class="col-md-3">
+            <strong>Period</strong><br>
+            ${currentPreview.statement.statementStart}
+            to
+            ${currentPreview.statement.statementEnd}
+          </div>
+          <div class="col-md-2">
+            <strong>New</strong><br>
+            ${currentPreview.newCount}
+          </div>
+          <div class="col-md-2">
+            <strong>Duplicates</strong><br>
+            ${currentPreview.duplicateCount}
+          </div>
+          <div class="col-md-2">
+            <strong>Credits</strong><br>
+            ${currency(currentPreview.totalCredits)}
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Amount</th>
+              <th>FITID</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${currentPreview.rows
+              .map(
+                (row) => `
+                  <tr>
+                    <td>${row.postedDate}</td>
+                    <td>${row.name || row.memo}</td>
+                    <td>${currency(row.amount)}</td>
+                    <td>${row.externalId}</td>
+                    <td>
+                      <span class="badge text-bg-${
+                        row.result === "New"
+                          ? "success"
+                          : "secondary"
+                      }">${row.result}</span>
+                    </td>
+                  </tr>
+                `,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <button id="commit-import"
+              class="btn btn-success"
+              ${currentPreview.newCount === 0 ? "disabled" : ""}>
+        Import ${currentPreview.newCount} New Transactions
+      </button>
+    `;
+
+    document
+      .getElementById("commit-import")
+      ?.addEventListener("click", async () => {
+        if (!currentPreview) return;
+
+        try {
+          await bankImportService.commit(currentPreview);
+          currentPreview = undefined;
+          await renderBankImport(container);
+        } catch (error) {
+          window.alert((error as Error).message);
+        }
+      });
   }
 }
+
+function summaryCard(
+  label: string,
+  value: number,
+  color: string,
+): string {
+  return `
+    <div class="col-sm-6 col-xl-3">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="small text-uppercase text-body-secondary fw-semibold">
+            ${label}
+          </div>
+          <div class="metric-value text-${color}">
+            ${value}
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function filterButton(
+  filter: QueueFilter,
+  label: string,
+  count: number,
+  activeFilter: QueueFilter,
+): string {
+  const active = filter === activeFilter;
+  return `
+    <a href="#/bank-import?filter=${filter}"
+       class="btn btn-${
+         active ? "primary" : "outline-secondary"
+       }">
+      ${label}
+      <span class="badge text-bg-light ms-1">${count}</span>
+    </a>
+  `;
+}
+
 
 export async function renderReconciliation(
   container: HTMLElement,
@@ -351,7 +749,16 @@ export async function renderReconciliation(
         selectedLeaseId,
         allocations,
       );
-      location.hash = "#/bank-import";
+
+      sessionStorage.setItem(
+        "bank-reconciliation-success",
+        JSON.stringify({
+          amount: bankTransaction.amount,
+          reference: bankTransaction.externalId,
+        }),
+      );
+
+      location.hash = "#/bank-import?filter=needs-attention";
     } catch (error) {
       window.alert((error as Error).message);
     }
