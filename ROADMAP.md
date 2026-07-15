@@ -12,9 +12,17 @@
 ## 5.x Financial Operations
 
 - [x] **5.1** Tenant and lease ledger with manual payment allocation
-- [ ] **5.2** Bank statement import
-- [ ] **5.3** Automatic payment matching and review
-- [ ] **5.4** Outstanding balances and partial payments
+- [x] **5.2** Bank statement import
+- [x] **5.3** Automatic payment matching and review
+- [x] **5.4** Outstanding balances and partial payments
+    [X] Rolling monthly rent status
+    [X] Occupancy awareness
+    [X] Outstanding balance calculation
+    [X] Tenant detail popup
+    [X] Search and paging
+    [X] Visual status indicators
+    [X] UI polish
+    [X] Complete
 - [ ] **5.5** Financial and rent-roll reporting
 
 ## 6.x Portfolio Operations
