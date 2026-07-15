@@ -76,3 +76,41 @@ CSV financial import remains deferred.
 - [x] Reconciliation queue filters remain on Bank Import
 - [x] Confirm Reconciliation returns to Needs Attention
 - [x] Persistent version and About information
+
+
+## Release Status
+
+### Completed
+
+- [x] **Baseline 5.0 — Rent Roll**
+  - Monthly rent obligations and rent-period tracking
+  - Current-period and cumulative arrears visibility
+
+- [x] **Baseline 5.1 — Payment Management**
+  - Manual payment entry and allocation
+  - Partial and multi-period payments
+  - Voiding with allocation reversal
+  - Lease-authoritative effective rent
+
+- [x] **Baseline 5.2 — Bank Import and Manual Reconciliation**
+  - QFX/OFX import and preview
+  - FITID duplicate detection
+  - Import history and transaction queue
+  - Manual reconciliation and multi-period allocation
+  - JSON export and full-replacement JSON import
+  - Realistic deterministic sample data
+
+### In Progress
+
+- [ ] **Baseline 5.3 — Assisted Reconciliation**
+  - [x] 5.3.1 deterministic matching diagnostics and controlled QFX fixtures
+  - [x] 5.3.2 outstanding-balance date correction
+  - [x] 5.3.3 reconciliation work queue
+  - [x] 5.3.4 routing and version information
+  - [x] 5.3.5 Import History usability polish
+
+### Planned
+
+- [ ] **Baseline 5.4 — Financial Reporting**
+- [ ] **Baseline 6.x — Portfolio Operations and Bulk Onboarding**
+- [ ] **Baseline 7.x — Maintenance and Expense Integration**

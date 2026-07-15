@@ -193,6 +193,19 @@ All notable changes to PropertyManager are documented here.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
 
+## [0.5.3.5] - 2026-07-15
+
+### Changed
+- Import History now displays five rows by default.
+- Import History page-size options are 5, 10, 25, and 50.
+- Import History columns are ordered for faster scanning: Imported Date, Statement, Status, Remaining, Reconciled, Ignored, Period, Account, and Transactions.
+- Import batches with no processed transactions display Imported; partially processed batches display In Progress; completed batches display Complete.
+- Displayed application version updated to 0.5.3.5 / Baseline 5.3.5.
+
+### Documentation
+- ROADMAP.md now explicitly marks Baseline 5.2 as complete.
+- Added release-oriented Completed, In Progress, and Planned roadmap sections.
+
 ## [0.5.3.4] - 2026-07-15
 
 ### Fixed

@@ -191,13 +191,19 @@ export async function renderBankImport(
         transaction.status !== "Ignored",
     ).length;
 
+    const actioned = reconciled + ignored;
+
     return {
       ...batch,
       reconciled,
       ignored,
       remaining,
       completionStatus:
-        remaining === 0 ? "Complete" : "In Progress",
+        remaining === 0
+          ? "Complete"
+          : actioned === 0
+            ? "Imported"
+            : "In Progress",
     };
   });
 
@@ -324,15 +330,15 @@ export async function renderBankImport(
                class="table table-sm align-middle w-100">
           <thead>
             <tr>
-              <th>Imported</th>
-              <th>File</th>
-              <th>Period</th>
-              <th>Account</th>
-              <th>Imported</th>
+              <th>Imported Date</th>
+              <th>Statement</th>
+              <th>Status</th>
+              <th>Remaining</th>
               <th>Reconciled</th>
               <th>Ignored</th>
-              <th>Remaining</th>
-              <th>Status</th>
+              <th>Period</th>
+              <th>Account</th>
+              <th>Transactions</th>
             </tr>
           </thead>
         </table>
@@ -410,6 +416,12 @@ export async function renderBankImport(
 
   createTable("#import-history-table", {
     data: batchProgress,
+    pageLength: 5,
+    lengthMenu: [
+      [5, 10, 25, 50],
+      [5, 10, 25, 50],
+    ],
+    order: [[0, "desc"]],
     columns: [
       {
         data: "importedAt",
@@ -417,6 +429,22 @@ export async function renderBankImport(
           value.slice(0, 19).replace("T", " "),
       },
       { data: "filename" },
+      {
+        data: "completionStatus",
+        render: (value: string) => {
+          const color =
+            value === "Complete"
+              ? "success"
+              : value === "In Progress"
+                ? "warning"
+                : "secondary";
+
+          return `<span class="badge text-bg-${color}">${value}</span>`;
+        },
+      },
+      { data: "remaining" },
+      { data: "reconciled" },
+      { data: "ignored" },
       {
         data: null,
         render: (
@@ -434,16 +462,6 @@ export async function renderBankImport(
           value ? `…${value}` : "Unknown",
       },
       { data: "newTransactionCount" },
-      { data: "reconciled" },
-      { data: "ignored" },
-      { data: "remaining" },
-      {
-        data: "completionStatus",
-        render: (value: string) =>
-          `<span class="badge text-bg-${
-            value === "Complete" ? "success" : "warning"
-          }">${value}</span>`,
-      },
     ],
   });
 
