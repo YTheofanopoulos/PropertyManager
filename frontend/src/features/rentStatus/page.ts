@@ -5,6 +5,7 @@ import type {
   RentStatusRow,
 } from "../../services/rentStatusService";
 import { currency } from "../shared/format";
+import { createTable } from "../shared/table";
 
 const DEFAULT_MONTH_COUNT = 4;
 const MONTH_COUNTS = [4, 6, 9, 12];
@@ -189,41 +190,46 @@ export async function renderRentStatus(
       }
 
       .rent-indicator {
-        --progress: 0deg;
-        width: 38px;
-        height: 38px;
+        width: 20px;
+        height: 20px;
         border: 0;
         border-radius: 50%;
-        display: inline-grid;
-        place-items: center;
-        position: relative;
-        font-weight: 700;
-        color: var(--bs-body-color);
-        background:
-          radial-gradient(
-            circle at center,
-            var(--bs-body-bg) 55%,
-            transparent 57%
-          ),
-          conic-gradient(
-            currentColor var(--progress),
-            var(--bs-border-color) 0
-          );
+        display: inline-block;
+        padding: 0;
+        box-shadow: 0 0 0 1px rgba(0, 0, 0, .08);
       }
 
       .rent-indicator:hover,
       .rent-indicator:focus-visible {
-        transform: scale(1.08);
-        outline: 2px solid currentColor;
-        outline-offset: 2px;
+        transform: scale(1.15);
+        outline: 2px solid var(--bs-body-color);
+        outline-offset: 3px;
       }
 
-      .rent-paid { color: var(--bs-success); }
-      .rent-ahead { color: var(--bs-primary); }
-      .rent-partial { color: var(--bs-warning); }
-      .rent-unpaid { color: var(--bs-danger); }
-      .rent-future { color: var(--bs-secondary); }
-      .rent-na { color: var(--bs-tertiary-color); }
+      .rent-paid {
+        background-color: var(--bs-success);
+      }
+
+      .rent-ahead {
+        background-color: var(--bs-primary);
+      }
+
+      .rent-partial {
+        background-color: var(--bs-warning);
+      }
+
+      .rent-unpaid {
+        background-color: var(--bs-danger);
+      }
+
+      .rent-future {
+        background-color: var(--bs-secondary);
+      }
+
+      .rent-na {
+        background-color: var(--bs-tertiary-bg);
+        box-shadow: inset 0 0 0 1px var(--bs-border-color);
+      }
 
       .rent-window-controls {
         gap: .5rem;
@@ -264,6 +270,31 @@ export async function renderRentStatus(
         height: .8rem;
         border-radius: 50%;
         background: currentColor;
+      }
+
+      #rent-status-table th,
+      #rent-status-table td {
+        padding-left: .9rem;
+        padding-right: .9rem;
+      }
+
+      #rent-status-table th.text-center,
+      #rent-status-table td.text-center {
+        text-align: center;
+      }
+
+      #rent-status-table th.text-end,
+      #rent-status-table td.text-end {
+        text-align: right;
+      }
+
+      #rent-status-table tbody tr.rent-row-outstanding > * {
+        background-color: rgba(var(--bs-danger-rgb), .055);
+      }
+
+      #rent-status-table tbody tr.rent-row-vacant > * {
+        background-color: var(--bs-tertiary-bg);
+        color: var(--bs-secondary-color);
       }
     </style>
 
@@ -351,7 +382,8 @@ export async function renderRentStatus(
       </div>
 
       <div class="card-body rent-status-scroll">
-        <table class="table table-hover align-middle rent-status-table">
+        <table id="rent-status-table"
+               class="table table-hover align-middle rent-status-table w-100">
           <thead>
             <tr>
               <th class="rent-unit-column">Unit</th>
@@ -368,14 +400,15 @@ export async function renderRentStatus(
                   `,
                 )
                 .join("")}
-              <th class="rent-balance-column">Outstanding Today</th>
-              <th>Action</th>
+              <th class="rent-balance-column text-end">Outstanding Today</th>
             </tr>
           </thead>
           <tbody>
-            ${rows.map((row, rowIndex) =>
-              renderRow(row, rowIndex),
-            ).join("")}
+            ${rows
+              .map((row, rowIndex) =>
+                renderRow(row, rowIndex),
+              )
+              .join("")}
           </tbody>
         </table>
       </div>
@@ -402,6 +435,30 @@ export async function renderRentStatus(
     </div>
   `;
 
+  createTable("#rent-status-table", {
+    pageLength: 10,
+    lengthMenu: [
+      [10, 25, 50],
+      [10, 25, 50],
+    ],
+    order: [[0, "asc"]],
+    columnDefs: [
+      {
+        targets: Array.from(
+          { length: periods.length },
+          (_value, index) => index + 2,
+        ),
+        orderable: false,
+        searchable: false,
+        className: "text-center",
+      },
+      {
+        targets: periods.length + 2,
+        className: "text-end",
+      },
+    ],
+  });
+
   const modalElement = document.getElementById(
     "rent-period-detail",
   );
@@ -423,18 +480,24 @@ export async function renderRentStatus(
       : undefined;
 
   document
-    .querySelectorAll<HTMLButtonElement>(".rent-indicator")
-    .forEach((button) => {
-      button.addEventListener("click", () => {
-        const rowIndex = Number(button.dataset.rowIndex);
-        const monthIndex = Number(button.dataset.monthIndex);
-        const row = rows[rowIndex];
-        const month = row?.months[monthIndex];
+    .getElementById("rent-status-table")
+    ?.addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      const button = target.closest<HTMLButtonElement>(
+        ".rent-indicator",
+      );
 
-        if (!row || !month) return;
-        showMonthDetail(row, month);
-        modal?.show();
-      });
+      if (!button) return;
+
+      const rowIndex = Number(button.dataset.rowIndex);
+      const monthIndex = Number(button.dataset.monthIndex);
+      const row = rows[rowIndex];
+      const month = row?.months[monthIndex];
+
+      if (!row || !month) return;
+
+      showMonthDetail(row, month);
+      modal?.show();
     });
 
   document
@@ -496,6 +559,21 @@ export async function renderRentStatus(
         <dd class="col-6">${currency(month.remaining)}</dd>
       </dl>
 
+      <div class="mb-4">
+        <div class="d-flex justify-content-between small mb-1">
+          <span>Collection</span>
+          <strong>${month.collectionRate.toFixed(0)}%</strong>
+        </div>
+        <div class="progress" role="progressbar"
+             aria-label="Rent collection progress"
+             aria-valuenow="${month.collectionRate.toFixed(0)}"
+             aria-valuemin="0"
+             aria-valuemax="100">
+          <div class="progress-bar"
+               style="width: ${month.collectionRate.toFixed(0)}%"></div>
+        </div>
+      </div>
+
       <h6>Payments and Allocations</h6>
       ${
         month.allocations.length
@@ -529,26 +607,12 @@ export async function renderRentStatus(
       }
     `;
 
-    const returnHash = encodeURIComponent(
-      routeFor(endPeriod, monthCount),
-    );
-
     footer.innerHTML = `
-      <button class="btn btn-secondary"
+      <button class="btn btn-primary"
               type="button"
               data-bs-dismiss="modal">
         Close
       </button>
-      ${
-        row.leaseId
-          ? `
-            <a class="btn btn-primary"
-               href="#/payments/new?leaseId=${row.leaseId}&returnTo=rent-status&period=${month.period}&returnHash=${returnHash}">
-              Record Payment
-            </a>
-          `
-          : ""
-      }
     `;
   }
 }
@@ -557,8 +621,15 @@ function renderRow(
   row: RentStatusRow,
   rowIndex: number,
 ): string {
+  const rowClass =
+    !row.leaseId
+      ? "rent-row-vacant"
+      : row.outstandingToday > 0.005
+        ? "rent-row-outstanding"
+        : "";
+
   return `
-    <tr>
+    <tr class="${rowClass}">
       <td class="rent-unit-column">
         <strong>${row.unitLabel}</strong>
       </td>
@@ -572,38 +643,21 @@ function renderRow(
               <button
                 type="button"
                 class="rent-indicator ${statusClass(month.state)}"
-                style="--progress: ${
-                  month.expected > 0
-                    ? Math.round(month.collectionRate * 3.6)
-                    : 0
-                }deg"
                 data-row-index="${rowIndex}"
                 data-month-index="${monthIndex}"
-                title="${month.state}: ${currency(month.paid)} of ${currency(month.expected)}"
+                title="${monthLabel(month.period)} — ${month.state}. Expected ${currency(month.expected)}, collected ${currency(month.paid)}, remaining ${currency(month.remaining)}. Click for details."
                 aria-label="${monthLabel(month.period)} ${month.state}, ${currency(month.paid)} paid of ${currency(month.expected)}"
-              >
-                ${statusIcon(month.state)}
-              </button>
+              ></button>
             </td>
           `,
         )
         .join("")}
-      <td class="rent-balance-column">
+      <td class="rent-balance-column text-end">
         <strong>${currency(row.outstandingToday)}</strong>
         ${
           row.monthsBehind > 0
             ? `<div class="small text-danger">${row.monthsBehind} month${row.monthsBehind === 1 ? "" : "s"} behind</div>`
             : ""
-        }
-      </td>
-      <td>
-        ${
-          row.leaseId
-            ? `<a class="btn btn-sm btn-outline-primary"
-                  href="#/payments/new?leaseId=${row.leaseId}&returnTo=rent-status&period=${new Date().toISOString().slice(0, 7)}">
-                  Record Payment
-                </a>`
-            : '<span class="text-body-secondary small">No active lease</span>'
         }
       </td>
     </tr>

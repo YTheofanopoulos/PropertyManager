@@ -193,6 +193,22 @@ All notable changes to PropertyManager are documented here.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
 
+## [0.5.4.1] - 2026-07-15
+
+### Changed
+- Rent Status is now a read-only dashboard; payment-entry actions and the Action column were removed.
+- Rent-status cells now use solid colored bubbles matching the legend.
+- Collection percentages and allocation detail remain available in the read-only monthly dialog.
+- Rent Status now uses DataTables with a default of 10 rows and options for 10, 25, and 50.
+- Added live filtering across unit addresses and tenant names.
+- Outstanding currency is right-aligned and monthly indicators are centered.
+- Rows with outstanding rent receive a subtle warning tint; vacant rows receive a neutral tint.
+- Displayed application version updated to 0.5.4.1 / Baseline 5.4.1.
+
+### Usability
+- Indicator tooltips summarize status, expected rent, collected rent, and remaining balance.
+- Pagination and search remain available for larger portfolios.
+
 ## [0.5.4.0] - 2026-07-15
 
 ### Added

@@ -132,3 +132,12 @@ CSV financial import remains deferred.
 - [ ] Lease expiration report
 - [ ] Portfolio summary reporting
 - [ ] Table spacing and financial-column alignment standardization
+
+
+### Baseline 5.4.1
+
+- [x] Rent Status dashboard usability
+- [x] Read-only dashboard separation from Rent Roll
+- [x] Solid status bubbles matching the legend
+- [x] Pagination and live apartment/tenant filtering
+- [x] Outstanding and vacant row emphasis
