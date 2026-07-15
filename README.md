@@ -115,3 +115,18 @@ The lease table remains read-only in this increment.
 ## Baseline 5.3.1 testing
 
 See `docs/test-data/baseline5_3_1/TEST_PLAN.md`. Reset sample data first, then import and reconcile the three monthly QFX files in order.
+
+
+## Baseline 5.4 Rent Status testing
+
+1. Open **Reports → Rent Status**.
+2. Confirm the default window shows two prior months, the current month, and one
+   future month.
+3. Switch among 4, 6, 9, and 12 months.
+4. Move the window earlier and return with **Today**.
+5. Confirm future unpaid rent displays Not Yet Due and does not affect
+   Outstanding Today.
+6. Allocate a payment to the future month and confirm it displays Paid Ahead or
+   Partial Prepayment.
+7. Click monthly indicators and inspect the payment-allocation details.
+8. Record a payment from the modal and confirm the return to Rent Status.

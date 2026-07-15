@@ -8,6 +8,7 @@ import { renderLocations } from "../features/locations/page";
 import { renderPlaceholder } from "../features/placeholder/page";
 import { renderPayments, renderPaymentEditor } from "../features/payments/page";
 import { renderRentRoll } from "../features/rentRoll/page";
+import { renderRentStatus } from "../features/rentStatus/page";
 import { renderTenants } from "../features/tenants/page";
 import { renderUnits } from "../features/units/page";
 
@@ -37,6 +38,7 @@ export async function route(container: HTMLElement): Promise<void> {
   if (path === "/tenants") return renderTenants(container);
   if (path === "/leases") return renderLeases(container);
   if (path.startsWith("/rent-roll")) return renderRentRoll(container);
+  if (path === "/rent-status") return renderRentStatus(container);
   if (path === "/payments") return renderPayments(container);
   if (path === "/bank-import") return renderBankImport(container);
   if (path.startsWith("/payments/new")) return renderPaymentEditor(container);

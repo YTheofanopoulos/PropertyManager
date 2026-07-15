@@ -193,6 +193,28 @@ All notable changes to PropertyManager are documented here.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
 
+## [0.5.4.0] - 2026-07-15
+
+### Added
+- Rent Status command center under Reports.
+- Rolling four-month default view showing two prior months, the current month, and one future month.
+- Adjustable 4, 6, 9, and 12 month windows with Earlier, Later, and Today navigation.
+- Compact visual rent indicators for Paid, Partial, Unpaid, Paid Ahead, Not Yet Due, and No Lease/Vacant.
+- Monthly portfolio collection-rate headers.
+- Current-month expected, collected, outstanding, and collection-rate summary cards.
+- Clickable monthly status details showing expected rent, allocated payments, and remaining balance.
+- Direct Record Payment action from a monthly status detail.
+
+### Accounting Rules
+- Outstanding Today includes only obligations due through the current month.
+- The future month is visible for prepayments but is never treated as overdue.
+- Payment transaction dates remain unchanged.
+- Future rent is created for display/allocation only when it falls within the selected Rent Status window.
+
+### Changed
+- Baseline 5.3 is marked complete in ROADMAP.md.
+- Displayed application version updated to 0.5.4.0 / Baseline 5.4.0.
+
 ## [0.5.3.5] - 2026-07-15
 
 ### Changed

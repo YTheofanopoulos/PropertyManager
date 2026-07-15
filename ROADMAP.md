@@ -102,7 +102,7 @@ CSV financial import remains deferred.
 
 ### In Progress
 
-- [ ] **Baseline 5.3 — Assisted Reconciliation**
+- [x] **Baseline 5.3 — Assisted Reconciliation**
   - [x] 5.3.1 deterministic matching diagnostics and controlled QFX fixtures
   - [x] 5.3.2 outstanding-balance date correction
   - [x] 5.3.3 reconciliation work queue
@@ -114,3 +114,21 @@ CSV financial import remains deferred.
 - [ ] **Baseline 5.4 — Financial Reporting**
 - [ ] **Baseline 6.x — Portfolio Operations and Bulk Onboarding**
 - [ ] **Baseline 7.x — Maintenance and Expense Integration**
+
+
+## Baseline 5.4 — Property Management Reporting
+
+- [x] **5.4.0 Rent Status command center**
+  - Rolling four-month default window
+  - Two prior months, current month, and one future month
+  - Adjustable 4, 6, 9, or 12 month view
+  - Earlier, Later, and Today navigation
+  - Paid, Partial, Unpaid, Paid Ahead, Not Yet Due, and Vacant indicators
+  - Monthly portfolio collection rates
+  - Clickable monthly detail with payment allocations
+  - Outstanding balance based on today
+- [ ] Tenant / lease ledger
+- [ ] Vacancy report
+- [ ] Lease expiration report
+- [ ] Portfolio summary reporting
+- [ ] Table spacing and financial-column alignment standardization

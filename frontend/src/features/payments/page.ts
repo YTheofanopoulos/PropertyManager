@@ -142,15 +142,29 @@ export async function renderPaymentEditor(
   const returnTo = params.get("returnTo") ?? "payments";
   const returnPeriod =
     params.get("period") ?? new Date().toISOString().slice(0, 7);
+  const explicitReturnHash = params.get("returnHash");
   const requestedRentPeriod =
-    returnTo === "rent-roll" ? returnPeriod : "";
+    returnTo === "rent-roll" || returnTo === "rent-status"
+      ? returnPeriod
+      : "";
+
   const returnHash =
-    returnTo === "rent-roll"
-      ? `#/rent-roll?period=${returnPeriod}`
-      : "#/payments";
+    explicitReturnHash
+      ? decodeURIComponent(explicitReturnHash)
+      : returnTo === "rent-roll"
+        ? `#/rent-roll?period=${returnPeriod}`
+        : returnTo === "rent-status"
+          ? "#/rent-status"
+          : "#/payments";
+
+  const currentPeriod = new Date().toISOString().slice(0, 7);
+  const obligationThrough =
+    requestedRentPeriod > currentPeriod
+      ? requestedRentPeriod
+      : currentPeriod;
 
   await rentLedgerService.ensureObligationsThrough(
-    new Date().toISOString().slice(0, 7),
+    obligationThrough,
   );
 
   const [leases, units, buildings, locations, participants, tenants] =
@@ -209,7 +223,13 @@ export async function renderPaymentEditor(
         </p>
       </div>
       <a class="btn btn-outline-secondary" href="${returnHash}">
-        ${returnTo === "rent-roll" ? "Back to Rent Roll" : "Back to Payments"}
+        ${
+          returnTo === "rent-roll"
+            ? "Back to Rent Roll"
+            : returnTo === "rent-status"
+              ? "Back to Rent Status"
+              : "Back to Payments"
+        }
       </a>
     </div>
 
@@ -449,7 +469,8 @@ export async function renderPaymentEditor(
         .filter((item) => item.amount > 0);
 
       if (
-        returnTo === "rent-roll" &&
+        (returnTo === "rent-roll" ||
+          returnTo === "rent-status") &&
         allocations.length === 0
       ) {
         throw new Error(
