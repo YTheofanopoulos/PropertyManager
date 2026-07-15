@@ -53,3 +53,9 @@
 - [ ] **5.3.4** Reviewed bulk confirmation workflow
 
 CSV financial import remains deferred.
+
+## Baseline 5.3.2
+
+- [x] Outstanding calculations use today's date
+- [x] Preserve bank transaction dates for accounting
+- [x] Zero-evidence candidates require Manual Review

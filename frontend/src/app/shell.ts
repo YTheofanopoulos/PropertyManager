@@ -35,7 +35,7 @@ export function renderShell(): HTMLElement {
       </nav>
     </aside>
     <main class="main-panel">
-      <header class="topbar"><span class="fw-semibold">Baseline 5.3.1</span></header>
+      <header class="topbar"><span class="fw-semibold">Baseline 5.3.2</span></header>
       <section id="page-content" class="content"></section>
     </main>
   </div><div class="toast-container position-fixed top-0 end-0 p-3" id="toast-container"></div>`;

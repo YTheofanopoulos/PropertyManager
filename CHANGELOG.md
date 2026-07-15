@@ -193,6 +193,25 @@ All notable changes to PropertyManager are documented here.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
 
+## [0.5.3.2] - 2026-07-15
+
+### Fixed
+- Assisted reconciliation no longer generates future rent obligations from a bank transaction's posted date.
+- Candidate outstanding balances are calculated only through today's rent period.
+- Future-dated test transactions retain their bank posting date without making future rent appear due.
+- Zero-evidence candidates are classified as Manual Review instead of Ambiguous.
+
+### Changed
+- The reconciliation screen labels the bank date as Transaction Date.
+- Candidate cards explicitly display Outstanding as of today.
+- Ambiguous is reserved for multiple candidates with actual comparable evidence.
+- Allocation suggestions include only obligations due through the current month.
+
+### Accounting Rules
+- The bank transaction date is preserved unchanged for accounting and audit purposes.
+- The transaction date does not determine the current outstanding balance.
+- Outstanding rent is based on unpaid obligations through today's month.
+
 ## [0.5.3.1] - 2026-07-14
 
 ### Added

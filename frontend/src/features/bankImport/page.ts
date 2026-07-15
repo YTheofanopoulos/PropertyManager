@@ -244,6 +244,7 @@ export async function renderReconciliation(
 
   const bankTransaction = transaction;
   const suggestions = await reconciliationService.suggestions(transactionId);
+  const outstandingAsOf = new Date().toISOString().slice(0, 10);
 
   container.innerHTML = `
     <div class="page-heading d-flex justify-content-between align-items-center">
@@ -260,7 +261,7 @@ export async function renderReconciliation(
           <div class="card-header fw-semibold">Bank Transaction</div>
           <div class="card-body">
             <dl class="row mb-0">
-              <dt class="col-5">Posted</dt><dd class="col-7">${bankTransaction.postedDate}</dd>
+              <dt class="col-5">Transaction Date</dt><dd class="col-7">${bankTransaction.postedDate}</dd>
               <dt class="col-5">Amount</dt><dd class="col-7 fs-4">${currency(bankTransaction.amount)}</dd>
               <dt class="col-5">Description</dt><dd class="col-7">${bankTransaction.name || "—"}</dd>
               <dt class="col-5">Memo</dt><dd class="col-7">${bankTransaction.memo || "—"}</dd>
@@ -272,7 +273,12 @@ export async function renderReconciliation(
 
       <div class="col-lg-7">
         <div class="card mb-4">
-          <div class="card-header fw-semibold">Suggested Units</div>
+          <div class="card-header fw-semibold d-flex justify-content-between">
+            <span>Suggested Units</span>
+            <span class="small text-body-secondary">
+              Outstanding as of ${outstandingAsOf}
+            </span>
+          </div>
           <div class="card-body">
             <div class="list-group" id="suggestion-list">
               ${suggestions.map((suggestion, index) => `
@@ -292,7 +298,7 @@ export async function renderReconciliation(
                     }">${suggestion.classification}</span>
                   </div>
                   <div class="small mt-1">
-                    Score ${suggestion.score} · Outstanding ${currency(suggestion.amountDue)} · Oldest ${suggestion.oldestPeriod}
+                    Score ${suggestion.score} · Outstanding as of today ${currency(suggestion.amountDue)} · Oldest ${suggestion.oldestPeriod}
                   </div>
                   <ul class="small mb-0 mt-2 text-start">
                     ${suggestion.reasons.map((reason) => `<li>${reason}</li>`).join("")}
@@ -354,7 +360,11 @@ export async function renderReconciliation(
   if (selectedLeaseId) await loadAllocations();
 
   async function loadAllocations(): Promise<void> {
-    const obligations = await rentLedgerService.getOutstandingObligations(selectedLeaseId);
+    const currentPeriod = new Date().toISOString().slice(0, 7);
+    const obligations = await rentLedgerService.getOutstandingObligations(
+      selectedLeaseId,
+      currentPeriod,
+    );
     let remaining = bankTransaction.amount;
 
     const element = document.getElementById("reconcile-allocation-list");

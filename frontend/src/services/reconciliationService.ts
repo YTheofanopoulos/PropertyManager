@@ -42,9 +42,10 @@ export class ReconciliationService {
     const transaction = await db.bankTransactions.get(transactionId);
     if (!transaction) throw new Error("Bank transaction not found.");
 
-    await rentLedgerService.ensureObligationsThrough(
-      transaction.postedDate.slice(0, 7),
-    );
+    const today = new Date().toISOString().slice(0, 10);
+    const currentPeriod = today.slice(0, 7);
+
+    await rentLedgerService.ensureObligationsThrough(currentPeriod);
 
     const [leases, units, buildings, locations, history] = await Promise.all([
       db.leases.toArray(),
@@ -75,6 +76,7 @@ export class ReconciliationService {
       // engine itself remains general, but vacant/no-obligation units never enter.
       const outstanding = await rentLedgerService.getOutstandingObligations(
         lease.id as number,
+        currentPeriod,
       );
       if (outstanding.length === 0) continue;
 
@@ -155,21 +157,35 @@ export class ReconciliationService {
     );
 
     for (const candidate of candidates) {
-      const tiedForTop = topTies.length > 1 && candidate.score === top?.score;
+      const tiedForTop =
+        Boolean(top) &&
+        top.score > 0 &&
+        topTies.length > 1 &&
+        candidate.score === top.score;
       const amountOnlyAmbiguity =
         candidate.historyCount === 0 &&
         candidate.exactOutstandingAmount &&
         exactAmountCandidates.length > 1;
       const smallLead =
         candidate === top &&
+        top.score > 0 &&
         Boolean(second) &&
+        second.score > 0 &&
         top.score - second.score < 15;
 
       candidate.ambiguous = tiedForTop || amountOnlyAmbiguity || smallLead;
 
-      if (candidate.ambiguous && candidate === top) {
+      if (candidate === top && candidate.score === 0) {
+        candidate.classification = "Manual Review";
+        candidate.ambiguous = false;
+        candidate.reasons.push(
+          "Classification: no matching evidence is available",
+        );
+      } else if (candidate.ambiguous && candidate === top) {
         candidate.classification = "Ambiguous";
-        candidate.reasons.push("Classification: no unique leading candidate");
+        candidate.reasons.push(
+          "Classification: multiple candidates have comparable evidence",
+        );
       } else if (
         candidate === top &&
         candidate.score >= 70 &&
