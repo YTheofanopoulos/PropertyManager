@@ -193,6 +193,22 @@ All notable changes to PropertyManager are documented here.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
 
+## [0.5.3.4] - 2026-07-15
+
+### Fixed
+- Reconciliation queue filters now remain on Import Bank Statement instead of falling through to Dashboard.
+- Confirm Reconciliation now returns to the Needs Attention queue after saving.
+- Active navigation correctly recognizes bank-import routes that include query parameters.
+- The router now separates the route path from its query string before matching pages.
+
+### Added
+- Persistent application version button in the sidebar.
+- About PropertyManager dialog showing application version, baseline, database schema, sample-data version, and build date.
+- Top bar now displays both the product name and running baseline/schema information.
+
+### Changed
+- Displayed application version updated to 0.5.3.4 / Baseline 5.3.4.
+
 ## [0.5.3.3] - 2026-07-15
 
 ### Added

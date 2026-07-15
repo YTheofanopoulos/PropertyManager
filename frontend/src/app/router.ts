@@ -17,7 +17,8 @@ const placeholders: Record<string, [string, string]> = {
 };
 
 export async function route(container: HTMLElement): Promise<void> {
-  const path = location.hash.replace(/^#/, "") || "/";
+  const hashRoute = location.hash.replace(/^#/, "") || "/";
+  const [path] = hashRoute.split("?", 1);
 
   document.querySelectorAll<HTMLElement>("[data-route]").forEach((element) => {
     const routePath = element.dataset.route;

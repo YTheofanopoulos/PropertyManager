@@ -68,3 +68,11 @@ CSV financial import remains deferred.
 - [x] Reconciliation filters and counts
 - [x] Batch completion progress
 - [x] Reopened voided transactions return to Needs Attention
+
+
+## Baseline 5.3.4
+
+- [x] Hash routing with query parameters
+- [x] Reconciliation queue filters remain on Bank Import
+- [x] Confirm Reconciliation returns to Needs Attention
+- [x] Persistent version and About information

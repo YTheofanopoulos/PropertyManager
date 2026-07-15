@@ -758,7 +758,7 @@ export async function renderReconciliation(
         }),
       );
 
-      location.hash = "#/bank-import?filter=needs-attention";
+      window.location.hash = "/bank-import?filter=needs-attention";
     } catch (error) {
       window.alert((error as Error).message);
     }
