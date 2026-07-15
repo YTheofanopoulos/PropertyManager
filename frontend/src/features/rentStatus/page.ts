@@ -533,27 +533,6 @@ export async function renderRentStatus(
       ? new ModalClass(modalElement)
       : undefined;
 
-  document
-    .getElementById("rent-status-table")
-    ?.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement;
-      const button = target.closest<HTMLButtonElement>(
-        ".rent-indicator",
-      );
-
-      if (!button) return;
-
-      const rowIndex = Number(button.dataset.rowIndex);
-      const monthIndex = Number(button.dataset.monthIndex);
-      const row = rows[rowIndex];
-      const month = row?.months[monthIndex];
-
-      if (!row || !month) return;
-
-      showMonthDetail(row, month);
-      modal?.show();
-    });
-
   const occupantModalElement = document.getElementById(
     "unit-occupants-detail",
   );
@@ -562,67 +541,181 @@ export async function renderRentStatus(
       ? new ModalClass(occupantModalElement)
       : undefined;
 
+  function showFallbackModal(element: HTMLElement): void {
+    element.classList.add("show");
+    element.style.display = "block";
+    element.removeAttribute("aria-hidden");
+    element.setAttribute("aria-modal", "true");
+    document.body.classList.add("modal-open");
+  }
+
+  function hideFallbackModal(element: HTMLElement): void {
+    element.classList.remove("show");
+    element.style.display = "none";
+    element.setAttribute("aria-hidden", "true");
+    element.removeAttribute("aria-modal");
+    document.body.classList.remove("modal-open");
+    document
+      .querySelectorAll(".modal-backdrop")
+      .forEach((backdrop) => backdrop.remove());
+  }
+
+  function openMonthDetails(
+    row: RentStatusRow,
+    month: RentStatusMonth,
+  ): void {
+    showMonthDetail(row, month);
+
+    if (modal) {
+      modal.show();
+    } else if (modalElement) {
+      showFallbackModal(modalElement);
+    }
+  }
+
+  function occupantContactMarkup(
+    iconClass: string,
+    label: string,
+    value: string,
+    hrefPrefix: string,
+  ): string {
+    if (!value) {
+      return `
+        <div class="small text-body-secondary">
+          <i class="${iconClass} me-2"></i>
+          ${label}: Not provided
+        </div>
+      `;
+    }
+
+    return `
+      <div>
+        <i class="${iconClass} me-2 text-body-secondary"></i>
+        <a href="${hrefPrefix}${value}">${value}</a>
+      </div>
+    `;
+  }
+
+  function openOccupantDetails(row: RentStatusRow): void {
+    const title = document.getElementById(
+      "unit-occupants-title",
+    );
+    const body = document.getElementById(
+      "unit-occupants-body",
+    );
+
+    if (title) {
+      title.textContent = row.unitLabel;
+    }
+
+    if (body) {
+      body.innerHTML = row.occupants.length
+        ? `
+            <div class="list-group">
+              ${row.occupants
+                .map(
+                  (occupant) => `
+                    <div class="list-group-item">
+                      <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                        <strong>${occupant.name}</strong>
+                        <span class="badge text-bg-${
+                          occupant.role === "Primary Tenant"
+                            ? "primary"
+                            : "secondary"
+                        }">${occupant.role}</span>
+                      </div>
+
+                      <div class="d-grid gap-1">
+                        ${occupantContactMarkup(
+                          "fa-solid fa-envelope",
+                          "Email",
+                          occupant.email,
+                          "mailto:",
+                        )}
+                        ${occupantContactMarkup(
+                          "fa-solid fa-phone",
+                          "Phone",
+                          occupant.phone,
+                          "tel:",
+                        )}
+                      </div>
+                    </div>
+                  `,
+                )
+                .join("")}
+            </div>
+          `
+        : `
+            <div class="alert alert-secondary mb-0">
+              This unit is vacant or has no active lease or tenants.
+            </div>
+          `;
+    }
+
+    if (occupantModal) {
+      occupantModal.show();
+    } else if (occupantModalElement) {
+      showFallbackModal(occupantModalElement);
+    }
+  }
+
   document
     .getElementById("rent-status-table")
     ?.addEventListener("click", (event) => {
       const target = event.target as HTMLElement;
+
+      const indicator = target.closest<HTMLButtonElement>(
+        ".rent-indicator",
+      );
+
+      if (indicator) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const rowIndex = Number(indicator.dataset.rowIndex);
+        const monthIndex = Number(
+          indicator.dataset.monthIndex,
+        );
+        const row = rows[rowIndex];
+        const month = row?.months[monthIndex];
+
+        if (row && month) {
+          openMonthDetails(row, month);
+        }
+        return;
+      }
+
       const unitButton = target.closest<HTMLButtonElement>(
         ".rent-unit-button",
       );
-      if (!unitButton) return;
 
-      const rowIndex = Number(unitButton.dataset.unitRowIndex);
-      const row = rows[rowIndex];
-      if (!row) return;
+      if (unitButton) {
+        event.preventDefault();
+        event.stopPropagation();
 
-      const title = document.getElementById(
-        "unit-occupants-title",
-      );
-      const body = document.getElementById(
-        "unit-occupants-body",
-      );
+        const rowIndex = Number(
+          unitButton.dataset.unitRowIndex,
+        );
+        const row = rows[rowIndex];
 
-      if (title) title.textContent = row.unitLabel;
-
-      if (body) {
-        body.innerHTML = row.tenantNames
-          ? `
-              <h6>Occupants</h6>
-              <div class="list-group">
-                ${row.tenantNames
-                  .split(",")
-                  .map(
-                    (name, index) => `
-                      <div class="list-group-item">
-                        <div class="fw-semibold">${name.trim()}</div>
-                        <div class="small text-body-secondary">
-                          ${index === 0 ? "Primary tenant" : "Additional tenant"}
-                        </div>
-                      </div>
-                    `,
-                  )
-                  .join("")}
-              </div>
-              <div class="small text-body-secondary mt-3">
-                Contact details are available from the Tenants page.
-              </div>
-            `
-          : `
-              <div class="alert alert-secondary mb-0">
-                This unit is vacant or has no active lease.
-              </div>
-            `;
+        if (row) {
+          openOccupantDetails(row);
+        }
       }
+    });
 
-      if (occupantModal) {
-        occupantModal.show();
-      } else if (occupantModalElement) {
-        occupantModalElement.classList.add("show");
-        occupantModalElement.style.display = "block";
-        occupantModalElement.removeAttribute("aria-hidden");
-        occupantModalElement.setAttribute("aria-modal", "true");
-        document.body.classList.add("modal-open");
-      }
+  modalElement
+    ?.querySelectorAll<HTMLElement>("[data-bs-dismiss='modal']")
+    .forEach((button) => {
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+
+        if (modal) {
+          modal.hide();
+        } else if (modalElement) {
+          hideFallbackModal(modalElement);
+        }
+      });
     });
 
   occupantModalElement
@@ -633,17 +726,9 @@ export async function renderRentStatus(
 
         if (occupantModal) {
           occupantModal.hide();
-          return;
+        } else if (occupantModalElement) {
+          hideFallbackModal(occupantModalElement);
         }
-
-        occupantModalElement.classList.remove("show");
-        occupantModalElement.style.display = "none";
-        occupantModalElement.setAttribute("aria-hidden", "true");
-        occupantModalElement.removeAttribute("aria-modal");
-        document.body.classList.remove("modal-open");
-        document
-          .querySelectorAll(".modal-backdrop")
-          .forEach((backdrop) => backdrop.remove());
       });
     });
 

@@ -193,6 +193,25 @@ All notable changes to PropertyManager are documented here.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
 
+## [0.5.4.3] - 2026-07-15
+
+### Fixed
+- Restored monthly Rent Status bubble clicks after the revised 5.4.2 layout.
+- Consolidated Unit and monthly-status clicks into one delegated table handler.
+- Monthly bubbles open only rent-period details.
+- Unit labels open only occupant details.
+- Clicks remain functional after DataTables paging, searching, and sorting.
+- Close and X buttons explicitly dismiss both Rent Status dialogs.
+
+### Added
+- Unit occupant popup now shows tenant email addresses and phone numbers.
+- Tenant roles are identified as Primary Tenant or Additional Tenant.
+- Email and phone values are directly actionable through mail and telephone links.
+- Missing contact information is identified in the popup without requiring navigation.
+
+### Changed
+- Displayed application version updated to 0.5.4.3 / Baseline 5.4.3.
+
 ## [0.5.4.2] - 2026-07-15
 
 ### Changed

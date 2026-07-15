@@ -149,3 +149,11 @@ CSV financial import remains deferred.
 - [x] Tenant column removed from Rent Status
 - [x] Clickable black unit label with occupant popup
 - [x] Compact legend and reliable modal close behavior
+
+
+### Baseline 5.4.3
+
+- [x] Rent Status interaction and contact details
+- [x] Monthly bubble click regression fixed
+- [x] Unit popup includes tenant email and phone
+- [x] Reliable dialog Close and X behavior

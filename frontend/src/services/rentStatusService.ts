@@ -28,11 +28,20 @@ export interface RentStatusMonth {
   }>;
 }
 
+export interface RentStatusOccupant {
+  tenantId: number;
+  name: string;
+  role: "Primary Tenant" | "Additional Tenant";
+  email: string;
+  phone: string;
+}
+
 export interface RentStatusRow {
   unitId: number;
   leaseId?: number;
   unitLabel: string;
   tenantNames: string;
+  occupants: RentStatusOccupant[];
   months: RentStatusMonth[];
   outstandingToday: number;
   monthsBehind: number;
@@ -136,7 +145,7 @@ export class RentStatusService {
             ),
           ) ?? unitLeases[0];
 
-        const tenantNames = displayedLease
+        const leaseParticipants = displayedLease
           ? participants
               .filter(
                 (participant) =>
@@ -148,21 +157,33 @@ export class RentStatusService {
                   Number(left.sortOrder ?? 999) -
                     Number(right.sortOrder ?? 999),
               )
-              .map((participant) =>
-                tenantMap.get(participant.tenantId),
-              )
-              .filter(
-                (
-                  tenant,
-                ): tenant is NonNullable<typeof tenant> =>
-                  Boolean(tenant),
-              )
-              .map(
-                (tenant) =>
-                  `${tenant.firstName} ${tenant.lastName}`,
-              )
-              .join(", ")
-          : "";
+          : [];
+
+        const occupants = leaseParticipants
+          .map((participant) => {
+            const tenant = tenantMap.get(participant.tenantId);
+            if (!tenant) return undefined;
+
+            return {
+              tenantId: tenant.id as number,
+              name: `${tenant.firstName} ${tenant.lastName}`,
+              role: participant.primary
+                ? ("Primary Tenant" as const)
+                : ("Additional Tenant" as const),
+              email: tenant.email ?? "",
+              phone: tenant.phone ?? "",
+            };
+          })
+          .filter(
+            (
+              occupant,
+            ): occupant is NonNullable<typeof occupant> =>
+              Boolean(occupant),
+          );
+
+        const tenantNames = occupants
+          .map((occupant) => occupant.name)
+          .join(", ");
 
         const monthRows = periods.map((period) => {
           const lease = unitLeases.find((item) =>
@@ -265,6 +286,7 @@ export class RentStatusService {
           leaseId: displayedLease?.id,
           unitLabel: unitLabel.trim(),
           tenantNames,
+          occupants,
           months: monthRows,
           outstandingToday: dueMonths.reduce(
             (total, month) =>
