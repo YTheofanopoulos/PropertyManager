@@ -157,3 +157,10 @@ CSV financial import remains deferred.
 - [x] Monthly bubble click regression fixed
 - [x] Unit popup includes tenant email and phone
 - [x] Reliable dialog Close and X behavior
+
+
+### Baseline 5.4.4
+
+- [x] Delegated monthly-modal close handling
+- [x] Dynamic footer Close button reliably dismisses dialog
+- [x] Header X and footer Close share one close path

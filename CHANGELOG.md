@@ -193,6 +193,17 @@ All notable changes to PropertyManager are documented here.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
 
+## [0.5.4.4] - 2026-07-15
+
+### Fixed
+- The dynamically generated Close button in the Rent Status monthly-detail dialog now reliably closes the modal.
+- The monthly-detail modal now uses one delegated close handler on the modal container.
+- Both the header X and footer Close button use the same explicit modal-hide path.
+- The fallback modal path also removes modal state and backdrops correctly.
+
+### Changed
+- Displayed application version updated to 0.5.4.4 / Baseline 5.4.4.
+
 ## [0.5.4.3] - 2026-07-15
 
 ### Fixed

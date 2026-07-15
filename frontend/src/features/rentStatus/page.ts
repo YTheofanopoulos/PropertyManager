@@ -704,19 +704,23 @@ export async function renderRentStatus(
       }
     });
 
-  modalElement
-    ?.querySelectorAll<HTMLElement>("[data-bs-dismiss='modal']")
-    .forEach((button) => {
-      button.addEventListener("click", (event) => {
-        event.preventDefault();
+  modalElement?.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    const closeControl = target.closest<HTMLElement>(
+      "[data-bs-dismiss='modal']",
+    );
 
-        if (modal) {
-          modal.hide();
-        } else if (modalElement) {
-          hideFallbackModal(modalElement);
-        }
-      });
-    });
+    if (!closeControl) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (modal) {
+      modal.hide();
+    } else if (modalElement) {
+      hideFallbackModal(modalElement);
+    }
+  });
 
   occupantModalElement
     ?.querySelectorAll<HTMLElement>(".unit-modal-close")
