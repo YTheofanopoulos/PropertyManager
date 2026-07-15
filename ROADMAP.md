@@ -141,3 +141,13 @@ CSV financial import remains deferred.
 - [x] Solid status bubbles matching the legend
 - [x] Pagination and live apartment/tenant filtering
 - [x] Outstanding and vacant row emphasis
+
+
+### Baseline 5.4.2
+
+- [x] Rent Status visual polish
+- [x] Compact legend restored
+- [x] Redundant row highlighting and months-behind text removed
+- [x] Two-line unit labels and multi-line tenants
+- [x] Reliable read-only month details
+- [x] Sticky reporting headers

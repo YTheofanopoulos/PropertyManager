@@ -193,6 +193,27 @@ All notable changes to PropertyManager are documented here.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
 
+## [0.5.4.2] - 2026-07-15
+
+### Changed
+- Restored the compact legend with small solid color bullets.
+- Removed late-payment and vacancy row background highlighting.
+- Removed redundant months-behind text from the Outstanding Today column.
+- Outstanding balances now use red text only when greater than zero.
+- Unit labels display on two lines for faster scanning.
+- Multiple tenants display on separate lines.
+- Future month headers display Future instead of 0% collected.
+- Current-month headers identify collection as through today.
+- Status tooltips no longer promise an action.
+
+### Fixed
+- Clicking a status indicator now reliably opens the read-only monthly details.
+- Added a modal fallback for environments where Bootstrap's JavaScript modal helper is unavailable.
+
+### Usability
+- Rent Status table headers remain visible while scrolling.
+- Displayed application version updated to 0.5.4.2 / Baseline 5.4.2.
+
 ## [0.5.4.1] - 2026-07-15
 
 ### Changed

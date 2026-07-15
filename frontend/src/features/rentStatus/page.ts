@@ -261,15 +261,18 @@ export async function renderRentStatus(
       .rent-legend-item {
         display: inline-flex;
         align-items: center;
-        gap: .4rem;
-        font-size: .875rem;
+        gap: .45rem;
+        font-size: .9rem;
+        color: var(--bs-body-color);
+        white-space: nowrap;
       }
 
       .rent-legend-dot {
-        width: .8rem;
-        height: .8rem;
+        width: .72rem;
+        height: .72rem;
         border-radius: 50%;
         background: currentColor;
+        flex: 0 0 auto;
       }
 
       #rent-status-table th,
@@ -288,14 +291,39 @@ export async function renderRentStatus(
         text-align: right;
       }
 
-      #rent-status-table tbody tr.rent-row-outstanding > * {
-        background-color: rgba(var(--bs-danger-rgb), .055);
+      #rent-status-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--bs-body-bg);
+        box-shadow: 0 1px 0 var(--bs-border-color);
       }
 
-      #rent-status-table tbody tr.rent-row-vacant > * {
-        background-color: var(--bs-tertiary-bg);
-        color: var(--bs-secondary-color);
+      .rent-unit-primary {
+        display: block;
+        font-weight: 600;
       }
+
+      .rent-unit-secondary {
+        display: block;
+        color: var(--bs-secondary-color);
+        font-size: .875rem;
+      }
+
+      .rent-tenant-list {
+        display: flex;
+        flex-direction: column;
+        gap: .15rem;
+      }
+
+      .rent-outstanding-positive {
+        color: var(--bs-danger);
+      }
+
+      .rent-outstanding-zero {
+        color: var(--bs-body-color);
+      }
+
     </style>
 
     <div class="page-heading d-flex flex-wrap justify-content-between align-items-end gap-3">
@@ -366,12 +394,12 @@ export async function renderRentStatus(
     </div>
 
     <div class="card">
-      <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <span class="fw-semibold">
+      <div class="card-header">
+        <div class="fw-semibold mb-2">
           ${monthLabel(startPeriod)} – ${monthLabel(endPeriod)}
-        </span>
+        </div>
 
-        <div class="rent-legend">
+        <div class="rent-legend justify-content-start">
           ${legend("rent-paid", "Paid")}
           ${legend("rent-partial", "Partial")}
           ${legend("rent-unpaid", "Unpaid")}
@@ -394,7 +422,13 @@ export async function renderRentStatus(
                     <th class="rent-month-header">
                       ${monthLabel(summary.period)}
                       <span class="rent-month-rate">
-                        ${summary.rate.toFixed(0)}% collected
+                        ${
+                          summary.period > currentPeriod
+                            ? "Future"
+                            : summary.period === currentPeriod
+                              ? `${summary.rate.toFixed(0)}% collected · thru today`
+                              : `${summary.rate.toFixed(0)}% collected`
+                        }
                       </span>
                     </th>
                   `,
@@ -497,7 +531,32 @@ export async function renderRentStatus(
       if (!row || !month) return;
 
       showMonthDetail(row, month);
-      modal?.show();
+
+      if (modal) {
+        modal.show();
+      } else if (modalElement) {
+        modalElement.classList.add("show");
+        modalElement.style.display = "block";
+        modalElement.removeAttribute("aria-hidden");
+        modalElement.setAttribute("aria-modal", "true");
+        document.body.classList.add("modal-open");
+      }
+    });
+
+  modalElement
+    ?.querySelectorAll<HTMLElement>("[data-bs-dismiss='modal']")
+    .forEach((button) => {
+      button.addEventListener("click", () => {
+        if (!modal || !modalElement) {
+          modalElement?.classList.remove("show");
+          if (modalElement) {
+            modalElement.style.display = "none";
+            modalElement.setAttribute("aria-hidden", "true");
+            modalElement.removeAttribute("aria-modal");
+          }
+          document.body.classList.remove("modal-open");
+        }
+      });
     });
 
   document
@@ -551,11 +610,11 @@ export async function renderRentStatus(
       <dl class="row mb-3">
         <dt class="col-6">Status</dt>
         <dd class="col-6">${month.state}</dd>
-        <dt class="col-6">Expected</dt>
+        <dt class="col-6">Expected Rent</dt>
         <dd class="col-6">${currency(month.expected)}</dd>
-        <dt class="col-6">Paid</dt>
+        <dt class="col-6">Collected</dt>
         <dd class="col-6">${currency(month.paid)}</dd>
-        <dt class="col-6">Remaining</dt>
+        <dt class="col-6">Outstanding</dt>
         <dd class="col-6">${currency(month.remaining)}</dd>
       </dl>
 
@@ -621,20 +680,38 @@ function renderRow(
   row: RentStatusRow,
   rowIndex: number,
 ): string {
-  const rowClass =
-    !row.leaseId
-      ? "rent-row-vacant"
-      : row.outstandingToday > 0.005
-        ? "rent-row-outstanding"
-        : "";
+  const unitParts = row.unitLabel.split(" ");
+  const unitPrimary =
+    unitParts.length > 1
+      ? `${unitParts[0]}-${unitParts[1]}`
+      : row.unitLabel;
+  const unitSecondary =
+    unitParts.length > 2
+      ? `${unitParts[0]} ${unitParts.slice(2).join(" ")}`
+      : "";
+
+  const tenantMarkup = row.tenantNames
+    ? `<div class="rent-tenant-list">${row.tenantNames
+        .split(",")
+        .map(
+          (name) =>
+            `<span>${name.trim()}</span>`,
+        )
+        .join("")}</div>`
+    : '<span class="text-body-secondary">— Vacant —</span>';
 
   return `
-    <tr class="${rowClass}">
+    <tr>
       <td class="rent-unit-column">
-        <strong>${row.unitLabel}</strong>
+        <span class="rent-unit-primary">${unitPrimary}</span>
+        ${
+          unitSecondary
+            ? `<span class="rent-unit-secondary">${unitSecondary}</span>`
+            : ""
+        }
       </td>
       <td class="rent-tenant-column">
-        ${row.tenantNames || '<span class="text-body-secondary">Vacant</span>'}
+        ${tenantMarkup}
       </td>
       ${row.months
         .map(
@@ -645,7 +722,7 @@ function renderRow(
                 class="rent-indicator ${statusClass(month.state)}"
                 data-row-index="${rowIndex}"
                 data-month-index="${monthIndex}"
-                title="${monthLabel(month.period)} — ${month.state}. Expected ${currency(month.expected)}, collected ${currency(month.paid)}, remaining ${currency(month.remaining)}. Click for details."
+                title="${monthLabel(month.period)} — ${month.state}. Expected ${currency(month.expected)}, collected ${currency(month.paid)}, remaining ${currency(month.remaining)}."
                 aria-label="${monthLabel(month.period)} ${month.state}, ${currency(month.paid)} paid of ${currency(month.expected)}"
               ></button>
             </td>
@@ -653,12 +730,11 @@ function renderRow(
         )
         .join("")}
       <td class="rent-balance-column text-end">
-        <strong>${currency(row.outstandingToday)}</strong>
-        ${
-          row.monthsBehind > 0
-            ? `<div class="small text-danger">${row.monthsBehind} month${row.monthsBehind === 1 ? "" : "s"} behind</div>`
-            : ""
-        }
+        <strong class="${
+          row.outstandingToday > 0.005
+            ? "rent-outstanding-positive"
+            : "rent-outstanding-zero"
+        }">${currency(row.outstandingToday)}</strong>
       </td>
     </tr>
   `;
