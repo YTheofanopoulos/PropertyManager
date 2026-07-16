@@ -9,11 +9,11 @@ import { renderPlaceholder } from "../features/placeholder/page";
 import { renderPayments, renderPaymentEditor } from "../features/payments/page";
 import { renderRentRoll } from "../features/rentRoll/page";
 import { renderRentStatus } from "../features/rentStatus/page";
+import { renderPaymentReceiptsReport } from "../features/reports/paymentReceiptsPage";
 import { renderTenants } from "../features/tenants/page";
 import { renderUnits } from "../features/units/page";
 
 const placeholders: Record<string, [string, string]> = {
-  "/reports": ["Reports", "Run portfolio, occupancy, delinquency, income, and lease reports."],
   "/settings": ["Settings", "Configure application defaults and future integration options."],
 };
 
@@ -39,6 +39,7 @@ export async function route(container: HTMLElement): Promise<void> {
   if (path === "/leases") return renderLeases(container);
   if (path.startsWith("/rent-roll")) return renderRentRoll(container);
   if (path === "/rent-status") return renderRentStatus(container);
+  if (path === "/reports") return renderPaymentReceiptsReport(container);
   if (path === "/payments") return renderPayments(container);
   if (path === "/bank-import") return renderBankImport(container);
   if (path.startsWith("/payments/new")) return renderPaymentEditor(container);

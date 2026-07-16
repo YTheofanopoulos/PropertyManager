@@ -1,5 +1,226 @@
-
 # Changelog
+
+All notable changes to PropertyManager are documented in this file.
+
+The format follows a release-oriented history. Baselines describe cohesive
+product capabilities, while patch releases document incremental corrections
+and usability improvements.
+
+## [0.5.5.1] - 2026-07-15
+
+### Added
+- Payment Receipts report for accounting reconciliation.
+- Apartment-by-month matrix covering a user-selected range of transaction months.
+- Start month, end month, and building filters.
+- Monthly totals for bank-imported payments, manual payments, transaction counts,
+  and total receipts.
+- Range grand total.
+- Drill-down from any non-zero unit/month amount to the underlying transactions.
+- Print-friendly report layout.
+
+### Accounting Rules
+- Payments are grouped by their actual transaction date.
+- Imported payments use the QFX bank-posted date preserved on the payment.
+- Manual payments use the entered received date.
+- Rent-period allocations do not determine the accounting month.
+- A July 30 payment allocated to August rent is reported in July.
+- Voided payments are excluded from receipt totals and disclosed separately.
+
+---
+
+## [0.5.4.4] - 2026-07-15
+
+### Fixed
+- The dynamically generated Close button in the Rent Status monthly-detail
+  dialog now reliably closes the modal.
+- Monthly-detail modal closing uses one delegated handler for both the header X
+  and footer Close button.
+- Bootstrap and fallback modal paths use the same explicit close behavior.
+
+---
+
+## [0.5.4.3] - 2026-07-15
+
+### Fixed
+- Restored monthly Rent Status bubble clicks after the revised dashboard layout.
+- Consolidated Unit and monthly-status clicks into one delegated table handler.
+- Monthly bubbles open rent-period details.
+- Unit labels open occupant details.
+- Click behavior remains functional after paging, searching, and sorting.
+- Close and X controls explicitly dismiss both Rent Status dialogs.
+
+### Added
+- Unit occupant popup now shows tenant email addresses and phone numbers.
+- Primary and additional tenant roles are identified.
+- Email and phone values are directly actionable.
+- Missing contact information is identified in place.
+
+---
+
+## [0.5.4.2] - 2026-07-15
+
+### Changed
+- Unit labels use a single-line operational format such as
+  `383-1 Edouard Charles`.
+- Removed the Tenant column from the Rent Status matrix.
+- Unit labels remain black and are clickable for occupant details.
+- Restored the compact status legend with colors applied only to its dots.
+- Removed late-payment row tinting.
+- Removed redundant months-behind text from the table.
+- Positive outstanding balances display in red.
+- Future month headers display `Future`.
+- Current-month collection percentages are identified as through today.
+
+### Added
+- Read-only unit occupant dialog.
+- Sticky Rent Status table headers.
+
+---
+
+## [0.5.4.1] - 2026-07-15
+
+### Changed
+- Rent Status became a read-only management dashboard.
+- Removed payment-entry actions and the Action column from Rent Status.
+- Replaced progress-ring indicators with solid status bubbles matching the
+  dashboard legend.
+- Added pagination with 10 rows by default and options for 10, 25, and 50.
+- Added live filtering by apartment, address, and tenant.
+- Centered status indicators and right-aligned outstanding balances.
+- Monthly details remain available through a read-only dialog.
+
+---
+
+## [0.5.4.0] - 2026-07-15
+
+### Added
+- Rent Status command center under Reports.
+- Rolling four-month default window showing two prior months, the current month,
+  and one future month.
+- Adjustable 4, 6, 9, and 12 month windows.
+- Earlier, Later, and Today navigation.
+- Paid, Partial, Unpaid, Paid Ahead, Partial Prepayment, Not Yet Due, and
+  No Lease/Vacant states.
+- Monthly portfolio collection percentages.
+- Current-month expected, collected, outstanding, and collection-rate summaries.
+- Clickable monthly details showing expected rent, allocated payments, and
+  remaining balances.
+
+### Accounting Rules
+- Outstanding Today includes only obligations due through the current month.
+- A visible future month supports early payments but does not create arrears.
+- Payment transaction dates remain unchanged.
+- Rent Status is operational and rent-period based, not an accounting-date report.
+
+---
+
+## [0.5.3.5] - 2026-07-15
+
+### Changed
+- Import History defaults to five rows.
+- Import History page-size options are 5, 10, 25, and 50.
+- Reordered Import History columns to prioritize Statement, Status, and Remaining.
+- Added Imported, In Progress, and Complete batch lifecycle statuses.
+- Reorganized ROADMAP.md into Completed, In Progress, and Planned sections.
+
+---
+
+## [0.5.3.4] - 2026-07-15
+
+### Fixed
+- Bank Import filters no longer route to Dashboard.
+- Confirm Reconciliation returns to the Needs Attention queue.
+- Router now separates route paths from hash query parameters.
+- Active navigation correctly recognizes filtered Bank Import routes.
+
+### Added
+- Persistent application version display.
+- About PropertyManager dialog showing application version, baseline, database
+  schema, sample-data version, and build date.
+
+---
+
+## [0.5.3.3] - 2026-07-15
+
+### Added
+- Queue-focused Import Bank Statement workflow.
+- Needs Attention default view.
+- Suggested, Ambiguous, Manual Review, Ignored, Reconciled, and All filters.
+- Queue summary counts.
+- Import-batch progress and completion status.
+- Reconciliation success feedback.
+
+### Changed
+- Reconciled transactions are hidden from the default working queue.
+- Payments is the primary location for completed reconciliations.
+- Voiding an imported payment reopens the source transaction and returns it to
+  Needs Attention.
+
+---
+
+## [0.5.3.2] - 2026-07-15
+
+### Fixed
+- Assisted reconciliation no longer generates future rent obligations from the
+  bank transaction date.
+- Candidate outstanding balances are calculated only through today's rent period.
+- Future-dated test transactions retain their accounting date without creating
+  future arrears.
+- Zero-evidence candidates are classified as Manual Review instead of Ambiguous.
+
+### Accounting Rules
+- Bank transaction dates are preserved unchanged for accounting and audit.
+- Transaction dates do not determine current rent outstanding.
+- Outstanding rent is based on unpaid obligations through today's month.
+- Ambiguous is reserved for candidates with actual competing evidence.
+
+---
+
+## [0.5.3.1] - 2026-07-15
+
+### Added
+- Deterministic assisted-reconciliation scoring.
+- Explainable score reasons for each candidate.
+- Reconciliation-history matching.
+- Suggested, Ambiguous, Manual Review, and High Confidence classifications.
+- Controlled three-month QFX fixture set targeting 383 Edouard Charles.
+- Split-payment fixture for unit 383-3.
+- Companion expected-result files and test plan.
+
+### Rules
+- Amount alone cannot produce High Confidence.
+- Identical or closely competing candidates remain Ambiguous.
+- Reconciliation is always confirmed by the user.
+- Vacant units are excluded from legitimate rent candidates.
+
+---
+
+## [0.5.2.0] - 2026-07-15
+
+### Added
+- Realistic sample leases running from July 2026 through June 2027.
+- Multiple-tenant lease samples.
+- Corrected vacancy data for the controlled portfolio.
+- QFX/OFX bank-statement parsing and preview.
+- FITID-based duplicate detection.
+- Manual bank-transaction reconciliation.
+- Multi-period and partial-payment allocation.
+- JSON data import that replaces the current IndexedDB dataset.
+- Existing JSON export retained.
+
+### Changed
+- QFX established as the preferred bank-import format.
+- CSV import deferred because it omits accounting metadata needed for reliable
+  reconciliation.
+
+### Data Consistency
+- Controlled Edouard Charles rents:
+  - 383-1: $636.00
+  - 383-2: $1,045.00
+  - 383-3: $1,081.00
+  - 383-4: vacant
+
+---
 
 ## [0.5.1.4] - 2026-07-14
 
@@ -192,6 +413,29 @@ All notable changes to PropertyManager are documented here.
 - JSON import replaces all portfolio, lease, financial, and bank-import data.
 - Partial imports and merging are not supported.
 - Users should export the current dataset before importing when rollback may be needed.
+
+## [0.5.5.1] - 2026-07-15
+
+### Added
+- Payment Receipts by Transaction Month report for accounting and bank-statement reconciliation.
+- Apartment-by-month matrix based on the payment transaction/received date.
+- Month-range and building filters.
+- Monthly totals and range grand total.
+- Monthly accounting summary separating bank-imported and manually entered payments.
+- Transaction drill-down showing date, source, method, reference, notes, and amount.
+- Print-friendly report layout.
+- Voided payments are excluded from receipt totals and identified separately.
+
+### Accounting Rules
+- Report columns use `Payment.receivedDate`, which preserves the QFX posted date for imported payments.
+- Rent-period allocations do not determine the report month.
+- A payment received early for the next rent period remains in the month in which the bank processed it.
+- Full payment amounts are reported by apartment, including any temporarily unapplied portion.
+
+### Changed
+- Reports navigation now opens Payment Receipts.
+- Baseline 5.4 Rent Status is marked complete in ROADMAP.md.
+- Displayed version updated to 0.5.5.1 / Baseline 5.5.1.
 
 ## [0.5.4.4] - 2026-07-15
 
@@ -401,4 +645,3 @@ All notable changes to PropertyManager are documented here.
 - Corrected the Baseline 5.2 vacancies to 116 Clermont, 383-4 Edouard-Charles, and 387-1 Edouard-Charles.
 - All other units now receive active leases for July 1, 2026 through June 30, 2027.
 - Updated the normalized test-data reference file and documentation.
-

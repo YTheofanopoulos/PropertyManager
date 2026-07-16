@@ -12,17 +12,9 @@
 ## 5.x Financial Operations
 
 - [x] **5.1** Tenant and lease ledger with manual payment allocation
-- [x] **5.2** Bank statement import
-- [x] **5.3** Automatic payment matching and review
-- [x] **5.4** Outstanding balances and partial payments
-    [X] Rolling monthly rent status
-    [X] Occupancy awareness
-    [X] Outstanding balance calculation
-    [X] Tenant detail popup
-    [X] Search and paging
-    [X] Visual status indicators
-    [X] UI polish
-    [X] Complete
+- [ ] **5.2** Bank statement import
+- [ ] **5.3** Automatic payment matching and review
+- [ ] **5.4** Outstanding balances and partial payments
 - [ ] **5.5** Financial and rent-roll reporting
 
 ## 6.x Portfolio Operations
@@ -172,3 +164,46 @@ CSV financial import remains deferred.
 - [x] Delegated monthly-modal close handling
 - [x] Dynamic footer Close button reliably dismisses dialog
 - [x] Header X and footer Close share one close path
+
+
+## Baseline 5.5 — Reports
+
+- [x] **5.5.1 Payment Receipts by Transaction Month**
+  - Apartment-by-month accounting matrix
+  - Grouping by payment transaction date
+  - Monthly and range totals
+  - Bank Import vs Manual summary
+  - Building and month-range filters
+  - Transaction drill-down
+  - Voided-payment exclusion and disclosure
+  - Print-friendly output
+
+### Baseline 5.4 Completion
+
+- [x] Rent Status command center complete
+- [x] Rolling month visibility and future prepayment status
+- [x] Read-only monthly details
+- [x] Occupant contact popup
+- [x] Search, paging, legend, and modal stabilization
+
+## Documentation Status
+
+- [x] CHANGELOG.md reconstructed through Baseline 5.5.1
+- [x] Baseline 5.4 Rent Status marked complete
+- [x] Baseline 5.5.1 Payment Receipts report documented
+- [x] Architectural decisions consolidated in `docs/ARCHITECTURAL_DECISIONS.md`
+
+## Baseline Status
+
+### Completed
+- [x] Baseline 5.2 — QFX Import and Manual Reconciliation
+- [x] Baseline 5.3 — Assisted Reconciliation
+- [x] Baseline 5.4 — Rent Status Dashboard
+- [x] Baseline 5.5.1 — Payment Receipts by Transaction Month
+
+### Deferred Reports
+- [ ] Outstanding Rent Report
+- [ ] Lease Expiration Report
+- [ ] Vacancy Report
+- [ ] General Payment History Report
+- [ ] Owner and portfolio summary reports

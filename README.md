@@ -130,3 +130,45 @@ See `docs/test-data/baseline5_3_1/TEST_PLAN.md`. Reset sample data first, then i
    Partial Prepayment.
 7. Click monthly indicators and inspect the payment-allocation details.
 8. Record a payment from the modal and confirm the return to Rent Status.
+
+
+## Baseline 5.5.1 Payment Receipts Report Testing
+
+1. Open **Reports → Payment Receipts**.
+2. Select a start month, end month, and optionally one building.
+3. Confirm payments are grouped by their transaction/received date rather than
+   their allocated rent period.
+4. Reconcile two payments for one apartment in the same transaction month and
+   confirm both appear in that month's total.
+5. Click a non-zero apartment/month amount and inspect its transactions.
+6. Compare each monthly total with the corresponding bank statement.
+7. Confirm voided payments are excluded and shown in the excluded summary.
+8. Test search, paging, and Print Report.
+
+## Reporting
+
+### Rent Status
+
+Rent Status is an operational dashboard. It displays rent obligations by rent
+period and calculates outstanding rent through the current month. One future
+month is shown to make early payments visible without treating future rent as
+overdue.
+
+### Payment Receipts
+
+Payment Receipts is an accounting report. It groups payments by the date the
+transaction was processed:
+
+- QFX-imported payments use the preserved bank-posted date.
+- Manual payments use the entered received date.
+- Rent-period allocations do not change the accounting month.
+- Voided payments are excluded from totals.
+
+This distinction is intentional: Rent Status answers which rent period was paid,
+while Payment Receipts answers when the money was processed.
+
+## Release Documentation
+
+- `CHANGELOG.md` — cumulative release history
+- `ROADMAP.md` — completed, active, and deferred work
+- `docs/ARCHITECTURAL_DECISIONS.md` — important business and technical decisions
