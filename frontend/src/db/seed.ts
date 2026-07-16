@@ -157,8 +157,8 @@ export async function seedDatabase(force = false): Promise<void> {
         if (!seedUnit.occupied) continue;
 
         occupiedIndex += 1;
-        const startDate = "2026-07-01";
-        const endDate = "2027-06-30";
+        const startDate = "2025-07-01";
+        const endDate = "2026-06-30";
 
         const leaseId = Number(
           await db.leases.add({
@@ -167,7 +167,7 @@ export async function seedDatabase(force = false): Promise<void> {
             endDate,
             termType: "Fixed",
             status: "Active",
-            notes: "Baseline 5.2 realistic test lease",
+            notes: "Baseline 5.5.3 historical test lease",
           } satisfies Lease),
         );
 

@@ -1,5 +1,6 @@
 
 import { db } from "../db/database";
+import { applicationClock } from "./applicationClockService";
 import type {
   MatchClassification,
   Payment,
@@ -42,7 +43,7 @@ export class ReconciliationService {
     const transaction = await db.bankTransactions.get(transactionId);
     if (!transaction) throw new Error("Bank transaction not found.");
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = applicationClock.today();
     const currentPeriod = today.slice(0, 7);
 
     await rentLedgerService.ensureObligationsThrough(currentPeriod);

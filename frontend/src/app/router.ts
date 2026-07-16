@@ -6,6 +6,7 @@ import { renderLeaseEditor } from "../features/leases/editor";
 import { renderLeases } from "../features/leases/page";
 import { renderLocations } from "../features/locations/page";
 import { renderPlaceholder } from "../features/placeholder/page";
+import { renderSettings } from "../features/settings/page";
 import { renderPayments, renderPaymentEditor } from "../features/payments/page";
 import { renderRentRoll } from "../features/rentRoll/page";
 import { renderRentStatus } from "../features/rentStatus/page";
@@ -13,9 +14,7 @@ import { renderPaymentReceiptsReport } from "../features/reports/paymentReceipts
 import { renderTenants } from "../features/tenants/page";
 import { renderUnits } from "../features/units/page";
 
-const placeholders: Record<string, [string, string]> = {
-  "/settings": ["Settings", "Configure application defaults and future integration options."],
-};
+const placeholders: Record<string, [string, string]> = {};
 
 export async function route(container: HTMLElement): Promise<void> {
   const hashRoute = location.hash.replace(/^#/, "") || "/";
@@ -32,6 +31,7 @@ export async function route(container: HTMLElement): Promise<void> {
     element.classList.toggle("active", active);
   });
 
+  if (path === "/settings") return renderSettings(container);
   if (path === "/locations") return renderLocations(container);
   if (path === "/buildings") return renderBuildings(container);
   if (path === "/units") return renderUnits(container);

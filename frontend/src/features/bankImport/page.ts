@@ -9,6 +9,7 @@ import { rentLedgerService } from "../../services/rentLedgerService";
 import { createTable } from "../shared/table";
 import { currency } from "../shared/format";
 
+import { applicationClock } from "../../services/applicationClockService";
 let currentPreview: ImportPreview | undefined;
 
 type QueueFilter =
@@ -660,7 +661,7 @@ export async function renderReconciliation(
 
   const bankTransaction = transaction;
   const suggestions = await reconciliationService.suggestions(transactionId);
-  const outstandingAsOf = new Date().toISOString().slice(0, 10);
+  const outstandingAsOf = applicationClock.today();
 
   container.innerHTML = `
     <div class="page-heading d-flex justify-content-between align-items-center">
@@ -785,7 +786,7 @@ export async function renderReconciliation(
   if (selectedLeaseId) await loadAllocations();
 
   async function loadAllocations(): Promise<void> {
-    const currentPeriod = new Date().toISOString().slice(0, 7);
+    const currentPeriod = applicationClock.currentPeriod();
     const obligations = await rentLedgerService.getOutstandingObligations(
       selectedLeaseId,
       currentPeriod,

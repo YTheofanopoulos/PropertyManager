@@ -216,3 +216,13 @@ CSV financial import remains deferred.
 - [x] Combined report output
 - [x] Separate report per location
 - [x] Print page break between locations
+
+
+### Baseline 5.5.3 — Historical Test Clock
+
+- [x] Centralized business-date service
+- [x] System and simulated date modes
+- [x] Persistent Historical Test Mode banner
+- [x] Business calculations use the application date
+- [x] Sample leases cover July 2025 through June 2026
+- [x] Stored accounting and audit dates remain unchanged

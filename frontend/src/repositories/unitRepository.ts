@@ -2,6 +2,7 @@
 import { db } from "../db/database";
 import type { Unit, UnitListItem } from "../models/domain";
 import type { Repository } from "./repository";
+import { applicationClock } from "../services/applicationClockService";
 
 export class DexieUnitRepository implements Repository<Unit> {
   getAll(): Promise<Unit[]> {
@@ -28,7 +29,7 @@ export class DexieUnitRepository implements Repository<Unit> {
   }
 
   async getListItems(): Promise<UnitListItem[]> {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = applicationClock.today();
     const [units, buildings, locations, leases, charges] = await Promise.all([
       db.units.toArray(),
       db.buildings.toArray(),

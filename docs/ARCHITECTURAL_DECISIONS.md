@@ -59,3 +59,15 @@
 
         Maintenance is not a core requirement for the current portfolio and remains
         planned for Baseline 7.0 or later.
+
+
+## AD-011: Separate business date from technical time
+
+PropertyManager uses a centralized Application Clock for rules that answer
+"what date does the application consider today?" Historical testing may
+override that business date. Technical timestamps such as importedAt,
+createdAt, voidedAt, and backup export time continue using the real system
+clock.
+
+The override never changes stored transaction dates, QFX posted dates, payment
+received dates, or lease dates.

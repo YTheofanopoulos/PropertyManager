@@ -6,6 +6,7 @@ import type {
 import { paymentReceiptReportService } from "../../services/paymentReceiptReportService";
 import { createTable } from "../shared/table";
 
+import { applicationClock } from "../../services/applicationClockService";
 type OutputMode = "combined" | "separate";
 
 function periodFromDate(date: Date): string {
@@ -69,7 +70,7 @@ function currentParameters(): {
   const params = new URLSearchParams(
     location.hash.split("?")[1] ?? "",
   );
-  const currentPeriod = periodFromDate(new Date());
+  const currentPeriod = applicationClock.currentPeriod();
 
   const locationValue = Number(
     params.get("location") ?? 0,

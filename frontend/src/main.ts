@@ -7,12 +7,20 @@ import { route } from "./app/router";
 import { renderShell } from "./app/shell";
 import { seedDatabase } from "./db/seed";
 import { backupService } from "./services/backupService";
+import { applicationClock } from "./services/applicationClockService";
 
 async function start(): Promise<void> {
   await seedDatabase();
   const container = renderShell();
 
   window.addEventListener("hashchange", () => void route(container));
+
+  document
+    .getElementById("banner-restore-system-date")
+    ?.addEventListener("click", () => {
+      applicationClock.useSystemDate();
+      window.location.reload();
+    });
 
   document.getElementById("reset-data")?.addEventListener("click", async () => {
     if (!window.confirm("Reset browser data to the sample portfolio?")) return;

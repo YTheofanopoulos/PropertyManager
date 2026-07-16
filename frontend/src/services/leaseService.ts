@@ -1,5 +1,6 @@
 
 import { db } from "../db/database";
+import { applicationClock } from "./applicationClockService";
 import type {
   ChargeType,
   Lease,
@@ -263,7 +264,7 @@ export class LeaseService {
   }
 
   async refreshUnitOccupancy(unitId: number): Promise<void> {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = applicationClock.today();
     const leases = await db.leases.where("unitId").equals(unitId).toArray();
     const occupied = leases.some((lease) => {
       if (lease.status === "Terminated") return false;

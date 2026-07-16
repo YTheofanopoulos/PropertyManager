@@ -6,6 +6,31 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.5.3] - 2026-07-15
+
+### Added
+- Centralized Application Clock for business-date calculations.
+- Settings controls for system date or a persistent simulated date.
+- Persistent Historical Test Mode banner with a one-click return to system time.
+- Historical testing support for outstanding rent, obligation generation,
+  Rent Status, Rent Roll, reconciliation candidates, lease occupancy, and
+  default report ranges.
+
+### Sample Data
+- All occupied sample leases now run from 2025-07-01 through 2026-06-30.
+- Existing sample tenant names, participant relationships, unit assignments,
+  vacancy assignments, and rent amounts are preserved.
+- Reset Sample Data restores the historical 2025–2026 lease set.
+
+### Rules
+- The simulated clock changes only PropertyManager's concept of today.
+- QFX dates, payment transaction dates, lease dates, imported records, and
+  audit timestamps are never rewritten.
+- Payment Receipts continues grouping by stored transaction date.
+
+### Changed
+- Displayed application version updated to 0.5.5.3 / Baseline 5.5.3.
+
 ## [0.5.5.2] - 2026-07-15
 
 ### Added

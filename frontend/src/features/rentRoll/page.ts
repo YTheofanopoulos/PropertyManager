@@ -3,7 +3,8 @@ import { rentLedgerService } from "../../services/rentLedgerService";
 import { createTable } from "../shared/table";
 import { currency } from "../shared/format";
 
-const currentPeriod = (): string => new Date().toISOString().slice(0, 7);
+import { applicationClock } from "../../services/applicationClockService";
+const currentPeriod = (): string => applicationClock.currentPeriod();
 
 export async function renderRentRoll(container: HTMLElement): Promise<void> {
   const period =

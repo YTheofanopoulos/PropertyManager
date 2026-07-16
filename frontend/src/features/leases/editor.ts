@@ -11,6 +11,7 @@ import { tenantService } from "../../services/tenantService";
 import { currency, escapeHtml } from "../shared/format";
 import { modal, notify } from "../shared/ui";
 
+import { applicationClock } from "../../services/applicationClockService";
 const chargeTypes: ChargeType[] = [
   "Apartment Rent",
   "Parking",
@@ -130,7 +131,7 @@ export async function renderLeaseEditor(
                 <div class="col-md-4">
                   <label class="form-label">Start Date</label>
                   <input id="lease-start" type="date" class="form-control"
-                         value="${lease?.startDate ?? new Date().toISOString().slice(0, 10)}" required>
+                         value="${lease?.startDate ?? applicationClock.today()}" required>
                 </div>
                 <div class="col-md-4" id="end-date-column">
                   <label class="form-label">End Date</label>
@@ -259,7 +260,7 @@ function chargeRow(type: ChargeType, amount: number, description: string): strin
 }
 
 function defaultEndDate(): string {
-  const date = new Date();
+  const date = applicationClock.date();
   date.setFullYear(date.getFullYear() + 1);
   date.setDate(date.getDate() - 1);
   return date.toISOString().slice(0, 10);

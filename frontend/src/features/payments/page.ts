@@ -6,6 +6,7 @@ import { rentLedgerService } from "../../services/rentLedgerService";
 import { createTable } from "../shared/table";
 import { currency } from "../shared/format";
 
+import { applicationClock } from "../../services/applicationClockService";
 export async function renderPayments(container: HTMLElement): Promise<void> {
   const [payments, allocations, leases, units, buildings, locations] =
     await Promise.all([
@@ -141,7 +142,7 @@ export async function renderPaymentEditor(
   const requestedLeaseId = Number(params.get("leaseId") ?? 0);
   const returnTo = params.get("returnTo") ?? "payments";
   const returnPeriod =
-    params.get("period") ?? new Date().toISOString().slice(0, 7);
+    params.get("period") ?? applicationClock.currentPeriod();
   const explicitReturnHash = params.get("returnHash");
   const requestedRentPeriod =
     returnTo === "rent-roll" || returnTo === "rent-status"
@@ -157,7 +158,7 @@ export async function renderPaymentEditor(
           ? "#/rent-status"
           : "#/payments";
 
-  const currentPeriod = new Date().toISOString().slice(0, 7);
+  const currentPeriod = applicationClock.currentPeriod();
   const obligationThrough =
     requestedRentPeriod > currentPeriod
       ? requestedRentPeriod
@@ -261,7 +262,7 @@ export async function renderPaymentEditor(
                 <div class="col-md-6">
                   <label class="form-label">Date Received</label>
                   <input id="payment-date" type="date" class="form-control"
-                         value="${new Date().toISOString().slice(0, 10)}" required>
+                         value="${applicationClock.today()}" required>
                 </div>
                 <div class="col-md-6">
                   <label class="form-label">Amount</label>

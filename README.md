@@ -180,3 +180,18 @@ Payment Receipts may be limited to one Location or Building. When
 **Separate report per location** is selected, each Location receives an
 independent apartment matrix and accounting summary, and begins on a new
 page when printed.
+
+
+## Historical testing
+
+Administration → Settings contains the Application Date control. Select a
+simulated date to make PropertyManager evaluate business rules as of that day.
+A visible Historical Test Mode banner remains active until the system date is
+restored.
+
+The application date affects outstanding rent, rent obligations, occupancy,
+Rent Status, Rent Roll, reconciliation candidates, and default report ranges.
+It does not rewrite QFX dates, payment transaction dates, leases, or audit
+timestamps.
+
+Reset Sample Data installs leases covering 2025-07-01 through 2026-06-30.

@@ -7,6 +7,7 @@ import type {
 import { currency } from "../shared/format";
 import { createTable } from "../shared/table";
 
+import { applicationClock } from "../../services/applicationClockService";
 const DEFAULT_MONTH_COUNT = 4;
 const MONTH_COUNTS = [4, 6, 9, 12];
 
@@ -37,7 +38,7 @@ function parseParameters(): {
   const params = new URLSearchParams(
     location.hash.split("?")[1] ?? "",
   );
-  const currentPeriod = periodFromDate(new Date());
+  const currentPeriod = applicationClock.currentPeriod();
   const latestAllowed = addMonths(currentPeriod, 1);
   const requestedEnd = params.get("end") ?? latestAllowed;
   const monthCount = Number(params.get("months") ?? DEFAULT_MONTH_COUNT);
@@ -99,7 +100,7 @@ function routeFor(
 export async function renderRentStatus(
   container: HTMLElement,
 ): Promise<void> {
-  const currentPeriod = periodFromDate(new Date());
+  const currentPeriod = applicationClock.currentPeriod();
   const { endPeriod, monthCount } = parseParameters();
   const startPeriod = addMonths(
     endPeriod,
