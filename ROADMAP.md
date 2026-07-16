@@ -207,3 +207,12 @@ CSV financial import remains deferred.
 - [ ] Vacancy Report
 - [ ] General Payment History Report
 - [ ] Owner and portfolio summary reports
+
+
+### Baseline 5.5.2 — Location-based Payment Receipts
+
+- [x] Location filter
+- [x] Location-aware building filter
+- [x] Combined report output
+- [x] Separate report per location
+- [x] Print page break between locations

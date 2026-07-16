@@ -27,6 +27,7 @@ export interface PaymentReceiptMonthSummary {
 export interface PaymentReceiptRow {
   unitId: number;
   buildingId: number;
+  locationId: number;
   unitLabel: string;
   amounts: Record<string, number>;
   total: number;
@@ -37,6 +38,8 @@ export interface PaymentReceiptRow {
 }
 
 export interface PaymentReceiptReport {
+  locationId?: number;
+  locationName?: string;
   rows: PaymentReceiptRow[];
   monthlySummaries: PaymentReceiptMonthSummary[];
   grandTotal: number;
@@ -58,9 +61,26 @@ function unitLabel(
 }
 
 export class PaymentReceiptReportService {
-  async buildingOptions(): Promise<
+  async locationOptions(): Promise<
     Array<{ id: number; label: string }>
   > {
+    const locations = await db.locations.toArray();
+
+    return locations
+      .map((location) => ({
+        id: location.id as number,
+        label: location.name,
+      }))
+      .sort((left, right) =>
+        left.label.localeCompare(right.label, undefined, {
+          numeric: true,
+        }),
+      );
+  }
+
+  async buildingOptions(
+    locationId?: number,
+  ): Promise<Array<{ id: number; locationId: number; label: string }>> {
     const [buildings, locations] = await Promise.all([
       db.buildings.toArray(),
       db.locations.toArray(),
@@ -70,8 +90,13 @@ export class PaymentReceiptReportService {
     );
 
     return buildings
+      .filter(
+        (building) =>
+          !locationId || building.locationId === locationId,
+      )
       .map((building) => ({
         id: building.id as number,
+        locationId: building.locationId,
         label: `${building.civicAddress} ${
           locationMap.get(building.locationId)?.name ?? ""
         }`.trim(),
@@ -86,9 +111,11 @@ export class PaymentReceiptReportService {
   async generate(
     periods: string[],
     buildingId?: number,
+    locationId?: number,
   ): Promise<PaymentReceiptReport> {
     if (periods.length === 0) {
       return {
+        locationId,
         rows: [],
         monthlySummaries: [],
         grandTotal: 0,
@@ -126,11 +153,22 @@ export class PaymentReceiptReportService {
     );
 
     const selectedUnits = units
-      .filter(
-        (unit) =>
-          unit.active !== false &&
-          (!buildingId || unit.buildingId === buildingId),
-      )
+      .filter((unit) => {
+        if (unit.active === false) return false;
+        if (buildingId && unit.buildingId !== buildingId) {
+          return false;
+        }
+
+        const building = buildingMap.get(unit.buildingId);
+        if (
+          locationId &&
+          building?.locationId !== locationId
+        ) {
+          return false;
+        }
+
+        return true;
+      })
       .map((unit) => {
         const building = buildingMap.get(unit.buildingId);
         const location = building
@@ -139,6 +177,8 @@ export class PaymentReceiptReportService {
 
         return {
           unit,
+          building,
+          location,
           label: unitLabel(
             building?.civicAddress ?? "?",
             unit.apartmentNumber,
@@ -152,6 +192,7 @@ export class PaymentReceiptReportService {
       rows.set(item.unit.id as number, {
         unitId: item.unit.id as number,
         buildingId: item.unit.buildingId,
+        locationId: item.building?.locationId ?? 0,
         unitLabel: item.label,
         amounts: Object.fromEntries(
           periods.map((period) => [period, 0]),
@@ -192,7 +233,15 @@ export class PaymentReceiptReportService {
 
       const lease = leaseMap.get(payment.leaseId);
       const unit = lease ? unitMap.get(lease.unitId) : undefined;
-      if (!unit || (buildingId && unit.buildingId !== buildingId)) {
+      const building = unit
+        ? buildingMap.get(unit.buildingId)
+        : undefined;
+
+      if (
+        !unit ||
+        (buildingId && unit.buildingId !== buildingId) ||
+        (locationId && building?.locationId !== locationId)
+      ) {
         continue;
       }
 
@@ -249,6 +298,10 @@ export class PaymentReceiptReportService {
     }
 
     return {
+      locationId,
+      locationName: locationId
+        ? locationMap.get(locationId)?.name
+        : undefined,
       rows: [...rows.values()].sort((left, right) =>
         left.unitLabel.localeCompare(
           right.unitLabel,

@@ -6,6 +6,8 @@ import type {
 import { paymentReceiptReportService } from "../../services/paymentReceiptReportService";
 import { createTable } from "../shared/table";
 
+type OutputMode = "combined" | "separate";
+
 function periodFromDate(date: Date): string {
   return `${date.getFullYear()}-${String(
     date.getMonth() + 1,
@@ -60,37 +62,81 @@ function escapeHtml(value: string): string {
 function currentParameters(): {
   startPeriod: string;
   endPeriod: string;
+  locationId?: number;
   buildingId?: number;
+  outputMode: OutputMode;
 } {
   const params = new URLSearchParams(
     location.hash.split("?")[1] ?? "",
   );
   const currentPeriod = periodFromDate(new Date());
-  const startPeriod =
-    params.get("start") ?? addMonths(currentPeriod, -2);
-  const endPeriod = params.get("end") ?? currentPeriod;
-  const buildingValue = Number(params.get("building") ?? 0);
+
+  const locationValue = Number(
+    params.get("location") ?? 0,
+  );
+  const buildingValue = Number(
+    params.get("building") ?? 0,
+  );
+  const output =
+    params.get("output") === "separate"
+      ? "separate"
+      : "combined";
 
   return {
-    startPeriod,
-    endPeriod,
+    startPeriod:
+      params.get("start") ?? addMonths(currentPeriod, -2),
+    endPeriod: params.get("end") ?? currentPeriod,
+    locationId: locationValue || undefined,
     buildingId: buildingValue || undefined,
+    outputMode: output,
   };
 }
 
 export async function renderPaymentReceiptsReport(
   container: HTMLElement,
 ): Promise<void> {
-  const { startPeriod, endPeriod, buildingId } =
-    currentParameters();
+  const {
+    startPeriod,
+    endPeriod,
+    locationId,
+    buildingId,
+    outputMode,
+  } = currentParameters();
+
   const periods = periodsBetween(startPeriod, endPeriod);
-  const [report, buildings] = await Promise.all([
-    paymentReceiptReportService.generate(
-      periods,
-      buildingId,
-    ),
-    paymentReceiptReportService.buildingOptions(),
+
+  const [locations, buildings] = await Promise.all([
+    paymentReceiptReportService.locationOptions(),
+    paymentReceiptReportService.buildingOptions(locationId),
   ]);
+
+  const selectedLocationIds =
+    outputMode === "separate"
+      ? locationId
+        ? [locationId]
+        : locations.map((location) => location.id)
+      : [];
+
+  const reports =
+    periods.length === 0
+      ? []
+      : outputMode === "separate"
+        ? await Promise.all(
+            selectedLocationIds.map((id) =>
+              paymentReceiptReportService.generate(
+                periods,
+                undefined,
+                id,
+              ),
+            ),
+          )
+        : [
+            await paymentReceiptReportService.generate(
+              periods,
+              buildingId,
+              locationId,
+            ),
+          ];
 
   container.innerHTML = `
     <style>
@@ -98,13 +144,13 @@ export async function renderPaymentReceiptsReport(
         overflow-x: auto;
       }
 
-      #payment-receipts-table th,
-      #payment-receipts-table td {
+      .payment-receipts-table th,
+      .payment-receipts-table td {
         white-space: nowrap;
         vertical-align: middle;
       }
 
-      #payment-receipts-table thead th {
+      .payment-receipts-table thead th {
         position: sticky;
         top: 0;
         z-index: 2;
@@ -143,6 +189,10 @@ export async function renderPaymentReceiptsReport(
         border-top-width: 2px;
       }
 
+      .location-report-section + .location-report-section {
+        margin-top: 2rem;
+      }
+
       @media print {
         .sidebar,
         .topbar,
@@ -167,6 +217,16 @@ export async function renderPaymentReceiptsReport(
         .payment-report-scroll {
           overflow: visible !important;
         }
+
+        .location-report-section {
+          break-after: page;
+          page-break-after: always;
+        }
+
+        .location-report-section:last-child {
+          break-after: auto;
+          page-break-after: auto;
+        }
       }
     </style>
 
@@ -183,20 +243,40 @@ export async function renderPaymentReceiptsReport(
     </div>
 
     <div class="card mb-4 report-controls">
-      <div class="card-header fw-semibold">Report Range</div>
+      <div class="card-header fw-semibold">Report Range and Scope</div>
       <div class="card-body">
         <div class="row g-3 align-items-end">
-          <div class="col-sm-6 col-lg-3">
+          <div class="col-sm-6 col-xl-2">
             <label for="payment-report-start" class="form-label">Start month</label>
             <input id="payment-report-start" type="month" class="form-control" value="${startPeriod}">
           </div>
-          <div class="col-sm-6 col-lg-3">
+
+          <div class="col-sm-6 col-xl-2">
             <label for="payment-report-end" class="form-label">End month</label>
             <input id="payment-report-end" type="month" class="form-control" value="${endPeriod}">
           </div>
-          <div class="col-sm-6 col-lg-4">
+
+          <div class="col-sm-6 col-xl-2">
+            <label for="payment-report-location" class="form-label">Location</label>
+            <select id="payment-report-location" class="form-select">
+              <option value="">All locations</option>
+              ${locations
+                .map(
+                  (location) => `
+                    <option value="${location.id}" ${
+                      location.id === locationId ? "selected" : ""
+                    }>${escapeHtml(location.label)}</option>
+                  `,
+                )
+                .join("")}
+            </select>
+          </div>
+
+          <div class="col-sm-6 col-xl-2">
             <label for="payment-report-building" class="form-label">Building</label>
-            <select id="payment-report-building" class="form-select">
+            <select id="payment-report-building" class="form-select" ${
+              outputMode === "separate" ? "disabled" : ""
+            }>
               <option value="">All buildings</option>
               ${buildings
                 .map(
@@ -209,12 +289,35 @@ export async function renderPaymentReceiptsReport(
                 .join("")}
             </select>
           </div>
-          <div class="col-sm-6 col-lg-2">
+
+          <div class="col-sm-6 col-xl-2">
+            <label for="payment-report-output" class="form-label">Output</label>
+            <select id="payment-report-output" class="form-select">
+              <option value="combined" ${
+                outputMode === "combined" ? "selected" : ""
+              }>One combined report</option>
+              <option value="separate" ${
+                outputMode === "separate" ? "selected" : ""
+              }>Separate report per location</option>
+            </select>
+          </div>
+
+          <div class="col-sm-6 col-xl-2">
             <button id="run-payment-report" class="btn btn-primary w-100" type="button">
               Generate
             </button>
           </div>
         </div>
+
+        ${
+          outputMode === "separate"
+            ? `
+              <div class="form-text mt-3">
+                Each location is generated independently and begins on a new page when printed.
+              </div>
+            `
+            : ""
+        }
       </div>
     </div>
 
@@ -225,7 +328,22 @@ export async function renderPaymentReceiptsReport(
             The start month must not be after the end month.
           </div>
         `
-        : renderReport(report, periods)
+        : reports.length === 0
+          ? `
+            <div class="alert alert-secondary">
+              No locations are available for this report.
+            </div>
+          `
+          : reports
+              .map((report, index) =>
+                renderReport(
+                  report,
+                  periods,
+                  index,
+                  outputMode,
+                ),
+              )
+              .join("")
     }
 
     <div class="modal fade" id="payment-receipt-detail" tabindex="-1" aria-hidden="true">
@@ -247,22 +365,66 @@ export async function renderPaymentReceiptsReport(
     </div>
   `;
 
-  if (periods.length > 0) {
-    createTable("#payment-receipts-table", {
-      pageLength: 10,
+  reports.forEach((report, index) => {
+    const tableId = `#payment-receipts-table-${index}`;
+    createTable(tableId, {
+      pageLength: outputMode === "separate" ? 50 : 10,
       lengthMenu: [10, 25, 50],
+      paging: outputMode !== "separate",
+      searching: outputMode !== "separate",
+      info: outputMode !== "separate",
       order: [[0, "asc"]],
       columnDefs: [
         {
           targets: Array.from(
             { length: periods.length + 1 },
-            (_value, index) => index + 1,
+            (_value, columnIndex) => columnIndex + 1,
           ),
           className: "text-end",
         },
       ],
     });
-  }
+  });
+
+  document
+    .getElementById("payment-report-location")
+    ?.addEventListener("change", () => {
+      const locationValue = (
+        document.getElementById(
+          "payment-report-location",
+        ) as HTMLSelectElement
+      ).value;
+
+      const params = new URLSearchParams({
+        start: startPeriod,
+        end: endPeriod,
+        output: outputMode,
+      });
+      if (locationValue) {
+        params.set("location", locationValue);
+      }
+      location.hash = `/reports?${params.toString()}`;
+    });
+
+  document
+    .getElementById("payment-report-output")
+    ?.addEventListener("change", () => {
+      const output = (
+        document.getElementById(
+          "payment-report-output",
+        ) as HTMLSelectElement
+      ).value;
+
+      const params = new URLSearchParams({
+        start: startPeriod,
+        end: endPeriod,
+        output,
+      });
+      if (locationId) {
+        params.set("location", String(locationId));
+      }
+      location.hash = `/reports?${params.toString()}`;
+    });
 
   document
     .getElementById("run-payment-report")
@@ -277,14 +439,35 @@ export async function renderPaymentReceiptsReport(
           "payment-report-end",
         ) as HTMLInputElement
       ).value;
+      const locationValue = (
+        document.getElementById(
+          "payment-report-location",
+        ) as HTMLSelectElement
+      ).value;
       const building = (
         document.getElementById(
           "payment-report-building",
         ) as HTMLSelectElement
       ).value;
+      const output = (
+        document.getElementById(
+          "payment-report-output",
+        ) as HTMLSelectElement
+      ).value;
 
-      const params = new URLSearchParams({ start, end });
-      if (building) params.set("building", building);
+      const params = new URLSearchParams({
+        start,
+        end,
+        output,
+      });
+
+      if (locationValue) {
+        params.set("location", locationValue);
+      }
+      if (building && output === "combined") {
+        params.set("building", building);
+      }
+
       location.hash = `/reports?${params.toString()}`;
     });
 
@@ -331,34 +514,35 @@ export async function renderPaymentReceiptsReport(
       .forEach((backdrop) => backdrop.remove());
   }
 
-  document
-    .getElementById("payment-receipts-table")
-    ?.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement;
-      const button = target.closest<HTMLButtonElement>(
-        ".payment-report-link",
-      );
-      if (!button) return;
+  container.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement;
+    const button = target.closest<HTMLButtonElement>(
+      ".payment-report-link",
+    );
+    if (!button) return;
 
-      event.preventDefault();
-      const unitId = Number(button.dataset.unitId);
-      const period = button.dataset.period ?? "";
-      const row = report.rows.find(
-        (item) => item.unitId === unitId,
-      );
-      const transactions =
-        row?.transactionsByPeriod[period] ?? [];
-      if (!row || transactions.length === 0) return;
+    event.preventDefault();
+    const reportIndex = Number(button.dataset.reportIndex);
+    const unitId = Number(button.dataset.unitId);
+    const period = button.dataset.period ?? "";
+    const report = reports[reportIndex];
+    const row = report?.rows.find(
+      (item) => item.unitId === unitId,
+    );
+    const transactions =
+      row?.transactionsByPeriod[period] ?? [];
 
-      showTransactionDetails(
-        row.unitLabel,
-        period,
-        transactions,
-      );
+    if (!row || transactions.length === 0) return;
 
-      if (modal) modal.show();
-      else if (modalElement) showFallbackModal(modalElement);
-    });
+    showTransactionDetails(
+      row.unitLabel,
+      period,
+      transactions,
+    );
+
+    if (modal) modal.show();
+    else if (modalElement) showFallbackModal(modalElement);
+  });
 
   modalElement?.addEventListener("click", (event) => {
     const target = event.target as HTMLElement;
@@ -442,109 +626,162 @@ export async function renderPaymentReceiptsReport(
 function renderReport(
   report: PaymentReceiptReport,
   periods: string[],
+  reportIndex: number,
+  outputMode: OutputMode,
 ): string {
+  const title =
+    outputMode === "separate"
+      ? `Payment Receipts — ${escapeHtml(
+          report.locationName ?? "Location",
+        )}`
+      : "Payment Receipts";
+
   return `
-    <div class="row g-3 mb-4">
-      ${metricCard("Total Received", accountingCurrency(report.grandTotal))}
-      ${metricCard("Transactions", String(report.totalTransactionCount))}
-      ${metricCard("Apartments", String(report.rows.length))}
-      ${metricCard(
-        "Voided Excluded",
-        `${accountingCurrency(report.voidedExcluded)} · ${report.voidedCount}`,
-      )}
-    </div>
-
-    <div class="card mb-4">
-      <div class="card-header fw-semibold">Apartment Receipts</div>
-      <div class="card-body payment-report-scroll">
-        <table id="payment-receipts-table" class="table table-hover w-100">
-          <thead>
-            <tr>
-              <th class="payment-report-unit">Unit</th>
-              ${periods
-                .map(
-                  (period) => `<th class="payment-report-amount">${monthLabel(period)}</th>`,
-                )
-                .join("")}
-              <th class="payment-report-amount">Range Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${report.rows
-              .map(
-                (row) => `
-                  <tr>
-                    <td class="payment-report-unit">${escapeHtml(row.unitLabel)}</td>
-                    ${periods
-                      .map((period) => {
-                        const amount = row.amounts[period] ?? 0;
-                        return `
-                          <td class="payment-report-amount">
-                            ${
-                              amount > 0.005
-                                ? `<button type="button" class="payment-report-link" data-unit-id="${row.unitId}" data-period="${period}">${accountingCurrency(amount)}</button>`
-                                : `<span class="payment-report-zero">${accountingCurrency(0)}</span>`
-                            }
-                          </td>
-                        `;
-                      })
-                      .join("")}
-                    <td class="payment-report-amount"><strong>${accountingCurrency(row.total)}</strong></td>
-                  </tr>
-                `,
-              )
-              .join("")}
-          </tbody>
-          <tfoot>
-            <tr class="payment-report-total-row">
-              <th>Monthly Total</th>
-              ${report.monthlySummaries
-                .map(
-                  (summary) => `<th class="payment-report-amount">${accountingCurrency(summary.total)}</th>`,
-                )
-                .join("")}
-              <th class="payment-report-amount">${accountingCurrency(report.grandTotal)}</th>
-            </tr>
-          </tfoot>
-        </table>
+    <section class="location-report-section">
+      <div class="d-flex justify-content-between align-items-end mb-3">
+        <div>
+          <h2 class="h4 mb-1">${title}</h2>
+          <div class="text-body-secondary">
+            ${monthLabel(periods[0]!)} – ${monthLabel(
+              periods[periods.length - 1]!,
+            )}
+          </div>
+        </div>
+        ${
+          outputMode === "separate"
+            ? `<span class="badge text-bg-light">${report.rows.length} apartments</span>`
+            : ""
+        }
       </div>
-    </div>
 
-    <div class="card">
-      <div class="card-header fw-semibold">Monthly Accounting Summary</div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table align-middle mb-0">
+      <div class="row g-3 mb-4">
+        ${metricCard(
+          "Total Received",
+          accountingCurrency(report.grandTotal),
+        )}
+        ${metricCard(
+          "Transactions",
+          String(report.totalTransactionCount),
+        )}
+        ${metricCard("Apartments", String(report.rows.length))}
+        ${metricCard(
+          "Voided Excluded",
+          `${accountingCurrency(
+            report.voidedExcluded,
+          )} · ${report.voidedCount}`,
+        )}
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header fw-semibold">Apartment Receipts</div>
+        <div class="card-body payment-report-scroll">
+          <table id="payment-receipts-table-${reportIndex}"
+                 class="table table-hover w-100 payment-receipts-table">
             <thead>
               <tr>
-                <th>Transaction Month</th>
-                <th class="text-end">Bank Imported</th>
-                <th class="text-end">Manual</th>
-                <th class="text-end">Transactions</th>
-                <th class="text-end">Voided Excluded</th>
-                <th class="text-end">Total Received</th>
+                <th class="payment-report-unit">Unit</th>
+                ${periods
+                  .map(
+                    (period) =>
+                      `<th class="payment-report-amount">${monthLabel(period)}</th>`,
+                  )
+                  .join("")}
+                <th class="payment-report-amount">Range Total</th>
               </tr>
             </thead>
             <tbody>
-              ${report.monthlySummaries
+              ${report.rows
                 .map(
-                  (summary) => `
+                  (row) => `
                     <tr>
-                      <td><strong>${monthLabel(summary.period)}</strong></td>
-                      <td class="text-end">${accountingCurrency(summary.bankImported)}</td>
-                      <td class="text-end">${accountingCurrency(summary.manual)}</td>
-                      <td class="text-end">${summary.transactionCount}</td>
-                      <td class="text-end">${accountingCurrency(summary.voidedExcluded)} (${summary.voidedCount})</td>
-                      <td class="text-end"><strong>${accountingCurrency(summary.total)}</strong></td>
+                      <td class="payment-report-unit">${escapeHtml(row.unitLabel)}</td>
+                      ${periods
+                        .map((period) => {
+                          const amount = row.amounts[period] ?? 0;
+                          return `
+                            <td class="payment-report-amount">
+                              ${
+                                amount > 0.005
+                                  ? `<button type="button"
+                                             class="payment-report-link"
+                                             data-report-index="${reportIndex}"
+                                             data-unit-id="${row.unitId}"
+                                             data-period="${period}">
+                                       ${accountingCurrency(amount)}
+                                     </button>`
+                                  : `<span class="payment-report-zero">${accountingCurrency(0)}</span>`
+                              }
+                            </td>
+                          `;
+                        })
+                        .join("")}
+                      <td class="payment-report-amount">
+                        <strong>${accountingCurrency(row.total)}</strong>
+                      </td>
                     </tr>
                   `,
                 )
                 .join("")}
             </tbody>
+            <tfoot>
+              <tr class="payment-report-total-row">
+                <th>Monthly Total</th>
+                ${report.monthlySummaries
+                  .map(
+                    (summary) =>
+                      `<th class="payment-report-amount">${accountingCurrency(summary.total)}</th>`,
+                  )
+                  .join("")}
+                <th class="payment-report-amount">
+                  ${accountingCurrency(report.grandTotal)}
+                </th>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
-    </div>
+
+      <div class="card">
+        <div class="card-header fw-semibold">Monthly Accounting Summary</div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table align-middle mb-0">
+              <thead>
+                <tr>
+                  <th>Transaction Month</th>
+                  <th class="text-end">Bank Imported</th>
+                  <th class="text-end">Manual</th>
+                  <th class="text-end">Transactions</th>
+                  <th class="text-end">Voided Excluded</th>
+                  <th class="text-end">Total Received</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${report.monthlySummaries
+                  .map(
+                    (summary) => `
+                      <tr>
+                        <td><strong>${monthLabel(summary.period)}</strong></td>
+                        <td class="text-end">${accountingCurrency(summary.bankImported)}</td>
+                        <td class="text-end">${accountingCurrency(summary.manual)}</td>
+                        <td class="text-end">${summary.transactionCount}</td>
+                        <td class="text-end">
+                          ${accountingCurrency(summary.voidedExcluded)}
+                          (${summary.voidedCount})
+                        </td>
+                        <td class="text-end">
+                          <strong>${accountingCurrency(summary.total)}</strong>
+                        </td>
+                      </tr>
+                    `,
+                  )
+                  .join("")}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
   `;
 }
 
@@ -553,7 +790,9 @@ function metricCard(label: string, value: string): string {
     <div class="col-sm-6 col-xl-3">
       <div class="card h-100">
         <div class="card-body">
-          <div class="small text-uppercase text-body-secondary fw-semibold">${label}</div>
+          <div class="small text-uppercase text-body-secondary fw-semibold">
+            ${label}
+          </div>
           <div class="metric-value">${value}</div>
         </div>
       </div>

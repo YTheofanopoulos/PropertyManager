@@ -6,6 +6,23 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.5.2] - 2026-07-15
+
+### Added
+- Location filter for the Payment Receipts report.
+- Location-aware building filter.
+- Output option for one combined report or separate reports by location.
+- Separate location reports include their own apartment matrix, monthly summary,
+  totals, transaction counts, and voided-payment disclosure.
+- Printing separate reports starts each location on a new page.
+
+### Changed
+- Payment Receipts report scope now follows the explicit
+  Location → Building → Unit hierarchy.
+- Building choices are limited to the selected location.
+- Transaction-date accounting rules remain unchanged.
+- Displayed application version updated to 0.5.5.2 / Baseline 5.5.2.
+
 ## [0.5.5.1] - 2026-07-15
 
 ### Added

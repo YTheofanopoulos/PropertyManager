@@ -172,3 +172,11 @@ while Payment Receipts answers when the money was processed.
 - `CHANGELOG.md` — cumulative release history
 - `ROADMAP.md` — completed, active, and deferred work
 - `docs/ARCHITECTURAL_DECISIONS.md` — important business and technical decisions
+
+
+### Payment Receipts location output
+
+Payment Receipts may be limited to one Location or Building. When
+**Separate report per location** is selected, each Location receives an
+independent apartment matrix and accounting summary, and begins on a new
+page when printed.
