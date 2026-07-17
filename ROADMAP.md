@@ -265,3 +265,9 @@ CSV financial import remains deferred.
 - [x] Duplicate submission prevention
 - [x] Inline reconciliation errors
 - [x] Automatic advance to the next transaction
+
+### Baseline 5.5.8 — Busy Overlay Navigation Fix
+
+- [x] Hide overlay before navigation
+- [x] Route-level safety reset
+- [x] Depth-independent force-hide

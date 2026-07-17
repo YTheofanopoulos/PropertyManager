@@ -55,7 +55,9 @@ class BusyOverlayService {
 
   forceHide(): void {
     this.depth = 0;
-    this.hide();
+    const overlay = document.getElementById("application-busy-overlay");
+    overlay?.classList.remove("show");
+    document.body.classList.remove("application-is-busy");
   }
 }
 

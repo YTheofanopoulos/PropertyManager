@@ -899,6 +899,8 @@ export async function renderReconciliation(
 
         const nextTransaction = await findNextTransaction(transactionId);
 
+        busyOverlay.forceHide();
+
         if (nextTransaction?.id !== undefined) {
           window.location.hash =
             `/bank-import/reconcile/${nextTransaction.id}`;
@@ -938,6 +940,8 @@ export async function renderReconciliation(
       try {
         await bankImportService.ignore(transactionId, reason);
         const nextTransaction = await findNextTransaction(transactionId);
+
+        busyOverlay.forceHide();
 
         if (nextTransaction?.id !== undefined) {
           window.location.hash =

@@ -1,3 +1,4 @@
+import { busyOverlay } from "../services/busyOverlayService";
 
 import { renderBuildings } from "../features/buildings/page";
 import { renderBankImport, renderReconciliation } from "../features/bankImport/page";
@@ -17,6 +18,7 @@ import { renderUnits } from "../features/units/page";
 const placeholders: Record<string, [string, string]> = {};
 
 export async function route(container: HTMLElement): Promise<void> {
+  busyOverlay.forceHide();
   const hashRoute = location.hash.replace(/^#/, "") || "/";
   const [path] = hashRoute.split("?", 1);
 

@@ -6,6 +6,16 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.5.8] - 2026-07-17
+
+### Fixed
+- Busy overlay is dismissed before navigation after reconcile or ignore.
+- Every route transition performs a safety reset of the busy overlay.
+- `forceHide()` now clears the overlay directly and cannot be blocked by depth tracking.
+
+### Changed
+- Displayed version updated to 0.5.5.8 / Baseline 5.5.8.
+
 ## [0.5.5.7] - 2026-07-17
 
 ### Changed

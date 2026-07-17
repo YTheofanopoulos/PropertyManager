@@ -52,7 +52,7 @@ export function renderShell(): HTMLElement {
           data-bs-target="#about-property-manager"
         >
           <i class="fa-solid fa-circle-info me-2"></i>
-          <span>v0.5.5.7</span>
+          <span>v0.5.5.8</span>
         </button>
       </div>
     </aside>
@@ -78,7 +78,7 @@ export function renderShell(): HTMLElement {
       }
       <header class="topbar d-flex justify-content-between align-items-center">
         <span class="fw-semibold">PropertyManager</span>
-        <span class="small text-body-secondary">Baseline 5.5.7 · DB Schema 7</span>
+        <span class="small text-body-secondary">Baseline 5.5.8 · DB Schema 7</span>
       </header>
       <section id="page-content" class="content"></section>
     </main>
@@ -97,10 +97,10 @@ export function renderShell(): HTMLElement {
         <div class="modal-body">
           <dl class="row mb-0">
             <dt class="col-5">Application Version</dt>
-            <dd class="col-7">0.5.5.7</dd>
+            <dd class="col-7">0.5.5.8</dd>
 
             <dt class="col-5">Baseline</dt>
-            <dd class="col-7">5.5.7</dd>
+            <dd class="col-7">5.5.8</dd>
 
             <dt class="col-5">Database Schema</dt>
             <dd class="col-7">7</dd>
