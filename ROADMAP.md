@@ -305,3 +305,9 @@ CSV financial import remains deferred.
 - [x] Prevent rapid-click modal state corruption
 - [x] Restore controls after refresh completion or refresh failure
 
+
+### Baseline 5.6.3 — Payment Entry Workflow Simplification
+
+- Remove the redundant Record Payment action from the Payments page.
+- Keep manual payment creation in Rent Roll and imported payment creation in Bank Import.
+- Retain Payments as the ledger for review and void operations.

@@ -50,16 +50,11 @@ export async function renderPayments(container: HTMLElement): Promise<void> {
   });
 
   container.innerHTML = `
-    <div class="page-heading d-flex justify-content-between align-items-center">
-      <div>
-        <h1>Payments</h1>
-        <p class="text-body-secondary mb-0">
-          Money received and its rent-period allocations.
-        </p>
-      </div>
-      <a class="btn btn-primary" href="#/payments/new">
-        <i class="fa-solid fa-plus me-1"></i>Record Payment
-      </a>
+    <div class="page-heading">
+      <h1>Payments</h1>
+      <p class="text-body-secondary mb-0">
+        Review payment history, allocations, and void posted payments.
+      </p>
     </div>
 
     <div class="card">

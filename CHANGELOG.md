@@ -6,6 +6,14 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.6.3] - 2026-07-17
+
+### Changed
+- Removed the Record Payment action from the Payments page.
+- The Payments page is now focused on reviewing payment history, allocations, and voiding posted payments.
+- Manual payment entry remains available through the Rent Roll workflow.
+- Displayed version updated to 0.5.6.3 / Baseline 5.6.3.
+
 ## [0.5.6.2] - 2026-07-17
 
 ### Fixed
