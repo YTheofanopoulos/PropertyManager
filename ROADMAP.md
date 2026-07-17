@@ -255,3 +255,13 @@ CSV financial import remains deferred.
 - [x] Recent payments
 - [x] Upcoming lease expirations
 - [x] Application Clock context
+
+
+### Baseline 5.5.7 — Reconciliation Workflow Polish
+
+- [x] Reconciliation actions moved below the Bank Transaction card
+- [x] Sticky transaction/action card on desktop
+- [x] Reusable busy overlay and progress spinner
+- [x] Duplicate submission prevention
+- [x] Inline reconciliation errors
+- [x] Automatic advance to the next transaction

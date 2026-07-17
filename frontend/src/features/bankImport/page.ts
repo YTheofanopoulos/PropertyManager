@@ -10,6 +10,7 @@ import { createTable } from "../shared/table";
 import { currency } from "../shared/format";
 
 import { applicationClock } from "../../services/applicationClockService";
+import { busyOverlay } from "../../services/busyOverlayService";
 let currentPreview: ImportPreview | undefined;
 
 type QueueFilter =
@@ -673,7 +674,8 @@ export async function renderReconciliation(
 ): Promise<void> {
   const transaction = await db.bankTransactions.get(transactionId);
   if (!transaction) {
-    container.innerHTML = '<div class="alert alert-danger">Transaction not found.</div>';
+    container.innerHTML =
+      '<div class="alert alert-danger">Transaction not found.</div>';
     return;
   }
 
@@ -685,23 +687,61 @@ export async function renderReconciliation(
     <div class="page-heading d-flex justify-content-between align-items-center">
       <div>
         <h1>Reconcile Bank Transaction</h1>
-        <p class="text-body-secondary mb-0">Confirm the unit and rent-period allocation.</p>
+        <p class="text-body-secondary mb-0">
+          Confirm the unit and rent-period allocation.
+        </p>
       </div>
-      <a class="btn btn-outline-secondary" href="#/bank-import">Back to Import</a>
+      <a class="btn btn-outline-secondary reconciliation-control"
+         href="#/bank-import">
+        Back to Import
+      </a>
     </div>
+
+    <div id="reconciliation-message" class="d-none" role="alert"></div>
 
     <div class="row g-4">
       <div class="col-lg-5">
-        <div class="card">
+        <div class="card sticky-lg-top reconciliation-transaction-card">
           <div class="card-header fw-semibold">Bank Transaction</div>
           <div class="card-body">
             <dl class="row mb-0">
-              <dt class="col-5">Transaction Date</dt><dd class="col-7">${bankTransaction.postedDate}</dd>
-              <dt class="col-5">Amount</dt><dd class="col-7 fs-4">${currency(bankTransaction.amount)}</dd>
-              <dt class="col-5">Description</dt><dd class="col-7">${bankTransaction.name || "—"}</dd>
-              <dt class="col-5">Memo</dt><dd class="col-7">${bankTransaction.memo || "—"}</dd>
-              <dt class="col-5">Reference</dt><dd class="col-7 text-break">${bankTransaction.externalId}</dd>
+              <dt class="col-5">Transaction Date</dt>
+              <dd class="col-7">${bankTransaction.postedDate}</dd>
+
+              <dt class="col-5">Amount</dt>
+              <dd class="col-7 fs-4">${currency(bankTransaction.amount)}</dd>
+
+              <dt class="col-5">Description</dt>
+              <dd class="col-7">${bankTransaction.name || "—"}</dd>
+
+              <dt class="col-5">Memo</dt>
+              <dd class="col-7">${bankTransaction.memo || "—"}</dd>
+
+              <dt class="col-5">Reference</dt>
+              <dd class="col-7 text-break">
+                ${bankTransaction.externalId}
+              </dd>
             </dl>
+
+            <div class="border-top mt-3 pt-3 d-grid gap-2">
+              <button id="confirm-reconciliation"
+                      class="btn btn-primary reconciliation-control"
+                      ${suggestions.length === 0 ? "disabled" : ""}>
+                <span class="reconcile-button-label">
+                  Confirm Reconciliation
+                </span>
+              </button>
+
+              <button id="ignore-reconciliation-transaction"
+                      class="btn btn-outline-secondary reconciliation-control">
+                Ignore Transaction
+              </button>
+
+              <div class="small text-body-secondary">
+                The selected unit and allocations shown on the right will be
+                used when you confirm.
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -716,31 +756,46 @@ export async function renderReconciliation(
           </div>
           <div class="card-body">
             <div class="list-group" id="suggestion-list">
-              ${suggestions.map((suggestion, index) => `
-                <button type="button"
-                        class="list-group-item list-group-item-action suggestion-item ${index === 0 ? "active" : ""}"
-                        data-lease-id="${suggestion.leaseId}">
-                  <div class="d-flex justify-content-between gap-3">
-                    <strong>${suggestion.unitLabel}</strong>
-                    <span class="badge text-bg-${
-                      suggestion.classification === "Strong Candidate"
-                        ? "success"
-                        : suggestion.classification === "Good Candidate"
-                          ? "primary"
-                          : suggestion.classification === "Possible Match" ||
-                              suggestion.classification === "Ambiguous"
-                            ? "warning"
-                            : "secondary"
-                    }">${suggestion.classification}</span>
-                  </div>
-                  <div class="small mt-1">
-                    Score ${suggestion.score} · Outstanding ${currency(suggestion.amountDue)} · Oldest ${suggestion.oldestPeriod} · Target ${suggestion.targetPeriod}
-                  </div>
-                  <ul class="small mb-0 mt-2 text-start">
-                    ${suggestion.reasons.map((reason) => `<li>${reason}</li>`).join("")}
-                  </ul>
-                </button>
-              `).join("") || '<div class="alert alert-warning mb-0">No outstanding leases found.</div>'}
+              ${
+                suggestions
+                  .map(
+                    (suggestion, index) => `
+                    <button type="button"
+                            class="list-group-item list-group-item-action
+                                   suggestion-item reconciliation-control
+                                   ${index === 0 ? "active" : ""}"
+                            data-lease-id="${suggestion.leaseId}">
+                      <div class="d-flex justify-content-between gap-3">
+                        <strong>${suggestion.unitLabel}</strong>
+                        <span class="badge text-bg-${
+                          suggestion.classification === "Strong Candidate"
+                            ? "success"
+                            : suggestion.classification === "Good Candidate"
+                              ? "primary"
+                              : suggestion.classification ===
+                                    "Possible Match" ||
+                                  suggestion.classification === "Ambiguous"
+                                ? "warning"
+                                : "secondary"
+                        }">${suggestion.classification}</span>
+                      </div>
+                      <div class="small mt-1">
+                        Score ${suggestion.score}
+                        · Outstanding ${currency(suggestion.amountDue)}
+                        · Oldest ${suggestion.oldestPeriod}
+                        · Target ${suggestion.targetPeriod}
+                      </div>
+                      <ul class="small mb-0 mt-2 text-start">
+                        ${suggestion.reasons
+                          .map((reason) => `<li>${reason}</li>`)
+                          .join("")}
+                      </ul>
+                    </button>
+                  `,
+                  )
+                  .join("") ||
+                '<div class="alert alert-warning mb-0">No outstanding leases found.</div>'
+              }
             </div>
           </div>
         </div>
@@ -751,11 +806,10 @@ export async function renderReconciliation(
             <div id="reconcile-allocation-list">Select a unit.</div>
             <div class="border-top mt-3 pt-3 d-flex justify-content-between">
               <span>Unapplied credit</span>
-              <strong id="reconcile-unapplied">${currency(bankTransaction.amount)}</strong>
+              <strong id="reconcile-unapplied">
+                ${currency(bankTransaction.amount)}
+              </strong>
             </div>
-            <button id="confirm-reconciliation" class="btn btn-primary w-100 mt-3">
-              Confirm Reconciliation
-            </button>
           </div>
         </div>
       </div>
@@ -763,85 +817,279 @@ export async function renderReconciliation(
   `;
 
   let selectedLeaseId = suggestions[0]?.leaseId ?? 0;
+  let submitting = false;
 
-  document.querySelectorAll<HTMLElement>(".suggestion-item").forEach((item) => {
-    item.addEventListener("click", async () => {
-      document.querySelectorAll(".suggestion-item").forEach((row) => row.classList.remove("active"));
-      item.classList.add("active");
-      selectedLeaseId = Number(item.dataset.leaseId);
-      await loadAllocations();
+  document
+    .querySelectorAll<HTMLElement>(".suggestion-item")
+    .forEach((item) => {
+      item.addEventListener("click", async () => {
+        if (submitting) return;
+
+        document
+          .querySelectorAll(".suggestion-item")
+          .forEach((row) => row.classList.remove("active"));
+
+        item.classList.add("active");
+        selectedLeaseId = Number(item.dataset.leaseId);
+        await loadAllocations();
+      });
     });
-  });
 
-  document.getElementById("confirm-reconciliation")?.addEventListener("click", async () => {
-    try {
+  document
+    .getElementById("confirm-reconciliation")
+    ?.addEventListener("click", async () => {
+      if (submitting) return;
+
       const allocations = Array.from(
-        document.querySelectorAll<HTMLElement>(".reconcile-allocation-row"),
-      ).map((row) => ({
-        obligationId: Number(row.dataset.obligationId),
-        amount: Number((row.querySelector(".reconcile-allocation-amount") as HTMLInputElement).value || 0),
-      })).filter((item) => item.amount > 0);
+        document.querySelectorAll<HTMLElement>(
+          ".reconcile-allocation-row",
+        ),
+      )
+        .map((row) => ({
+          obligationId: Number(row.dataset.obligationId),
+          amount: Number(
+            (
+              row.querySelector(
+                ".reconcile-allocation-amount",
+              ) as HTMLInputElement
+            ).value || 0,
+          ),
+        }))
+        .filter((item) => item.amount > 0);
 
-      await reconciliationService.reconcile(
-        transactionId,
-        selectedLeaseId,
-        allocations,
+      if (!selectedLeaseId) {
+        showMessage("danger", "Select a suggested unit before reconciling.");
+        return;
+      }
+
+      if (allocations.length === 0) {
+        showMessage(
+          "danger",
+          "Allocate at least part of the transaction before reconciling.",
+        );
+        return;
+      }
+
+      submitting = true;
+      setControlsDisabled(true);
+      busyOverlay.show(
+        "Reconciling payment…",
+        "Creating the payment and updating the rent ledger.",
       );
 
-      sessionStorage.setItem(
-        "bank-reconciliation-success",
-        JSON.stringify({
-          amount: bankTransaction.amount,
-          reference: bankTransaction.externalId,
-        }),
+      try {
+        await reconciliationService.reconcile(
+          transactionId,
+          selectedLeaseId,
+          allocations,
+        );
+
+        busyOverlay.update(
+          "Payment reconciled",
+          "Loading the next transaction that needs attention.",
+        );
+
+        sessionStorage.setItem(
+          "bank-reconciliation-success",
+          JSON.stringify({
+            amount: bankTransaction.amount,
+            reference: bankTransaction.externalId,
+          }),
+        );
+
+        const nextTransaction = await findNextTransaction(transactionId);
+
+        if (nextTransaction?.id !== undefined) {
+          window.location.hash =
+            `/bank-import/reconcile/${nextTransaction.id}`;
+        } else {
+          window.location.hash =
+            "/bank-import?filter=needs-attention";
+        }
+      } catch (error) {
+        submitting = false;
+        setControlsDisabled(false);
+        busyOverlay.forceHide();
+        showMessage(
+          "danger",
+          (error as Error).message ||
+            "The transaction could not be reconciled.",
+        );
+      }
+    });
+
+  document
+    .getElementById("ignore-reconciliation-transaction")
+    ?.addEventListener("click", async () => {
+      if (submitting) return;
+
+      const reason = window.prompt(
+        "Reason this transaction is not rent:",
+      );
+      if (reason === null) return;
+
+      submitting = true;
+      setControlsDisabled(true);
+      busyOverlay.show(
+        "Ignoring transaction…",
+        "Updating the reconciliation queue.",
       );
 
-      window.location.hash = "/bank-import?filter=needs-attention";
-    } catch (error) {
-      window.alert((error as Error).message);
-    }
-  });
+      try {
+        await bankImportService.ignore(transactionId, reason);
+        const nextTransaction = await findNextTransaction(transactionId);
+
+        if (nextTransaction?.id !== undefined) {
+          window.location.hash =
+            `/bank-import/reconcile/${nextTransaction.id}`;
+        } else {
+          window.location.hash =
+            "/bank-import?filter=needs-attention";
+        }
+      } catch (error) {
+        submitting = false;
+        setControlsDisabled(false);
+        busyOverlay.forceHide();
+        showMessage(
+          "danger",
+          (error as Error).message ||
+            "The transaction could not be ignored.",
+        );
+      }
+    });
 
   if (selectedLeaseId) await loadAllocations();
 
   async function loadAllocations(): Promise<void> {
     const currentPeriod = applicationClock.currentPeriod();
-    const obligations = await rentLedgerService.getOutstandingObligations(
-      selectedLeaseId,
-      currentPeriod,
-    );
-    let remaining = bankTransaction.amount;
+    const obligations =
+      await rentLedgerService.getOutstandingObligations(
+        selectedLeaseId,
+        currentPeriod,
+      );
 
-    const element = document.getElementById("reconcile-allocation-list");
+    let remaining = bankTransaction.amount;
+    const element = document.getElementById(
+      "reconcile-allocation-list",
+    );
     if (!element) return;
 
-    element.innerHTML = obligations.map((obligation) => {
-      const suggested = Math.min(remaining, obligation.balance);
-      remaining -= suggested;
-      return `
-        <div class="row g-2 align-items-center mb-2 reconcile-allocation-row"
-             data-obligation-id="${obligation.id}">
-          <div class="col-4"><strong>${obligation.rentPeriod}</strong></div>
-          <div class="col-3 text-end">Due ${currency(obligation.balance)}</div>
-          <div class="col-5">
-            <input class="form-control reconcile-allocation-amount"
-                   type="number" min="0" max="${obligation.balance}" step=".01"
-                   value="${suggested > 0 ? suggested : ""}">
-          </div>
-        </div>
-      `;
-    }).join("") || '<div class="alert alert-success">No outstanding rent.</div>';
+    element.innerHTML =
+      obligations
+        .map((obligation) => {
+          const suggested = Math.min(remaining, obligation.balance);
+          remaining -= suggested;
 
-    document.querySelectorAll<HTMLInputElement>(".reconcile-allocation-amount")
-      .forEach((input) => input.addEventListener("input", updateUnapplied));
+          return `
+            <div class="row g-2 align-items-center mb-2
+                        reconcile-allocation-row"
+                 data-obligation-id="${obligation.id}">
+              <div class="col-4">
+                <strong>${obligation.rentPeriod}</strong>
+              </div>
+              <div class="col-3 text-end">
+                Due ${currency(obligation.balance)}
+              </div>
+              <div class="col-5">
+                <input class="form-control reconcile-allocation-amount
+                              reconciliation-control"
+                       type="number"
+                       min="0"
+                       max="${obligation.balance}"
+                       step=".01"
+                       value="${suggested > 0 ? suggested : ""}">
+              </div>
+            </div>
+          `;
+        })
+        .join("") ||
+      '<div class="alert alert-success">No outstanding rent.</div>';
+
+    document
+      .querySelectorAll<HTMLInputElement>(
+        ".reconcile-allocation-amount",
+      )
+      .forEach((input) =>
+        input.addEventListener("input", updateUnapplied),
+      );
+
     updateUnapplied();
   }
 
   function updateUnapplied(): void {
     const allocated = Array.from(
-      document.querySelectorAll<HTMLInputElement>(".reconcile-allocation-amount"),
-    ).reduce((total, input) => total + Number(input.value || 0), 0);
-    const element = document.getElementById("reconcile-unapplied");
-    if (element) element.textContent = currency(Math.max(bankTransaction.amount - allocated, 0));
+      document.querySelectorAll<HTMLInputElement>(
+        ".reconcile-allocation-amount",
+      ),
+    ).reduce(
+      (total, input) => total + Number(input.value || 0),
+      0,
+    );
+
+    const element = document.getElementById(
+      "reconcile-unapplied",
+    );
+    if (element) {
+      element.textContent = currency(
+        Math.max(bankTransaction.amount - allocated, 0),
+      );
+    }
+  }
+
+  function setControlsDisabled(disabled: boolean): void {
+    document
+      .querySelectorAll<
+        HTMLButtonElement | HTMLInputElement
+      >(".reconciliation-control")
+      .forEach((control) => {
+        control.disabled = disabled;
+      });
+
+    document
+      .querySelectorAll<HTMLAnchorElement>(
+        "a.reconciliation-control",
+      )
+      .forEach((link) => {
+        link.classList.toggle("disabled", disabled);
+        link.setAttribute(
+          "aria-disabled",
+          disabled ? "true" : "false",
+        );
+        link.tabIndex = disabled ? -1 : 0;
+      });
+  }
+
+  function showMessage(
+    tone: "success" | "danger" | "warning",
+    message: string,
+  ): void {
+    const element = document.getElementById(
+      "reconciliation-message",
+    );
+    if (!element) return;
+
+    element.className = `alert alert-${tone}`;
+    element.textContent = message;
+  }
+
+  async function findNextTransaction(
+    completedTransactionId: number,
+  ) {
+    const transactions = await db.bankTransactions.toArray();
+
+    return transactions
+      .filter(
+        (item) =>
+          item.id !== completedTransactionId &&
+          item.amount > 0 &&
+          item.status !== "Reconciled" &&
+          item.status !== "Ignored" &&
+          item.status !== "Duplicate",
+      )
+      .sort(
+        (left, right) =>
+          left.postedDate.localeCompare(right.postedDate) ||
+          Number(left.id ?? 0) - Number(right.id ?? 0),
+      )[0];
   }
 }

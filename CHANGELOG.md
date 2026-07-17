@@ -6,6 +6,30 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.5.7] - 2026-07-17
+
+### Changed
+- Confirm Reconciliation and Ignore Transaction actions now appear directly
+  below the Bank Transaction details.
+- The Bank Transaction card remains visible while scrolling on larger screens.
+- Successful reconciliation or ignore operations advance to the next
+  transaction needing attention.
+
+### Added
+- Reusable application busy overlay with spinner and status text.
+- Immediate visual feedback while reconciliation and ignore operations run.
+- Submission locking to prevent duplicate reconciliation requests.
+- Inline validation and error messages on the reconciliation page.
+
+### Rules
+- All reconciliation controls are disabled while a write is in progress.
+- The next transaction is selected from positive, unreconciled,
+  non-ignored, non-duplicate bank transactions.
+- When no work remains, the user returns to the Needs Attention queue.
+
+### Changed
+- Displayed application version updated to 0.5.5.7 / Baseline 5.5.7.
+
 ## [0.5.5.6] - 2026-07-17
 
 ### Added
