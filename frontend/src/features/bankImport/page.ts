@@ -46,8 +46,14 @@ function filterFromHash(): QueueFilter {
 }
 
 function badgeClass(value: string): string {
-  if (value === "Reconciled" || value === "Suggested") return "success";
-  if (value === "Ambiguous") return "warning";
+  if (
+    value === "Reconciled" ||
+    value === "Strong Candidate" ||
+    value === "Good Candidate"
+  ) {
+    return "success";
+  }
+  if (value === "Possible Match" || value === "Ambiguous") return "warning";
   if (value === "Ignored") return "secondary";
   if (value === "Manual Review") return "dark";
   return "primary";
@@ -106,10 +112,14 @@ export async function renderBankImport(
 
   const counts = {
     suggested: transactions.filter(
-      (item) => item.queueClassification === "Suggested",
+      (item) =>
+        item.queueClassification === "Strong Candidate" ||
+        item.queueClassification === "Good Candidate",
     ).length,
     ambiguous: transactions.filter(
-      (item) => item.queueClassification === "Ambiguous",
+      (item) =>
+        item.queueClassification === "Ambiguous" ||
+        item.queueClassification === "Possible Match",
     ).length,
     manualReview: transactions.filter(
       (item) =>
@@ -132,9 +142,15 @@ export async function renderBankImport(
     .filter((item) => {
       switch (activeFilter) {
         case "suggested":
-          return item.queueClassification === "Suggested";
+          return (
+            item.queueClassification === "Strong Candidate" ||
+            item.queueClassification === "Good Candidate"
+          );
         case "ambiguous":
-          return item.queueClassification === "Ambiguous";
+          return (
+            item.queueClassification === "Ambiguous" ||
+            item.queueClassification === "Possible Match"
+          );
         case "manual-review":
           return (
             item.queueClassification === "Manual Review" ||
@@ -156,17 +172,19 @@ export async function renderBankImport(
     })
     .sort((left, right) => {
       const rank = (item: QueueTransaction): number => {
-        if (item.queueClassification === "Suggested") return 1;
-        if (item.queueClassification === "Ambiguous") return 2;
+        if (item.queueClassification === "Strong Candidate") return 1;
+        if (item.queueClassification === "Good Candidate") return 2;
+        if (item.queueClassification === "Ambiguous") return 3;
+        if (item.queueClassification === "Possible Match") return 4;
         if (
           item.queueClassification === "Manual Review" ||
           item.queueClassification === "Unmatched"
         ) {
-          return 3;
+          return 5;
         }
-        if (item.status === "Ignored") return 4;
-        if (item.status === "Reconciled") return 5;
-        return 6;
+        if (item.status === "Ignored") return 6;
+        if (item.status === "Reconciled") return 7;
+        return 8;
       };
 
       return (
@@ -705,17 +723,18 @@ export async function renderReconciliation(
                   <div class="d-flex justify-content-between gap-3">
                     <strong>${suggestion.unitLabel}</strong>
                     <span class="badge text-bg-${
-                      suggestion.classification === "High Confidence"
+                      suggestion.classification === "Strong Candidate"
                         ? "success"
-                        : suggestion.classification === "Suggested"
+                        : suggestion.classification === "Good Candidate"
                           ? "primary"
-                          : suggestion.classification === "Ambiguous"
+                          : suggestion.classification === "Possible Match" ||
+                              suggestion.classification === "Ambiguous"
                             ? "warning"
                             : "secondary"
                     }">${suggestion.classification}</span>
                   </div>
                   <div class="small mt-1">
-                    Score ${suggestion.score} · Outstanding as of today ${currency(suggestion.amountDue)} · Oldest ${suggestion.oldestPeriod}
+                    Score ${suggestion.score} · Outstanding ${currency(suggestion.amountDue)} · Oldest ${suggestion.oldestPeriod} · Target ${suggestion.targetPeriod}
                   </div>
                   <ul class="small mb-0 mt-2 text-start">
                     ${suggestion.reasons.map((reason) => `<li>${reason}</li>`).join("")}

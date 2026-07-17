@@ -170,7 +170,8 @@ export interface ReconciliationHistory {
 }
 
 export type MatchClassification =
-  | "High Confidence"
-  | "Suggested"
+  | "Strong Candidate"
+  | "Good Candidate"
+  | "Possible Match"
   | "Ambiguous"
   | "Manual Review";

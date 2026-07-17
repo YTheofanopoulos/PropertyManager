@@ -1,4 +1,3 @@
-
 import { db } from "../db/database";
 import { applicationClock } from "./applicationClockService";
 import type {
@@ -20,6 +19,8 @@ export interface MatchSuggestion {
   exactOutstandingAmount: boolean;
   historyCount: number;
   ambiguous: boolean;
+  amountDifference: number;
+  targetPeriod: string;
 }
 
 export interface ReconcileAllocation {
@@ -38,30 +39,63 @@ function daysApart(left: number, right: number): number {
   return Math.abs(left - right);
 }
 
+function targetRentPeriod(postedDate: string): string {
+  const year = Number(postedDate.slice(0, 4));
+  const month = Number(postedDate.slice(5, 7));
+  const day = Number(postedDate.slice(8, 10));
+
+  // Rent received during the last week of a month normally applies to the
+  // following month. Otherwise, use the transaction's calendar month.
+  if (day < 25) return postedDate.slice(0, 7);
+
+  const date = new Date(year, month, 1);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function containsToken(haystack: string, token: string): boolean {
+  if (!token.trim()) return false;
+  return haystack.split(" ").includes(normalize(token));
+}
+
 export class ReconciliationService {
   async suggestions(transactionId: number): Promise<MatchSuggestion[]> {
     const transaction = await db.bankTransactions.get(transactionId);
     if (!transaction) throw new Error("Bank transaction not found.");
 
-    const today = applicationClock.today();
-    const currentPeriod = today.slice(0, 7);
-
+    const currentPeriod = applicationClock.currentPeriod();
     await rentLedgerService.ensureObligationsThrough(currentPeriod);
 
-    const [leases, units, buildings, locations, history] = await Promise.all([
+    const [
+      leases,
+      units,
+      buildings,
+      locations,
+      history,
+      participants,
+      tenants,
+    ] = await Promise.all([
       db.leases.toArray(),
       db.units.toArray(),
       db.buildings.toArray(),
       db.locations.toArray(),
       db.reconciliationHistory.toArray(),
+      db.leaseParticipants.toArray(),
+      db.tenants.toArray(),
     ]);
 
     const unitMap = new Map(units.map((item) => [item.id, item]));
     const buildingMap = new Map(buildings.map((item) => [item.id, item]));
     const locationMap = new Map(locations.map((item) => [item.id, item]));
+    const tenantMap = new Map(tenants.map((item) => [item.id, item]));
+
     const normalizedName = normalize(transaction.name);
     const normalizedMemo = normalize(transaction.memo);
+    const normalizedReference = normalize(transaction.externalId);
+    const searchableText = normalize(
+      `${transaction.name} ${transaction.memo} ${transaction.externalId}`,
+    );
     const postedDay = Number(transaction.postedDate.slice(8, 10));
+    const targetPeriod = targetRentPeriod(transaction.postedDate);
 
     const candidates: MatchSuggestion[] = [];
 
@@ -71,20 +105,28 @@ export class ReconciliationService {
       const unit = unitMap.get(lease.unitId);
       const building = unit ? buildingMap.get(unit.buildingId) : undefined;
       const location = building ? locationMap.get(building.locationId) : undefined;
-      if (!unit || !building || !location) continue;
+      if (!unit || !building || !location || lease.id === undefined) continue;
 
-      // 5.3.1 fixtures intentionally target only building 383. The scoring
-      // engine itself remains general, but vacant/no-obligation units never enter.
       const outstanding = await rentLedgerService.getOutstandingObligations(
-        lease.id as number,
+        lease.id,
         currentPeriod,
       );
       if (outstanding.length === 0) continue;
 
-      const leaseHistory = history.filter((item) => item.leaseId === lease.id);
-      const exactOutstandingAmount = outstanding.some(
+      const amountDue = outstanding.reduce(
+        (total, item) => total + item.balance,
+        0,
+      );
+      const exactObligations = outstanding.filter(
         (item) => Math.abs(item.balance - transaction.amount) < 0.005,
       );
+      const exactOutstandingAmount = exactObligations.length > 0;
+      const amountDifference = Math.abs(amountDue - transaction.amount);
+      const sameRentPeriod = exactObligations.some(
+        (item) => item.rentPeriod === targetPeriod,
+      );
+
+      const leaseHistory = history.filter((item) => item.leaseId === lease.id);
       const amountHistory = leaseHistory.filter(
         (item) => Math.abs(item.amount - transaction.amount) < 0.005,
       );
@@ -98,41 +140,91 @@ export class ReconciliationService {
         (item) => daysApart(item.postedDay, postedDay) <= 3,
       );
 
+      const buildingMatch = containsToken(
+        searchableText,
+        building.civicAddress,
+      );
+      const unitMatch = Boolean(unit.apartmentNumber) && containsToken(
+        searchableText,
+        unit.apartmentNumber,
+      );
+
+      const leaseTenantIds = participants
+        .filter((participant) => participant.leaseId === lease.id)
+        .map((participant) => participant.tenantId);
+      const tenantNameMatch = leaseTenantIds.some((tenantId) => {
+        const tenant = tenantMap.get(tenantId);
+        if (!tenant) return false;
+        const firstName = normalize(tenant.firstName);
+        const lastName = normalize(tenant.lastName);
+        return (
+          (firstName && searchableText.includes(firstName)) ||
+          (lastName && searchableText.includes(lastName))
+        );
+      });
+
       let score = 0;
       const reasons: string[] = [];
 
       if (exactOutstandingAmount) {
-        score += 25;
-        reasons.push("+25 amount exactly matches an outstanding rent balance");
+        score += 100;
+        reasons.push("+100 exact outstanding rent balance");
+      } else {
+        const penalty = Math.round(amountDifference);
+        score -= penalty;
+        reasons.push(
+          `-${penalty} amount differs by $${penalty.toLocaleString("en-CA")}`,
+        );
+      }
+
+      if (sameRentPeriod) {
+        score += 40;
+        reasons.push(`+40 exact balance belongs to target period ${targetPeriod}`);
+      }
+      if (buildingMatch) {
+        score += 20;
+        reasons.push(`+20 transaction text contains building ${building.civicAddress}`);
+      }
+      if (unitMatch) {
+        score += 20;
+        reasons.push(`+20 transaction text contains unit ${unit.apartmentNumber}`);
+      }
+      if (tenantNameMatch) {
+        score += 15;
+        reasons.push("+15 transaction text contains a lease tenant name");
       }
       if (amountHistory.length > 0) {
-        score += 25;
-        reasons.push(`+25 same amount previously reconciled to this unit (${amountHistory.length})`);
-      }
-      if (memoHistory.length > 0) {
-        score += 20;
-        reasons.push(`+20 memo matches prior reconciliation history (${memoHistory.length})`);
-      }
-      if (nameHistory.length > 0) {
         score += 15;
-        reasons.push(`+15 transaction name matches prior history (${nameHistory.length})`);
+        reasons.push(
+          `+15 same amount previously reconciled to this unit (${amountHistory.length})`,
+        );
+      }
+      if (memoHistory.length > 0 || nameHistory.length > 0) {
+        score += 15;
+        reasons.push(
+          `+15 transaction name or memo matches prior history (${Math.max(
+            memoHistory.length,
+            nameHistory.length,
+          )})`,
+        );
       }
       if (timingHistory.length > 0) {
-        score += 10;
-        reasons.push(`+10 posting day is within three days of prior history (${timingHistory.length})`);
+        score += 5;
+        reasons.push(
+          `+5 posting day is near prior reconciliation history (${timingHistory.length})`,
+        );
       }
       if (leaseHistory.length > 0) {
         score += 5;
         reasons.push(`+5 unit has reconciliation history (${leaseHistory.length})`);
       }
-      if (reasons.length === 0) {
-        reasons.push("No historical or amount evidence");
-      }
 
       candidates.push({
-        leaseId: lease.id as number,
-        unitLabel: `${building.civicAddress}${unit.apartmentNumber ? ` ${unit.apartmentNumber}` : ""} ${location.name}`,
-        amountDue: outstanding.reduce((total, item) => total + item.balance, 0),
+        leaseId: lease.id,
+        unitLabel: `${building.civicAddress}${
+          unit.apartmentNumber ? ` ${unit.apartmentNumber}` : ""
+        } ${location.name}`,
+        amountDue,
         oldestPeriod: outstanding[0]?.rentPeriod ?? "",
         score,
         classification: "Manual Review",
@@ -140,73 +232,71 @@ export class ReconciliationService {
         exactOutstandingAmount,
         historyCount: leaseHistory.length,
         ambiguous: false,
+        amountDifference,
+        targetPeriod,
       });
     }
 
+    // Exact outstanding-balance matches are always ranked before non-exact
+    // candidates. Score is used only within the same ranking tier.
     candidates.sort(
       (left, right) =>
-        right.score - left.score || left.unitLabel.localeCompare(right.unitLabel),
+        Number(right.exactOutstandingAmount) -
+          Number(left.exactOutstandingAmount) ||
+        right.score - left.score ||
+        left.amountDifference - right.amountDifference ||
+        left.unitLabel.localeCompare(right.unitLabel),
     );
 
-    const top = candidates[0];
-    const second = candidates[1];
-    const topTies = top
-      ? candidates.filter((candidate) => candidate.score === top.score)
-      : [];
-    const exactAmountCandidates = candidates.filter(
+    const exactCandidates = candidates.filter(
       (candidate) => candidate.exactOutstandingAmount,
     );
+    const top = candidates[0];
+    const second = candidates[1];
 
     for (const candidate of candidates) {
-      const tiedForTop =
-        Boolean(top) &&
-        top.score > 0 &&
-        topTies.length > 1 &&
-        candidate.score === top.score;
-      const amountOnlyAmbiguity =
-        candidate.historyCount === 0 &&
+      const tiedExactTop =
+        candidate === top &&
         candidate.exactOutstandingAmount &&
-        exactAmountCandidates.length > 1;
-      const smallLead =
-        candidate === top &&
-        top.score > 0 &&
+        exactCandidates.length > 1 &&
         Boolean(second) &&
-        second.score > 0 &&
-        top.score - second.score < 15;
+        second.exactOutstandingAmount &&
+        candidate.score - second.score < 15;
 
-      candidate.ambiguous = tiedForTop || amountOnlyAmbiguity || smallLead;
+      candidate.ambiguous = tiedExactTop;
 
-      if (candidate === top && candidate.score === 0) {
-        candidate.classification = "Manual Review";
-        candidate.ambiguous = false;
-        candidate.reasons.push(
-          "Classification: no matching evidence is available",
-        );
-      } else if (candidate.ambiguous && candidate === top) {
+      if (candidate === top && tiedExactTop) {
         candidate.classification = "Ambiguous";
         candidate.reasons.push(
-          "Classification: multiple candidates have comparable evidence",
+          "Classification: multiple exact amount candidates require user selection",
         );
       } else if (
         candidate === top &&
-        candidate.score >= 70 &&
-        candidate.historyCount > 0 &&
-        !candidate.ambiguous
+        candidate.exactOutstandingAmount &&
+        candidate.score >= 120
       ) {
-        candidate.classification = "High Confidence";
-        candidate.reasons.push("Classification: strong historical evidence and a clear lead");
-      } else if (
-        candidate === top &&
-        candidate.score >= 25 &&
-        !candidate.ambiguous
-      ) {
-        candidate.classification = "Suggested";
-        candidate.reasons.push("Classification: useful evidence, but user confirmation is required");
-      } else if (candidate === top && candidate.ambiguous) {
-        candidate.classification = "Ambiguous";
+        candidate.classification = "Strong Candidate";
+        candidate.reasons.push(
+          "Classification: exact balance plus supporting evidence",
+        );
+      } else if (candidate.exactOutstandingAmount) {
+        candidate.classification = "Good Candidate";
+        candidate.reasons.push(
+          "Classification: exact balance match; user confirmation is still required",
+        );
+      } else if (candidate === top && candidate.score > 0) {
+        candidate.classification = "Possible Match";
+        candidate.reasons.push(
+          "Classification: supporting evidence exists, but the amount is not exact",
+        );
       } else {
         candidate.classification = "Manual Review";
+        if (candidate.reasons.length === 0) {
+          candidate.reasons.push("No matching evidence");
+        }
       }
+
+      candidate.reasons.push(`Final score: ${candidate.score}`);
     }
 
     return candidates.slice(0, 12);

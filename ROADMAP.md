@@ -235,3 +235,14 @@ CSV financial import remains deferred.
 - [x] Monthly rent reflects active recurring lease charges
 - [x] Collection chart ends at the simulated current month
 - [x] Dashboard displays the effective application date
+
+
+### Baseline 5.5.5 — Explainable Reconciliation Ranking
+
+- [x] Exact outstanding balances rank above all non-exact candidates
+- [x] Exact amount receives dominant scoring weight
+- [x] Non-exact amounts receive a dollar-difference penalty
+- [x] Same target rent period receives additional weight
+- [x] Building, unit, tenant, and history evidence remain tie-breakers
+- [x] Full score explanation is shown for every candidate
+- [x] Multiple exact candidates remain ambiguous

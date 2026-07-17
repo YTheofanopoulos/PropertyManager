@@ -6,6 +6,31 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.5.5] - 2026-07-17
+
+### Changed
+- Reconciliation suggestions now use ranking tiers rather than score alone.
+- Exact outstanding-balance matches always rank ahead of non-exact candidates.
+- Exact matches receive +100 and same target-period matches receive +40.
+- Non-exact candidates receive a dollar-for-dollar amount-difference penalty.
+- Supporting signals include building, unit, tenant, prior amount, memo/name,
+  posting-day, and general reconciliation history.
+- Candidate explanations now show every score contribution and the final score.
+- Candidate labels are now Strong Candidate, Good Candidate, Possible Match,
+  Ambiguous, and Manual Review.
+
+### Rules
+- Amount alone never performs automatic reconciliation.
+- Multiple comparable exact matches remain Ambiguous and require user choice.
+- A late-month payment (day 25 or later) targets the following rent period.
+
+### Fixed
+- Historical memo/name evidence can no longer rank a non-exact amount above an
+  exact outstanding rent balance.
+
+### Changed
+- Displayed application version updated to 0.5.5.5 / Baseline 5.5.5.
+
 ## [0.5.5.4] - 2026-07-16
 
 ### Fixed
