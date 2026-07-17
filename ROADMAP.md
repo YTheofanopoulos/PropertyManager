@@ -226,3 +226,12 @@ CSV financial import remains deferred.
 - [x] Business calculations use the application date
 - [x] Sample leases cover July 2025 through June 2026
 - [x] Stored accounting and audit dates remain unchanged
+
+
+### Baseline 5.5.4 — Main Dashboard Clock Fix
+
+- [x] Main dashboard uses the centralized Application Clock
+- [x] Occupancy and active leases are evaluated as of the application date
+- [x] Monthly rent reflects active recurring lease charges
+- [x] Collection chart ends at the simulated current month
+- [x] Dashboard displays the effective application date

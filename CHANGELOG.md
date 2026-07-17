@@ -6,6 +6,25 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.5.4] - 2026-07-16
+
+### Fixed
+- Main landing dashboard now uses the centralized Application Clock.
+- Occupancy and active lease counts are evaluated as of the simulated date.
+- Monthly contractual rent is calculated from recurring charges active on the
+  simulated date rather than from static unit status.
+- The six-month rent-collected chart ends at the simulated current month and
+  uses stored Payment.receivedDate values.
+- Dashboard headings now display the effective application date and period.
+
+### Rules
+- This fix applies to the main application dashboard.
+- Stored payment dates, QFX dates, lease dates, and audit timestamps are not
+  modified.
+
+### Changed
+- Displayed application version updated to 0.5.5.4 / Baseline 5.5.4.
+
 ## [0.5.5.3] - 2026-07-15
 
 ### Added
