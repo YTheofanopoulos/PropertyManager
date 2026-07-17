@@ -6,6 +6,36 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.6.0] - 2026-07-17
+
+### Added
+- In-queue reconciliation modal on the Bank Import page.
+- Allocation card directly beneath the Bank Transaction card.
+- Suggested units alongside the transaction and allocation workflow.
+- In-modal progress indicators, control locking, and success toast.
+
+### Changed
+- Reconcile no longer navigates away from Bank Import.
+- Completing or ignoring a transaction refreshes the active queue in place.
+- DataTables state preserves search, sorting, page, and page length.
+- Displayed version updated to 0.5.6.0 / Baseline 5.6.0.
+
+## [0.5.5.9] - 2026-07-17
+
+### Changed
+- Successful reconciliation now returns to Import Bank Statement with the
+  Needs Attention filter active.
+- Ignoring a transaction now returns to the same Needs Attention queue.
+- Removed automatic navigation into the next reconciliation detail screen.
+
+### Result
+- The user returns to the bank statement workflow after each action and can
+  select the next transaction deliberately.
+- Reconciled or ignored transactions no longer appear in Needs Attention.
+
+### Changed
+- Displayed application version updated to 0.5.5.9 / Baseline 5.5.9.
+
 ## [0.5.5.8] - 2026-07-17
 
 ### Fixed

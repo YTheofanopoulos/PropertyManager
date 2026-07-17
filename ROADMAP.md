@@ -271,3 +271,19 @@ CSV financial import remains deferred.
 - [x] Hide overlay before navigation
 - [x] Route-level safety reset
 - [x] Depth-independent force-hide
+
+
+### Baseline 5.5.9 — Reconciliation Return-to-Queue Fix
+
+- [x] Return to Needs Attention after reconciliation
+- [x] Return to Needs Attention after ignoring a transaction
+- [x] Remove automatic advance to the next detail screen
+
+### Baseline 5.6.0 — In-Queue Reconciliation Workflow
+
+- [x] Reconciliation modal without route navigation
+- [x] Preserve queue table state
+- [x] Allocation beneath Bank Transaction
+- [x] Suggested Units beside reconciliation workflow
+- [x] In-modal progress and duplicate-submit protection
+- [x] Refresh queue and show success toast

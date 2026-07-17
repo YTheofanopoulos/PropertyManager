@@ -230,10 +230,16 @@ export async function renderBankImport(
   container.innerHTML = `
     ${
       successPayload
-        ? `<div class="alert alert-success alert-dismissible fade show" role="alert">
-            <strong>Payment reconciled.</strong>
-            The completed transaction has been removed from the Needs Attention queue.
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        ? `<div class="toast-container position-fixed top-0 end-0 p-3 bank-import-toast-container">
+            <div class="toast show text-bg-success border-0" role="status" aria-live="polite" aria-atomic="true">
+              <div class="d-flex">
+                <div class="toast-body">
+                  <strong>Payment reconciled.</strong>
+                  The queue has been refreshed and your table state preserved.
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+            </div>
           </div>`
         : ""
     }
@@ -364,6 +370,32 @@ export async function renderBankImport(
         </table>
       </div>
     </div>
+
+
+    <div class="modal fade" id="reconciliation-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title fs-5">Reconcile Bank Transaction</h2>
+              <div class="small text-body-secondary">Confirm the unit and rent-period allocation without leaving the import queue.</div>
+            </div>
+            <button type="button" class="btn-close reconciliation-modal-control" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="reconciliation-modal-body">
+            <div class="text-center py-5">
+              <div class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <div id="reconciliation-modal-status" class="me-auto small text-body-secondary"></div>
+            <button type="button" class="btn btn-outline-secondary reconciliation-modal-control" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" id="modal-ignore-transaction" class="btn btn-outline-secondary reconciliation-modal-control">Ignore Transaction</button>
+            <button type="button" id="modal-confirm-reconciliation" class="btn btn-primary reconciliation-modal-control">Confirm Reconciliation</button>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 
   createTable("#bank-transactions-table", {
@@ -420,10 +452,10 @@ export async function renderBankImport(
           }
 
           return `
-            <a class="btn btn-sm btn-outline-primary"
-               href="#/bank-import/reconcile/${id}">
+            <button class="btn btn-sm btn-outline-primary open-reconciliation-modal"
+                    data-id="${id}">
               Reconcile
-            </a>
+            </button>
             <button class="btn btn-sm btn-outline-secondary ignore-bank-transaction"
                     data-id="${id}">
               Ignore
@@ -513,16 +545,20 @@ export async function renderBankImport(
   document
     .getElementById("bank-transactions-table")
     ?.addEventListener("click", async (event) => {
-      const target = event.target as HTMLElement;
-      if (
-        !target.classList.contains(
-          "ignore-bank-transaction",
-        )
-      ) {
+      const target = (event.target as HTMLElement).closest<HTMLElement>(
+        "button[data-id]",
+      );
+      if (!target) return;
+
+      const id = Number(target.dataset.id);
+
+      if (target.classList.contains("open-reconciliation-modal")) {
+        await openReconciliationModal(container, id);
         return;
       }
 
-      const id = Number(target.dataset.id);
+      if (!target.classList.contains("ignore-bank-transaction")) return;
+
       const reason = window.prompt(
         "Reason this transaction is not rent:",
       );
@@ -625,6 +661,283 @@ export async function renderBankImport(
           window.alert((error as Error).message);
         }
       });
+  }
+}
+
+
+async function openReconciliationModal(
+  container: HTMLElement,
+  transactionId: number,
+): Promise<void> {
+  const modalElement = document.getElementById("reconciliation-modal");
+  const modalBody = document.getElementById("reconciliation-modal-body");
+  const statusElement = document.getElementById("reconciliation-modal-status");
+  const confirmButton = document.getElementById(
+    "modal-confirm-reconciliation",
+  ) as HTMLButtonElement | null;
+  const ignoreButton = document.getElementById(
+    "modal-ignore-transaction",
+  ) as HTMLButtonElement | null;
+
+  if (!modalElement || !modalBody || !confirmButton || !ignoreButton) return;
+
+  const ModalClass = (
+    window as typeof window & {
+      bootstrap?: {
+        Modal: new (element: Element) => {
+          show(): void;
+          hide(): void;
+        };
+      };
+    }
+  ).bootstrap?.Modal;
+
+  const modal = ModalClass ? new ModalClass(modalElement) : undefined;
+
+  const showModal = (): void => {
+    if (modal) {
+      modal.show();
+      return;
+    }
+    modalElement.classList.add("show");
+    modalElement.style.display = "block";
+    modalElement.removeAttribute("aria-hidden");
+    modalElement.setAttribute("aria-modal", "true");
+    document.body.classList.add("modal-open");
+  };
+
+  const hideModal = (): void => {
+    if (modal) {
+      modal.hide();
+      return;
+    }
+    modalElement.classList.remove("show");
+    modalElement.style.display = "none";
+    modalElement.setAttribute("aria-hidden", "true");
+    modalElement.removeAttribute("aria-modal");
+    document.body.classList.remove("modal-open");
+  };
+
+  showModal();
+  modalBody.innerHTML = `
+    <div class="text-center py-5">
+      <div class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></div>
+      <div class="mt-2 text-body-secondary">Loading reconciliation details…</div>
+    </div>`;
+  if (statusElement) statusElement.textContent = "";
+
+  const [transaction, suggestions] = await Promise.all([
+    db.bankTransactions.get(transactionId),
+    reconciliationService.suggestions(transactionId),
+  ]);
+
+  if (!transaction) {
+    modalBody.innerHTML = '<div class="alert alert-danger">Transaction not found.</div>';
+    confirmButton.disabled = true;
+    ignoreButton.disabled = true;
+    return;
+  }
+
+  const bankTransaction = transaction;
+  let selectedLeaseId = suggestions[0]?.leaseId ?? 0;
+  let submitting = false;
+
+  modalBody.innerHTML = `
+    <div id="reconciliation-modal-message" class="d-none" role="alert"></div>
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <div class="card mb-3">
+          <div class="card-header fw-semibold">Bank Transaction</div>
+          <div class="card-body">
+            <dl class="row mb-0">
+              <dt class="col-5">Transaction Date</dt><dd class="col-7">${bankTransaction.postedDate}</dd>
+              <dt class="col-5">Amount</dt><dd class="col-7 fs-4">${currency(bankTransaction.amount)}</dd>
+              <dt class="col-5">Description</dt><dd class="col-7">${bankTransaction.name || "—"}</dd>
+              <dt class="col-5">Memo</dt><dd class="col-7">${bankTransaction.memo || "—"}</dd>
+              <dt class="col-5">Reference</dt><dd class="col-7 text-break">${bankTransaction.externalId}</dd>
+            </dl>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header fw-semibold">Allocation</div>
+          <div class="card-body">
+            <div id="modal-reconcile-allocation-list">Select a suggested unit.</div>
+            <div class="border-top mt-3 pt-3 d-flex justify-content-between">
+              <span>Unapplied credit</span>
+              <strong id="modal-reconcile-unapplied">${currency(bankTransaction.amount)}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header fw-semibold d-flex justify-content-between gap-3">
+            <span>Suggested Units</span>
+            <span class="small text-body-secondary">Outstanding as of ${applicationClock.today()}</span>
+          </div>
+          <div class="card-body">
+            <div class="list-group" id="modal-suggestion-list">
+              ${suggestions.map((suggestion, index) => `
+                <button type="button"
+                        class="list-group-item list-group-item-action modal-suggestion-item reconciliation-modal-control ${index === 0 ? "active" : ""}"
+                        data-lease-id="${suggestion.leaseId}">
+                  <div class="d-flex justify-content-between gap-3">
+                    <strong>${suggestion.unitLabel}</strong>
+                    <span class="badge text-bg-${badgeClass(suggestion.classification)}">${suggestion.classification}</span>
+                  </div>
+                  <div class="small mt-1">
+                    Score ${suggestion.score} · Outstanding ${currency(suggestion.amountDue)}
+                    · Oldest ${suggestion.oldestPeriod} · Target ${suggestion.targetPeriod}
+                  </div>
+                  <ul class="small mb-0 mt-2 text-start">
+                    ${suggestion.reasons.map((reason) => `<li>${reason}</li>`).join("")}
+                  </ul>
+                </button>`).join("") || '<div class="alert alert-warning mb-0">No outstanding leases found.</div>'}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  confirmButton.disabled = suggestions.length === 0;
+  ignoreButton.disabled = false;
+
+  document
+    .querySelectorAll<HTMLElement>(".modal-suggestion-item")
+    .forEach((item) => {
+      item.addEventListener("click", async () => {
+        if (submitting) return;
+        document
+          .querySelectorAll(".modal-suggestion-item")
+          .forEach((row) => row.classList.remove("active"));
+        item.classList.add("active");
+        selectedLeaseId = Number(item.dataset.leaseId);
+        await loadAllocations();
+      });
+    });
+
+  confirmButton.onclick = async () => {
+    if (submitting) return;
+
+    const allocations = Array.from(
+      document.querySelectorAll<HTMLElement>(".modal-reconcile-allocation-row"),
+    ).map((row) => ({
+      obligationId: Number(row.dataset.obligationId),
+      amount: Number(
+        (row.querySelector(".modal-reconcile-allocation-amount") as HTMLInputElement).value || 0,
+      ),
+    })).filter((item) => item.amount > 0);
+
+    if (!selectedLeaseId) {
+      showMessage("danger", "Select a suggested unit before reconciling.");
+      return;
+    }
+    if (allocations.length === 0) {
+      showMessage("danger", "Allocate at least part of the transaction before reconciling.");
+      return;
+    }
+
+    submitting = true;
+    setControlsDisabled(true);
+    confirmButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Reconciling…';
+    if (statusElement) statusElement.textContent = "Creating payment and updating the rent ledger…";
+
+    try {
+      await reconciliationService.reconcile(transactionId, selectedLeaseId, allocations);
+      sessionStorage.setItem("bank-reconciliation-success", JSON.stringify({
+        amount: bankTransaction.amount,
+        reference: bankTransaction.externalId,
+      }));
+      hideModal();
+      await renderBankImport(container);
+    } catch (error) {
+      submitting = false;
+      setControlsDisabled(false);
+      confirmButton.textContent = "Confirm Reconciliation";
+      if (statusElement) statusElement.textContent = "";
+      showMessage("danger", (error as Error).message || "The transaction could not be reconciled.");
+    }
+  };
+
+  ignoreButton.onclick = async () => {
+    if (submitting) return;
+    const reason = window.prompt("Reason this transaction is not rent:");
+    if (reason === null) return;
+
+    submitting = true;
+    setControlsDisabled(true);
+    ignoreButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Ignoring…';
+    if (statusElement) statusElement.textContent = "Updating the reconciliation queue…";
+
+    try {
+      await bankImportService.ignore(transactionId, reason);
+      hideModal();
+      await renderBankImport(container);
+    } catch (error) {
+      submitting = false;
+      setControlsDisabled(false);
+      ignoreButton.textContent = "Ignore Transaction";
+      if (statusElement) statusElement.textContent = "";
+      showMessage("danger", (error as Error).message || "The transaction could not be ignored.");
+    }
+  };
+
+  if (selectedLeaseId) await loadAllocations();
+
+  async function loadAllocations(): Promise<void> {
+    const obligations = await rentLedgerService.getOutstandingObligations(
+      selectedLeaseId,
+      applicationClock.currentPeriod(),
+    );
+    let remaining = bankTransaction.amount;
+    const element = document.getElementById("modal-reconcile-allocation-list");
+    if (!element) return;
+
+    element.innerHTML = obligations.map((obligation) => {
+      const suggested = Math.min(remaining, obligation.balance);
+      remaining -= suggested;
+      return `
+        <div class="row g-2 align-items-center mb-2 modal-reconcile-allocation-row"
+             data-obligation-id="${obligation.id}">
+          <div class="col-4"><strong>${obligation.rentPeriod}</strong></div>
+          <div class="col-3 text-end">Due ${currency(obligation.balance)}</div>
+          <div class="col-5">
+            <input class="form-control modal-reconcile-allocation-amount reconciliation-modal-control"
+                   type="number" min="0" max="${obligation.balance}" step=".01"
+                   value="${suggested > 0 ? suggested : ""}">
+          </div>
+        </div>`;
+    }).join("") || '<div class="alert alert-success">No outstanding rent.</div>';
+
+    document
+      .querySelectorAll<HTMLInputElement>(".modal-reconcile-allocation-amount")
+      .forEach((input) => input.addEventListener("input", updateUnapplied));
+    updateUnapplied();
+  }
+
+  function updateUnapplied(): void {
+    const allocated = Array.from(
+      document.querySelectorAll<HTMLInputElement>(".modal-reconcile-allocation-amount"),
+    ).reduce((total, input) => total + Number(input.value || 0), 0);
+    const element = document.getElementById("modal-reconcile-unapplied");
+    if (element) element.textContent = currency(Math.max(bankTransaction.amount - allocated, 0));
+  }
+
+  function setControlsDisabled(disabled: boolean): void {
+    document
+      .querySelectorAll<HTMLButtonElement | HTMLInputElement>(".reconciliation-modal-control")
+      .forEach((control) => { control.disabled = disabled; });
+    confirmButton!.disabled = disabled;
+    ignoreButton!.disabled = disabled;
+  }
+
+  function showMessage(tone: "success" | "danger" | "warning", message: string): void {
+    const element = document.getElementById("reconciliation-modal-message");
+    if (!element) return;
+    element.className = `alert alert-${tone}`;
+    element.textContent = message;
   }
 }
 
@@ -897,17 +1210,9 @@ export async function renderReconciliation(
           }),
         );
 
-        const nextTransaction = await findNextTransaction(transactionId);
-
         busyOverlay.forceHide();
-
-        if (nextTransaction?.id !== undefined) {
-          window.location.hash =
-            `/bank-import/reconcile/${nextTransaction.id}`;
-        } else {
-          window.location.hash =
-            "/bank-import?filter=needs-attention";
-        }
+        window.location.hash =
+          "/bank-import?filter=needs-attention";
       } catch (error) {
         submitting = false;
         setControlsDisabled(false);
@@ -939,17 +1244,9 @@ export async function renderReconciliation(
 
       try {
         await bankImportService.ignore(transactionId, reason);
-        const nextTransaction = await findNextTransaction(transactionId);
-
         busyOverlay.forceHide();
-
-        if (nextTransaction?.id !== undefined) {
-          window.location.hash =
-            `/bank-import/reconcile/${nextTransaction.id}`;
-        } else {
-          window.location.hash =
-            "/bank-import?filter=needs-attention";
-        }
+        window.location.hash =
+          "/bank-import?filter=needs-attention";
       } catch (error) {
         submitting = false;
         setControlsDisabled(false);
@@ -1076,24 +1373,4 @@ export async function renderReconciliation(
     element.textContent = message;
   }
 
-  async function findNextTransaction(
-    completedTransactionId: number,
-  ) {
-    const transactions = await db.bankTransactions.toArray();
-
-    return transactions
-      .filter(
-        (item) =>
-          item.id !== completedTransactionId &&
-          item.amount > 0 &&
-          item.status !== "Reconciled" &&
-          item.status !== "Ignored" &&
-          item.status !== "Duplicate",
-      )
-      .sort(
-        (left, right) =>
-          left.postedDate.localeCompare(right.postedDate) ||
-          Number(left.id ?? 0) - Number(right.id ?? 0),
-      )[0];
-  }
 }

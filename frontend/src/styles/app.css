@@ -318,3 +318,13 @@ div.dt-container .dt-length select {
     position: static !important;
   }
 }
+
+
+/* Baseline 5.6.0 reconciliation modal */
+.bank-import-toast-container { z-index: 1090; }
+#reconciliation-modal .modal-dialog { max-width: 1180px; }
+#reconciliation-modal .modal-footer { position: sticky; bottom: 0; background: var(--bs-modal-bg); z-index: 2; }
+#reconciliation-modal .list-group-item { text-align: left; }
+@media (max-width: 991.98px) {
+  #reconciliation-modal .modal-dialog { margin: .5rem; }
+}
