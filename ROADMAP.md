@@ -287,3 +287,12 @@ CSV financial import remains deferred.
 - [x] Suggested Units beside reconciliation workflow
 - [x] In-modal progress and duplicate-submit protection
 - [x] Refresh queue and show success toast
+
+
+### Baseline 5.6.1 — Reconciliation Modal Dismissal Fix
+
+- [x] Cancel and X close reconciliation modal
+- [x] Escape closes modal while idle
+- [x] Prevent dismissal during active submission
+- [x] Clean modal state and backdrop on close
+- [ ] Restore focus to originating queue row (deferred)

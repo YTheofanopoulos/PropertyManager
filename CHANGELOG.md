@@ -6,6 +6,18 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.6.1] - 2026-07-17
+
+### Fixed
+- Cancel and the top-right close button now dismiss the reconciliation modal.
+- Escape closes the modal while it is idle.
+- Modal dismissal is blocked while reconciliation or ignore submission is active.
+- Modal event handlers, temporary content, button state, body state, and orphaned backdrops are cleaned up after closing.
+- Reopening reconciliation starts from a clean modal state.
+
+### Changed
+- Displayed version updated to 0.5.6.1 / Baseline 5.6.1.
+
 ## [0.5.6.0] - 2026-07-17
 
 ### Added

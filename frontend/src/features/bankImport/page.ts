@@ -1,4 +1,5 @@
 
+import { Modal } from "bootstrap";
 import { db } from "../../db/database";
 import type { BankTransaction } from "../../models/domain";
 import type { ImportPreview } from "../../services/bankImportService";
@@ -681,44 +682,62 @@ async function openReconciliationModal(
 
   if (!modalElement || !modalBody || !confirmButton || !ignoreButton) return;
 
-  const ModalClass = (
-    window as typeof window & {
-      bootstrap?: {
-        Modal: new (element: Element) => {
-          show(): void;
-          hide(): void;
-        };
-      };
-    }
-  ).bootstrap?.Modal;
+  let submitting = false;
+  const modal = Modal.getOrCreateInstance(modalElement, {
+    backdrop: true,
+    keyboard: true,
+    focus: true,
+  });
 
-  const modal = ModalClass ? new ModalClass(modalElement) : undefined;
-
-  const showModal = (): void => {
-    if (modal) {
-      modal.show();
-      return;
-    }
-    modalElement.classList.add("show");
-    modalElement.style.display = "block";
-    modalElement.removeAttribute("aria-hidden");
-    modalElement.setAttribute("aria-modal", "true");
-    document.body.classList.add("modal-open");
-  };
+  const closeControls = Array.from(
+    modalElement.querySelectorAll<HTMLButtonElement>("[data-bs-dismiss='modal']"),
+  );
 
   const hideModal = (): void => {
-    if (modal) {
-      modal.hide();
-      return;
-    }
-    modalElement.classList.remove("show");
-    modalElement.style.display = "none";
-    modalElement.setAttribute("aria-hidden", "true");
-    modalElement.removeAttribute("aria-modal");
-    document.body.classList.remove("modal-open");
+    if (submitting) return;
+    modal.hide();
   };
 
-  showModal();
+  const hideModalAndWait = async (): Promise<void> => {
+    if (!modalElement.classList.contains("show")) return;
+    await new Promise<void>((resolve) => {
+      modalElement.addEventListener("hidden.bs.modal", () => resolve(), {
+        once: true,
+      });
+      modal.hide();
+    });
+  };
+
+  closeControls.forEach((control) => {
+    control.onclick = hideModal;
+  });
+
+  const handleHide = (event: Event): void => {
+    if (submitting) event.preventDefault();
+  };
+
+  const handleHidden = (): void => {
+    closeControls.forEach((control) => {
+      control.onclick = null;
+      control.disabled = false;
+    });
+    confirmButton.onclick = null;
+    ignoreButton.onclick = null;
+    confirmButton.disabled = false;
+    ignoreButton.disabled = false;
+    confirmButton.textContent = "Confirm Reconciliation";
+    ignoreButton.textContent = "Ignore Transaction";
+    if (statusElement) statusElement.textContent = "";
+    modalBody.innerHTML = "";
+    document.body.classList.remove("modal-open");
+    document.querySelectorAll(".modal-backdrop").forEach((backdrop) => backdrop.remove());
+    modalElement.removeEventListener("hide.bs.modal", handleHide);
+    modalElement.removeEventListener("hidden.bs.modal", handleHidden);
+  };
+
+  modalElement.addEventListener("hide.bs.modal", handleHide);
+  modalElement.addEventListener("hidden.bs.modal", handleHidden);
+  modal.show();
   modalBody.innerHTML = `
     <div class="text-center py-5">
       <div class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></div>
@@ -740,7 +759,6 @@ async function openReconciliationModal(
 
   const bankTransaction = transaction;
   let selectedLeaseId = suggestions[0]?.leaseId ?? 0;
-  let submitting = false;
 
   modalBody.innerHTML = `
     <div id="reconciliation-modal-message" class="d-none" role="alert"></div>
@@ -850,7 +868,8 @@ async function openReconciliationModal(
         amount: bankTransaction.amount,
         reference: bankTransaction.externalId,
       }));
-      hideModal();
+      submitting = false;
+      await hideModalAndWait();
       await renderBankImport(container);
     } catch (error) {
       submitting = false;
@@ -873,7 +892,8 @@ async function openReconciliationModal(
 
     try {
       await bankImportService.ignore(transactionId, reason);
-      hideModal();
+      submitting = false;
+      await hideModalAndWait();
       await renderBankImport(container);
     } catch (error) {
       submitting = false;
