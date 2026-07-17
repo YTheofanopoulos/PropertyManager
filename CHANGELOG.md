@@ -6,6 +6,19 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.5.6] - 2026-07-17
+
+### Added
+- Redesigned main dashboard with live KPI cards, rent-status chart, recent
+  payments, upcoming lease expirations, and an Application Date sidebar card.
+- Current-period collection and outstanding-balance summaries.
+
+### Changed
+- Monthly Rent Collected now uses actual posted Payment.receivedDate values.
+- All dashboard calculations use the centralized Application Clock.
+- Voided payments are excluded.
+- Displayed version updated to 0.5.5.6 / Baseline 5.5.6.
+
 ## [0.5.5.5] - 2026-07-17
 
 ### Changed

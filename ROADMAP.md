@@ -246,3 +246,12 @@ CSV financial import remains deferred.
 - [x] Building, unit, tenant, and history evidence remain tie-breakers
 - [x] Full score explanation is shown for every candidate
 - [x] Multiple exact candidates remain ambiguous
+
+### Baseline 5.5.6 — Main Dashboard Redesign
+
+- [x] Live KPI cards
+- [x] Actual collection trend
+- [x] Rent-status breakdown
+- [x] Recent payments
+- [x] Upcoming lease expirations
+- [x] Application Clock context

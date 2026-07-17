@@ -37,7 +37,14 @@ export function renderShell(): HTMLElement {
         <button class="nav-button" id="reset-data"><i class="fa-solid fa-rotate-left"></i><span>Reset Sample Data</span></button>
       </nav>
 
-      <div class="px-3 pb-3 mt-auto">
+      <div class="sidebar-clock-card mx-3 mt-auto mb-3">
+        <div class="small fw-semibold mb-2">Application Date</div>
+        <div class="fw-semibold">${applicationClock.formatToday()}</div>
+        <div class="small mt-1">Period: ${applicationClock.currentPeriod()}</div>
+        <a href="#/settings" class="btn btn-sm btn-outline-light mt-3">Change Date</a>
+      </div>
+
+      <div class="px-3 pb-3">
         <button
           class="btn btn-sm btn-outline-light w-100 text-start"
           type="button"
@@ -45,7 +52,7 @@ export function renderShell(): HTMLElement {
           data-bs-target="#about-property-manager"
         >
           <i class="fa-solid fa-circle-info me-2"></i>
-          <span>v0.5.5.5</span>
+          <span>v0.5.5.6</span>
         </button>
       </div>
     </aside>
@@ -71,7 +78,7 @@ export function renderShell(): HTMLElement {
       }
       <header class="topbar d-flex justify-content-between align-items-center">
         <span class="fw-semibold">PropertyManager</span>
-        <span class="small text-body-secondary">Baseline 5.5.5 · DB Schema 7</span>
+        <span class="small text-body-secondary">Baseline 5.5.6 · DB Schema 7</span>
       </header>
       <section id="page-content" class="content"></section>
     </main>
@@ -90,10 +97,10 @@ export function renderShell(): HTMLElement {
         <div class="modal-body">
           <dl class="row mb-0">
             <dt class="col-5">Application Version</dt>
-            <dd class="col-7">0.5.5.5</dd>
+            <dd class="col-7">0.5.5.6</dd>
 
             <dt class="col-5">Baseline</dt>
-            <dd class="col-7">5.5.5</dd>
+            <dd class="col-7">5.5.6</dd>
 
             <dt class="col-5">Database Schema</dt>
             <dd class="col-7">7</dd>

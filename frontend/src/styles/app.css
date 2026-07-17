@@ -245,3 +245,27 @@ div.dt-container .dt-length select {
     flex-wrap: wrap;
   }
 }
+
+
+/* Baseline 5.5.6 dashboard */
+.dashboard-page { max-width: 1800px; margin: 0 auto; }
+.dashboard-metric, .dashboard-card {
+  box-shadow: 0 .25rem .75rem rgba(15, 23, 42, .06);
+}
+.dashboard-metric .metric-value {
+  font-size: 1.65rem; font-weight: 700; line-height: 1.15;
+}
+.dashboard-chart-wrap { position: relative; min-height: 310px; }
+.dashboard-donut-wrap { position: relative; min-height: 270px; }
+.dashboard-table th {
+  white-space: nowrap; font-size: .82rem; color: var(--bs-secondary-color);
+}
+.dashboard-table td { font-size: .9rem; }
+.sidebar-clock-card {
+  padding: 1rem; border-radius: .5rem;
+  background: rgba(255,255,255,.06); color: rgba(255,255,255,.9);
+}
+@media (max-width: 767.98px) {
+  .dashboard-chart-wrap { min-height: 250px; }
+  .dashboard-donut-wrap { min-height: 230px; }
+}
