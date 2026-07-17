@@ -328,3 +328,24 @@ div.dt-container .dt-length select {
 @media (max-width: 991.98px) {
   #reconciliation-modal .modal-dialog { margin: .5rem; }
 }
+
+/* Baseline 5.6.2 reconciliation queue refresh guard */
+.bank-import-refresh-status {
+  align-items: center;
+  gap: .5rem;
+  white-space: nowrap;
+}
+
+.bank-import-refresh-status:not(.d-none) {
+  display: inline-flex;
+}
+
+.bank-import-queue-refreshing #reconciliation-queue-card .card-body {
+  opacity: .65;
+  pointer-events: none;
+  cursor: wait;
+}
+
+.bank-import-queue-refreshing #reconciliation-queue-card .card-header {
+  cursor: wait;
+}

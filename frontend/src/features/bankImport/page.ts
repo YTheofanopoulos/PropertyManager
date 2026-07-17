@@ -13,6 +13,7 @@ import { currency } from "../shared/format";
 import { applicationClock } from "../../services/applicationClockService";
 import { busyOverlay } from "../../services/busyOverlayService";
 let currentPreview: ImportPreview | undefined;
+let queueRefreshInProgress = false;
 
 type QueueFilter =
   | "needs-attention"
@@ -280,12 +281,20 @@ export async function renderBankImport(
       </div>
     </div>
 
-    <div class="card mb-4">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+    <div class="card mb-4" id="reconciliation-queue-card">
+      <div class="card-header fw-semibold d-flex justify-content-between align-items-center gap-3">
         <span>Reconciliation Queue</span>
-        <span class="small text-body-secondary">
-          ${visibleTransactions.length} displayed
-        </span>
+        <div class="d-flex align-items-center gap-3">
+          <span id="bank-import-refresh-status"
+                class="bank-import-refresh-status d-none small text-body-secondary"
+                role="status" aria-live="polite">
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            Updating reconciliation queue…
+          </span>
+          <span class="small text-body-secondary">
+            ${visibleTransactions.length} displayed
+          </span>
+        </div>
       </div>
       <div class="card-body">
         <div class="btn-group flex-wrap mb-3" role="group" aria-label="Transaction filters">
@@ -546,6 +555,8 @@ export async function renderBankImport(
   document
     .getElementById("bank-transactions-table")
     ?.addEventListener("click", async (event) => {
+      if (queueRefreshInProgress) return;
+
       const target = (event.target as HTMLElement).closest<HTMLElement>(
         "button[data-id]",
       );
@@ -868,9 +879,14 @@ async function openReconciliationModal(
         amount: bankTransaction.amount,
         reference: bankTransaction.externalId,
       }));
+      beginQueueRefresh(container);
       submitting = false;
       await hideModalAndWait();
-      await renderBankImport(container);
+      try {
+        await renderBankImport(container);
+      } finally {
+        finishQueueRefresh(container);
+      }
     } catch (error) {
       submitting = false;
       setControlsDisabled(false);
@@ -892,9 +908,14 @@ async function openReconciliationModal(
 
     try {
       await bankImportService.ignore(transactionId, reason);
+      beginQueueRefresh(container);
       submitting = false;
       await hideModalAndWait();
-      await renderBankImport(container);
+      try {
+        await renderBankImport(container);
+      } finally {
+        finishQueueRefresh(container);
+      }
     } catch (error) {
       submitting = false;
       setControlsDisabled(false);
@@ -959,6 +980,42 @@ async function openReconciliationModal(
     element.className = `alert alert-${tone}`;
     element.textContent = message;
   }
+}
+
+function beginQueueRefresh(container: HTMLElement): void {
+  queueRefreshInProgress = true;
+  container.classList.add("bank-import-queue-refreshing");
+  container.setAttribute("aria-busy", "true");
+
+  document
+    .getElementById("bank-import-refresh-status")
+    ?.classList.remove("d-none");
+
+  container
+    .querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>(
+      "button, input, select",
+    )
+    .forEach((control) => {
+      if (!control.disabled) {
+        control.dataset.queueRefreshDisabled = "true";
+        control.disabled = true;
+      }
+    });
+}
+
+function finishQueueRefresh(container: HTMLElement): void {
+  queueRefreshInProgress = false;
+  container.classList.remove("bank-import-queue-refreshing");
+  container.removeAttribute("aria-busy");
+
+  container
+    .querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>(
+      "[data-queue-refresh-disabled='true']",
+    )
+    .forEach((control) => {
+      control.disabled = false;
+      delete control.dataset.queueRefreshDisabled;
+    });
 }
 
 function summaryCard(

@@ -6,6 +6,20 @@ The format follows a release-oriented history. Baselines describe cohesive
 product capabilities, while patch releases document incremental corrections
 and usability improvements.
 
+## [0.5.6.2] - 2026-07-17
+
+### Fixed
+- Reconciliation actions can no longer be started while the queue is rebuilding after a reconcile or ignore operation.
+- Rapid clicks during the post-modal refresh no longer leave Bootstrap modal state out of sync with the visible page.
+
+### Added
+- Lightweight `Updating reconciliation queue…` spinner in the queue header.
+- Page-level refresh guard that disables Bank Import controls until the queue and DataTables have finished rebuilding.
+- `aria-busy` feedback while the Bank Import page is refreshing.
+
+### Changed
+- Displayed version updated to 0.5.6.2 / Baseline 5.6.2.
+
 ## [0.5.6.1] - 2026-07-17
 
 ### Fixed

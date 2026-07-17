@@ -296,3 +296,12 @@ CSV financial import remains deferred.
 - [x] Prevent dismissal during active submission
 - [x] Clean modal state and backdrop on close
 - [ ] Restore focus to originating queue row (deferred)
+
+### Baseline 5.6.2 — Reconciliation Queue Refresh Guard
+
+- [x] Show a lightweight queue-refresh spinner after reconcile or ignore
+- [x] Block Reconcile and Ignore actions while the queue rebuilds
+- [x] Temporarily disable DataTables and Bank Import controls during refresh
+- [x] Prevent rapid-click modal state corruption
+- [x] Restore controls after refresh completion or refresh failure
+
