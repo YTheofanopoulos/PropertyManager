@@ -70,6 +70,15 @@ export interface RecurringCharge {
   endDate: string;
 }
 
+export interface LeaseConcession {
+  id?: EntityId;
+  leaseId: EntityId;
+  description: string;
+  amount: number;
+  startPeriod: string;
+  endPeriod: string;
+}
+
 export interface UnitListItem extends Unit {
   street: string;
   civicAddress: string;

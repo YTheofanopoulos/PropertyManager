@@ -5,6 +5,7 @@ import type {
   ChargeType,
   Lease,
   LeaseParticipant,
+  LeaseConcession,
   RecurringCharge,
 } from "../models/domain";
 
@@ -12,6 +13,13 @@ export interface LeaseChargeInput {
   chargeType: ChargeType;
   description: string;
   amount: number;
+}
+
+export interface LeaseConcessionInput {
+  description: string;
+  amount: number;
+  startPeriod: string;
+  endPeriod: string;
 }
 
 export interface LeaseSaveInput {
@@ -25,6 +33,7 @@ export interface LeaseSaveInput {
   participantIds: number[];
   primaryTenantId: number;
   charges: LeaseChargeInput[];
+  concessions: LeaseConcessionInput[];
 }
 
 function datesOverlap(
@@ -63,6 +72,17 @@ export class LeaseService {
     }
     if (input.charges.some((charge) => charge.amount < 0)) {
       throw new Error("Charge amounts cannot be negative.");
+    }
+    if (input.concessions.some((concession) => concession.amount <= 0)) {
+      throw new Error("Concession amounts must be greater than zero.");
+    }
+    for (const concession of input.concessions) {
+      if (!/^\d{4}-\d{2}$/.test(concession.startPeriod) || !/^\d{4}-\d{2}$/.test(concession.endPeriod)) {
+        throw new Error("Concession start and end periods are required.");
+      }
+      if (concession.endPeriod < concession.startPeriod) {
+        throw new Error("A concession end period cannot be before its start period.");
+      }
     }
 
     const existingLease = input.id
@@ -199,10 +219,15 @@ export class LeaseService {
 
     return db.transaction(
       "rw",
-      db.leases,
-      db.leaseParticipants,
-      db.recurringCharges,
-      db.units,
+      [
+        db.leases,
+        db.leaseParticipants,
+        db.recurringCharges,
+        db.leaseConcessions,
+        db.rentObligations,
+        db.paymentAllocations,
+        db.units,
+      ],
       async () => {
         const leasePayload: Omit<Lease, "id"> = {
           unitId: input.unitId,
@@ -219,6 +244,7 @@ export class LeaseService {
           await db.leases.update(leaseId, leasePayload);
           await db.leaseParticipants.where("leaseId").equals(leaseId).delete();
           await db.recurringCharges.where("leaseId").equals(leaseId).delete();
+          await db.leaseConcessions.where("leaseId").equals(leaseId).delete();
         } else {
           leaseId = Number(await db.leases.add(leasePayload));
         }
@@ -247,10 +273,86 @@ export class LeaseService {
             } satisfies RecurringCharge)),
         );
 
+        if (input.concessions.length > 0) {
+          await db.leaseConcessions.bulkAdd(
+            input.concessions.map((concession) => ({
+              leaseId: leaseId as number,
+              description: concession.description.trim() || "Lease concession",
+              amount: concession.amount,
+              startPeriod: concession.startPeriod,
+              endPeriod: concession.endPeriod,
+            } satisfies LeaseConcession)),
+          );
+        }
+
+        await this.reconcileObligations(
+          leaseId as number,
+          input.startDate,
+          effectiveEnd,
+          input.charges,
+          input.concessions,
+        );
         await this.refreshUnitOccupancy(input.unitId);
         return leaseId;
       },
     );
+  }
+
+  private async reconcileObligations(
+    leaseId: number,
+    startDate: string,
+    endDate: string,
+    charges: LeaseChargeInput[],
+    concessions: LeaseConcessionInput[],
+  ): Promise<void> {
+    const startPeriod = startDate.slice(0, 7);
+    const endPeriod = endDate ? endDate.slice(0, 7) : "9999-12";
+    const obligations = await db.rentObligations.where("leaseId").equals(leaseId).toArray();
+    const obligationIds = obligations.flatMap((obligation) => obligation.id === undefined ? [] : [obligation.id]);
+    const allocations = obligationIds.length > 0
+      ? await db.paymentAllocations.where("obligationId").anyOf(obligationIds).toArray()
+      : [];
+    const monthlyCharges = charges.reduce((total, charge) => total + Math.max(charge.amount, 0), 0);
+
+    for (const obligation of obligations) {
+      if (obligation.id === undefined) continue;
+      const paid = allocations
+        .filter((allocation) => allocation.obligationId === obligation.id)
+        .reduce((total, allocation) => total + allocation.amount, 0);
+      const inLeaseTerm = obligation.rentPeriod >= startPeriod && obligation.rentPeriod <= endPeriod;
+
+      if (!inLeaseTerm) {
+        if (paid > 0.005) {
+          throw new Error(
+            `The lease dates cannot exclude ${obligation.rentPeriod} because a payment is allocated to that period.`,
+          );
+        }
+        await db.rentObligations.delete(obligation.id);
+        continue;
+      }
+
+      const concessionTotal = concessions
+        .filter((concession) => concession.startPeriod <= obligation.rentPeriod && concession.endPeriod >= obligation.rentPeriod)
+        .reduce((total, concession) => total + concession.amount, 0);
+      const expectedAmount = Math.max(monthlyCharges - concessionTotal, 0);
+      if (paid > expectedAmount + 0.005) {
+        throw new Error(
+          `The revised charges and concessions would reduce ${obligation.rentPeriod} below its allocated payment amount.`,
+        );
+      }
+      if (expectedAmount <= 0.005 && paid <= 0.005) {
+        await db.rentObligations.delete(obligation.id);
+        continue;
+      }
+      const status = paid <= 0.005
+        ? "Unpaid"
+        : paid < expectedAmount - 0.005
+          ? "Partially Paid"
+          : paid <= expectedAmount + 0.005
+            ? "Paid"
+            : "Overpaid";
+      await db.rentObligations.update(obligation.id, { expectedAmount, status });
+    }
   }
 
   async terminate(leaseId: number): Promise<void> {

@@ -1,59 +1,189 @@
-
 import { db } from "../db/database";
 import type { RentObligation, RentRollRow } from "../models/domain";
-const monthKey=(d:string)=>d.slice(0,7);
-function nextMonth(p:string){const [y,m]=p.split("-").map(Number);return new Date(y,m,1).toISOString().slice(0,7);}
+
+const monthKey = (date: string): string => date.slice(0, 7);
+function nextMonth(period: string): string {
+  const [year, month] = period.split("-").map(Number);
+  return new Date(year, month, 1).toISOString().slice(0, 7);
+}
+
 export class RentLedgerService {
-  async ensureObligationsThrough(period:string):Promise<void>{
-    const [leases,charges]=await Promise.all([db.leases.toArray(),db.recurringCharges.toArray()]);
-    await db.transaction("rw",db.rentObligations,async()=>{
-      for(const lease of leases){ if(lease.status==="Terminated") continue; let cur=monthKey(lease.startDate); const end=lease.termType==="Month-to-Month"||!lease.endDate?period:monthKey(lease.endDate);
-        while(cur<=period&&cur<=end){const exists=await db.rentObligations.where("[leaseId+rentPeriod]").equals([lease.id as number,cur]).first();
-          if(!exists){const expected=charges.filter(c=>c.leaseId===lease.id&&c.frequency==="Monthly"&&monthKey(c.startDate)<=cur&&(!c.endDate||monthKey(c.endDate)>=cur)).reduce((t,c)=>t+c.amount,0);if(expected>0) await db.rentObligations.add({leaseId:lease.id as number,rentPeriod:cur,expectedAmount:expected,status:"Unpaid",createdAt:new Date().toISOString()} satisfies RentObligation);} cur=nextMonth(cur);
+  async ensureObligationsThrough(period: string): Promise<void> {
+    const [leases, charges, concessions, existingObligations, allocations] = await Promise.all([
+      db.leases.toArray(),
+      db.recurringCharges.toArray(),
+      db.leaseConcessions.toArray(),
+      db.rentObligations.toArray(),
+      db.paymentAllocations.toArray(),
+    ]);
+
+    await db.transaction("rw", db.rentObligations, async () => {
+      for (const lease of leases) {
+        if (lease.id === undefined || lease.status === "Terminated") continue;
+        const start = monthKey(lease.startDate);
+        const end = lease.termType === "Month-to-Month" || !lease.endDate
+          ? period
+          : monthKey(lease.endDate);
+        const leaseObligations = existingObligations.filter((item) => item.leaseId === lease.id);
+
+        // Remove stale, unallocated obligations left behind by a prior lease-date edit.
+        for (const obligation of leaseObligations) {
+          if (obligation.id === undefined || (obligation.rentPeriod >= start && obligation.rentPeriod <= end)) continue;
+          const paid = allocations
+            .filter((allocation) => allocation.obligationId === obligation.id)
+            .reduce((total, allocation) => total + allocation.amount, 0);
+          if (paid <= 0.005) await db.rentObligations.delete(obligation.id);
+        }
+
+        let current = start;
+        while (current <= period && current <= end) {
+          const gross = charges
+            .filter((charge) =>
+              charge.leaseId === lease.id &&
+              charge.frequency === "Monthly" &&
+              monthKey(charge.startDate) <= current &&
+              (!charge.endDate || monthKey(charge.endDate) >= current),
+            )
+            .reduce((total, charge) => total + charge.amount, 0);
+          const credit = concessions
+            .filter((concession) =>
+              concession.leaseId === lease.id &&
+              concession.startPeriod <= current &&
+              concession.endPeriod >= current,
+            )
+            .reduce((total, concession) => total + concession.amount, 0);
+          const expectedAmount = Math.max(gross - credit, 0);
+          const existing = leaseObligations.find((item) => item.rentPeriod === current);
+
+          if (!existing && expectedAmount > 0.005) {
+            await db.rentObligations.add({
+              leaseId: lease.id,
+              rentPeriod: current,
+              expectedAmount,
+              status: "Unpaid",
+              createdAt: new Date().toISOString(),
+            } satisfies RentObligation);
+          } else if (existing?.id !== undefined) {
+            const paid = allocations
+              .filter((allocation) => allocation.obligationId === existing.id)
+              .reduce((total, allocation) => total + allocation.amount, 0);
+            if (expectedAmount <= 0.005 && paid <= 0.005) {
+              await db.rentObligations.delete(existing.id);
+            } else if (paid <= expectedAmount + 0.005) {
+              await db.rentObligations.update(existing.id, { expectedAmount });
+            }
+          }
+          current = nextMonth(current);
         }
       }
-    }); await this.refreshAllStatuses();
+    });
+    await this.refreshAllStatuses();
   }
-  async refreshAllStatuses(){const [obs,allocs]=await Promise.all([db.rentObligations.toArray(),db.paymentAllocations.toArray()]);await db.transaction("rw",db.rentObligations,async()=>{for(const o of obs){const paid=allocs.filter(a=>a.obligationId===o.id).reduce((t,a)=>t+a.amount,0);const status=paid===0?"Unpaid":paid<o.expectedAmount?"Partially Paid":paid===o.expectedAmount?"Paid":"Overpaid";await db.rentObligations.update(o.id as number,{status});}})}
-  async getOutstandingObligations(
-    leaseId: number,
-    throughPeriod?: string,
-  ) {
-    const obs = await db.rentObligations
-      .where("leaseId")
-      .equals(leaseId)
-      .sortBy("rentPeriod");
-    const allocs = await db.paymentAllocations.toArray();
 
-    return obs
-      .filter(
-        (obligation) =>
-          !throughPeriod || obligation.rentPeriod <= throughPeriod,
+  async refreshAllStatuses(): Promise<void> {
+    const [obligations, allocations] = await Promise.all([
+      db.rentObligations.toArray(),
+      db.paymentAllocations.toArray(),
+    ]);
+    await db.transaction("rw", db.rentObligations, async () => {
+      for (const obligation of obligations) {
+        const paid = allocations
+          .filter((allocation) => allocation.obligationId === obligation.id)
+          .reduce((total, allocation) => total + allocation.amount, 0);
+        const status = paid === 0
+          ? "Unpaid"
+          : paid < obligation.expectedAmount
+            ? "Partially Paid"
+            : paid === obligation.expectedAmount
+              ? "Paid"
+              : "Overpaid";
+        await db.rentObligations.update(obligation.id as number, { status });
+      }
+    });
+  }
+
+  async getOutstandingObligations(leaseId: number, throughPeriod?: string) {
+    const [lease, obligations, allocations] = await Promise.all([
+      db.leases.get(leaseId),
+      db.rentObligations.where("leaseId").equals(leaseId).sortBy("rentPeriod"),
+      db.paymentAllocations.toArray(),
+    ]);
+    if (!lease) return [];
+    const start = monthKey(lease.startDate);
+    const end = lease.termType === "Month-to-Month" || !lease.endDate ? "9999-12" : monthKey(lease.endDate);
+
+    return obligations
+      .filter((obligation) =>
+        obligation.rentPeriod >= start &&
+        obligation.rentPeriod <= end &&
+        (!throughPeriod || obligation.rentPeriod <= throughPeriod),
       )
       .map((obligation) => {
-        const paid = allocs
-          .filter(
-            (allocation) =>
-              allocation.obligationId === obligation.id,
-          )
-          .reduce(
-            (total, allocation) => total + allocation.amount,
-            0,
-          );
-
-        return {
-          ...obligation,
-          paid,
-          balance: Math.max(
-            obligation.expectedAmount - paid,
-            0,
-          ),
-        };
+        const paid = allocations
+          .filter((allocation) => allocation.obligationId === obligation.id)
+          .reduce((total, allocation) => total + allocation.amount, 0);
+        return { ...obligation, paid, balance: Math.max(obligation.expectedAmount - paid, 0) };
       })
       .filter((item) => item.balance > 0.005);
   }
-  async getRentRoll(period:string):Promise<RentRollRow[]>{await this.ensureObligationsThrough(period);const [leases,obs,allocs,units,buildings,locations,parts,tenants]=await Promise.all([db.leases.toArray(),db.rentObligations.toArray(),db.paymentAllocations.toArray(),db.units.toArray(),db.buildings.toArray(),db.locations.toArray(),db.leaseParticipants.toArray(),db.tenants.toArray()]);const um=new Map(units.map(x=>[x.id,x])),bm=new Map(buildings.map(x=>[x.id,x])),lm=new Map(locations.map(x=>[x.id,x])),tm=new Map(tenants.map(x=>[x.id,x]));const paid=(id?:number)=>id?allocs.filter(a=>a.obligationId===id).reduce((t,a)=>t+a.amount,0):0;
-    return leases.filter(l=>monthKey(l.startDate)<=period).map(l=>{const list=obs.filter(o=>o.leaseId===l.id&&o.rentPeriod<=period).sort((a,b)=>a.rentPeriod.localeCompare(b.rentPeriod));const cur=list.find(o=>o.rentPeriod===period);const prior=list.filter(o=>o.rentPeriod<period);const priorBalance=prior.reduce((t,o)=>t+Math.max(o.expectedAmount-paid(o.id),0),0);const currentBalance=cur?Math.max(cur.expectedAmount-paid(cur.id),0):0;const unpaid=list.filter(o=>o.expectedAmount-paid(o.id)>0.005);const u=um.get(l.unitId),b=u?bm.get(u.buildingId):undefined,loc=b?lm.get(b.locationId):undefined;const pl=parts.filter(x=>x.leaseId===l.id).sort((a,b)=>(a.sortOrder??999)-(b.sortOrder??999)).find(x=>x.primary)??parts.find(x=>x.leaseId===l.id);const ten=pl?tm.get(pl.tenantId):undefined;const total=priorBalance+currentBalance;return {leaseId:l.id as number,unitLabel:`${b?.civicAddress??"?"}${u?.apartmentNumber?` ${u.apartmentNumber}`:""} ${loc?.name??""}`.trim(),primaryTenant:ten?`${ten.firstName} ${ten.lastName}`:"Unknown",selectedPeriod:period,currentMonthDue:cur?.expectedAmount??0,currentMonthPaid:paid(cur?.id),priorBalance,totalOutstanding:total,oldestUnpaidPeriod:unpaid[0]?.rentPeriod??"",monthsInArrears:unpaid.filter(o=>o.rentPeriod<period).length,status:total<=.005?"Current":priorBalance>.005?"In Arrears":"Partial"} satisfies RentRollRow})
+
+  async getRentRoll(period: string): Promise<RentRollRow[]> {
+    await this.ensureObligationsThrough(period);
+    const [leases, obligations, allocations, units, buildings, locations, participants, tenants] = await Promise.all([
+      db.leases.toArray(), db.rentObligations.toArray(), db.paymentAllocations.toArray(), db.units.toArray(),
+      db.buildings.toArray(), db.locations.toArray(), db.leaseParticipants.toArray(), db.tenants.toArray(),
+    ]);
+    const unitMap = new Map(units.map((item) => [item.id, item]));
+    const buildingMap = new Map(buildings.map((item) => [item.id, item]));
+    const locationMap = new Map(locations.map((item) => [item.id, item]));
+    const tenantMap = new Map(tenants.map((item) => [item.id, item]));
+    const paid = (id?: number): number => id
+      ? allocations.filter((allocation) => allocation.obligationId === id).reduce((total, allocation) => total + allocation.amount, 0)
+      : 0;
+
+    return leases
+      .filter((lease) => monthKey(lease.startDate) <= period)
+      .map((lease) => {
+        const leaseStart = monthKey(lease.startDate);
+        const leaseEnd = lease.termType === "Month-to-Month" || !lease.endDate ? "9999-12" : monthKey(lease.endDate);
+        const list = obligations
+          .filter((obligation) =>
+            obligation.leaseId === lease.id &&
+            obligation.rentPeriod >= leaseStart &&
+            obligation.rentPeriod <= leaseEnd &&
+            obligation.rentPeriod <= period,
+          )
+          .sort((left, right) => left.rentPeriod.localeCompare(right.rentPeriod));
+        const current = list.find((obligation) => obligation.rentPeriod === period);
+        const prior = list.filter((obligation) => obligation.rentPeriod < period);
+        const priorBalance = prior.reduce((total, obligation) => total + Math.max(obligation.expectedAmount - paid(obligation.id), 0), 0);
+        const currentBalance = current ? Math.max(current.expectedAmount - paid(current.id), 0) : 0;
+        const unpaid = list.filter((obligation) => obligation.expectedAmount - paid(obligation.id) > 0.005);
+        const unit = unitMap.get(lease.unitId);
+        const building = unit ? buildingMap.get(unit.buildingId) : undefined;
+        const location = building ? locationMap.get(building.locationId) : undefined;
+        const primaryLink = participants
+          .filter((item) => item.leaseId === lease.id)
+          .sort((left, right) => (left.sortOrder ?? 999) - (right.sortOrder ?? 999))
+          .find((item) => item.primary) ?? participants.find((item) => item.leaseId === lease.id);
+        const tenant = primaryLink ? tenantMap.get(primaryLink.tenantId) : undefined;
+        const totalOutstanding = priorBalance + currentBalance;
+
+        return {
+          leaseId: lease.id as number,
+          unitLabel: `${building?.civicAddress ?? "?"}${unit?.apartmentNumber ? ` ${unit.apartmentNumber}` : ""} ${location?.name ?? ""}`.trim(),
+          primaryTenant: tenant ? `${tenant.firstName} ${tenant.lastName}` : "Unknown",
+          selectedPeriod: period,
+          currentMonthDue: current?.expectedAmount ?? 0,
+          currentMonthPaid: paid(current?.id),
+          priorBalance,
+          totalOutstanding,
+          oldestUnpaidPeriod: unpaid[0]?.rentPeriod ?? "",
+          monthsInArrears: unpaid.filter((obligation) => obligation.rentPeriod < period).length,
+          status: totalOutstanding <= 0.005 ? "Current" : priorBalance > 0.005 ? "In Arrears" : "Partial",
+        } satisfies RentRollRow;
+      });
   }
 }
-export const rentLedgerService=new RentLedgerService();
+
+export const rentLedgerService = new RentLedgerService();

@@ -50,6 +50,9 @@ export async function renderLeaseEditor(
   const charges = leaseId
     ? await leaseRepository.getCharges(leaseId)
     : [];
+  const concessions = leaseId
+    ? await db.leaseConcessions.where("leaseId").equals(leaseId).toArray()
+    : [];
 
   const selectedTenantIds = participants
     .sort((left, right) =>
@@ -176,6 +179,29 @@ export async function renderLeaseEditor(
               </div>
             </div>
           </div>
+
+          <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span class="fw-semibold">5. Lease Concessions</span>
+              <button class="btn btn-sm btn-outline-primary" type="button" id="add-concession">
+                <i class="fa-solid fa-plus me-1"></i>Add Concession
+              </button>
+            </div>
+            <div class="card-body">
+              <p class="text-body-secondary">
+                Concessions reduce the rent obligation for the selected month or range while preserving the contractual recurring rent.
+              </p>
+              <div id="concession-list">
+                ${concessions.map((concession) => concessionRow(
+                  concession.description,
+                  concession.amount,
+                  concession.startPeriod,
+                  concession.endPeriod,
+                )).join("")}
+              </div>
+              <div id="no-concessions" class="text-body-secondary small ${concessions.length ? "d-none" : ""}">No concessions defined.</div>
+            </div>
+          </div>
         </div>
 
         <div class="col-xl-4">
@@ -255,6 +281,32 @@ function chargeRow(type: ChargeType, amount: number, description: string): strin
       <div class="col-md-4"><label class="form-label">${type}</label><input class="form-control charge-description" value="${escapeHtml(description)}"></div>
       <div class="col-md-4"><label class="form-label">Monthly Amount</label><input class="form-control charge-amount" type="number" min="0" step="0.01" value="${amount}"></div>
       <div class="col-md-4 small text-body-secondary pb-2">${type === "Apartment Rent" ? "Required base rent" : "Optional"}</div>
+    </div>
+  `;
+}
+
+function concessionRow(description = "Move-in concession", amount = 0, startPeriod = "", endPeriod = ""): string {
+  return `
+    <div class="row g-2 align-items-end concession-row mb-3">
+      <div class="col-md-4">
+        <label class="form-label">Description</label>
+        <input class="form-control concession-description" value="${escapeHtml(description)}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Credit</label>
+        <input class="form-control concession-amount" type="number" min="0.01" step="0.01" value="${amount || ""}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Start Month</label>
+        <input class="form-control concession-start" type="month" value="${startPeriod}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">End Month</label>
+        <input class="form-control concession-end" type="month" value="${endPeriod}">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-outline-danger w-100 remove-concession" type="button">Remove</button>
+      </div>
     </div>
   `;
 }
@@ -371,6 +423,32 @@ function bindEditor(
   document.getElementById("add-existing-tenant")?.addEventListener("click", () => openPicker(null));
   document.getElementById("tenant-search")?.addEventListener("input", renderPickerResults);
 
+  const bindConcessionRows = (): void => {
+    document.querySelectorAll<HTMLButtonElement>(".remove-concession").forEach((button) => {
+      button.onclick = () => {
+        button.closest(".concession-row")?.remove();
+        document.getElementById("no-concessions")?.classList.toggle(
+          "d-none",
+          document.querySelectorAll(".concession-row").length > 0,
+        );
+        refreshReview(selectedTenantIds.length);
+      };
+    });
+    document.querySelectorAll<HTMLInputElement>(".concession-amount").forEach((input) => {
+      input.oninput = () => refreshReview(selectedTenantIds.length);
+    });
+  };
+  document.getElementById("add-concession")?.addEventListener("click", () => {
+    const start = (document.getElementById("lease-start") as HTMLInputElement).value.slice(0, 7);
+    document.getElementById("concession-list")?.insertAdjacentHTML(
+      "beforeend",
+      concessionRow("Move-in concession", 0, start, start),
+    );
+    document.getElementById("no-concessions")?.classList.add("d-none");
+    bindConcessionRows();
+  });
+  bindConcessionRows();
+
   document.querySelectorAll<HTMLInputElement>(".charge-amount").forEach((input) => input.addEventListener("input", () => refreshReview(selectedTenantIds.length)));
   document.getElementById("lease-unit")?.addEventListener("change", () => refreshReview(selectedTenantIds.length));
   document.getElementById("lease-term")?.addEventListener("change", () => {
@@ -419,6 +497,12 @@ function bindEditor(
         description: (row.querySelector(".charge-description") as HTMLInputElement).value,
         amount: Number((row.querySelector(".charge-amount") as HTMLInputElement).value || 0),
       }));
+      const concessions = Array.from(document.querySelectorAll<HTMLElement>(".concession-row")).map((row) => ({
+        description: (row.querySelector(".concession-description") as HTMLInputElement).value,
+        amount: Number((row.querySelector(".concession-amount") as HTMLInputElement).value || 0),
+        startPeriod: (row.querySelector(".concession-start") as HTMLInputElement).value,
+        endPeriod: (row.querySelector(".concession-end") as HTMLInputElement).value,
+      }));
       const unitId = Number(leaseId
         ? (document.getElementById("lease-unit-hidden") as HTMLInputElement).value
         : (document.getElementById("lease-unit") as HTMLSelectElement).value);
@@ -434,6 +518,7 @@ function bindEditor(
         participantIds: [...selectedTenantIds],
         primaryTenantId: selectedTenantIds[0] ?? 0,
         charges,
+        concessions,
       });
 
       notify("Lease saved.");

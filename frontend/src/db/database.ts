@@ -4,6 +4,7 @@ import type {
   Building,
   Lease,
   LeaseParticipant,
+  LeaseConcession,
   Location,
   RecurringCharge,
   RentObligation,
@@ -24,6 +25,7 @@ export class PropertyManagerDatabase extends Dexie {
   leases!: EntityTable<Lease, "id">;
   leaseParticipants!: EntityTable<LeaseParticipant, "id">;
   recurringCharges!: EntityTable<RecurringCharge, "id">;
+  leaseConcessions!: EntityTable<LeaseConcession, "id">;
   rentObligations!: EntityTable<RentObligation, "id">;
   payments!: EntityTable<Payment, "id">;
   paymentAllocations!: EntityTable<PaymentAllocation, "id">;
@@ -155,6 +157,24 @@ export class PropertyManagerDatabase extends Dexie {
       bankTransactions: "++id, importBatchId, externalId, accountLastFour, postedDate, amount, status, matchedPaymentId, [accountLastFour+externalId]",
       reconciliationHistory: "++id, bankTransactionId, paymentId, leaseId, amount, postedDate, normalizedName, normalizedMemo, [leaseId+amount]",
     });
+
+    this.version(8).stores({
+      locations: "++id, name, city",
+      buildings: "++id, locationId, civicAddress, [locationId+civicAddress]",
+      units: "++id, buildingId, apartmentNumber, status, active, [buildingId+apartmentNumber]",
+      tenants: "++id, lastName, firstName, email, active",
+      leases: "++id, unitId, startDate, endDate, termType, status",
+      leaseParticipants: "++id, leaseId, tenantId, primary, sortOrder, [leaseId+tenantId]",
+      recurringCharges: "++id, leaseId, chargeType, frequency, startDate, endDate",
+      leaseConcessions: "++id, leaseId, startPeriod, endPeriod",
+      rentObligations: "++id, leaseId, rentPeriod, status, [leaseId+rentPeriod]",
+      payments: "++id, leaseId, tenantId, receivedDate, source, reference, status",
+      paymentAllocations: "++id, paymentId, obligationId, [paymentId+obligationId]",
+      bankImportBatches: "++id, importedAt, accountLastFour, statementStart, statementEnd, status",
+      bankTransactions: "++id, importBatchId, externalId, accountLastFour, postedDate, amount, status, matchedPaymentId, [accountLastFour+externalId]",
+      reconciliationHistory: "++id, bankTransactionId, paymentId, leaseId, amount, postedDate, normalizedName, normalizedMemo, [leaseId+amount]",
+    });
+
   }
 }
 

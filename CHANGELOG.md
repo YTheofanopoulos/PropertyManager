@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.7.1
+
+- Added lease concessions with description, credit amount, and applicable month range.
+- Concessions reduce monthly obligations without changing contractual recurring rent.
+- Lease edits now remove stale, unallocated obligations outside the revised lease term.
+- Lease edits recalculate existing obligation amounts while protecting periods with allocations.
+- Rent Roll defensively ignores obligations outside the lease start/end dates.
+- IndexedDB schema updated to version 8.
+- Displayed application version updated to 0.5.7.1.
+
 ## 0.5.7.0
 
 - Standardized monetary display to two decimal places.
