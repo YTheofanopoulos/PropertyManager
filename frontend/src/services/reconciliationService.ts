@@ -62,6 +62,25 @@ export class ReconciliationService {
     const transaction = await db.bankTransactions.get(transactionId);
     if (!transaction) throw new Error("Bank transaction not found.");
 
+    const context = await this.buildSuggestionContext();
+    return this.scoreTransaction(transaction, context);
+  }
+
+  async batchSuggestions(
+    transactions: Array<{ id?: number; name: string; memo: string; externalId: string; postedDate: string; amount: number }>,
+  ): Promise<Map<number, MatchSuggestion[]>> {
+    const context = await this.buildSuggestionContext();
+    const results = new Map<number, MatchSuggestion[]>();
+
+    for (const transaction of transactions) {
+      if (transaction.id === undefined) continue;
+      results.set(transaction.id, this.scoreTransaction(transaction, context));
+    }
+
+    return results;
+  }
+
+  private async buildSuggestionContext() {
     const currentPeriod = applicationClock.currentPeriod();
     await rentLedgerService.ensureObligationsThrough(currentPeriod);
 
@@ -73,6 +92,8 @@ export class ReconciliationService {
       history,
       participants,
       tenants,
+      obligations,
+      allocations,
     ] = await Promise.all([
       db.leases.toArray(),
       db.units.toArray(),
@@ -81,42 +102,90 @@ export class ReconciliationService {
       db.reconciliationHistory.toArray(),
       db.leaseParticipants.toArray(),
       db.tenants.toArray(),
+      db.rentObligations.toArray(),
+      db.paymentAllocations.toArray(),
     ]);
 
-    const unitMap = new Map(units.map((item) => [item.id, item]));
-    const buildingMap = new Map(buildings.map((item) => [item.id, item]));
-    const locationMap = new Map(locations.map((item) => [item.id, item]));
-    const tenantMap = new Map(tenants.map((item) => [item.id, item]));
+    const paidByObligation = new Map<number, number>();
+    for (const allocation of allocations) {
+      const obligationId = Number(allocation.obligationId);
+      paidByObligation.set(
+        obligationId,
+        (paidByObligation.get(obligationId) ?? 0) + allocation.amount,
+      );
+    }
 
+    const outstandingByLease = new Map<number, Array<(typeof obligations)[number] & { paid: number; balance: number }>>();
+    for (const obligation of obligations) {
+      if (obligation.id === undefined || obligation.rentPeriod > currentPeriod) continue;
+      const paid = paidByObligation.get(Number(obligation.id)) ?? 0;
+      const balance = Math.max(obligation.expectedAmount - paid, 0);
+      if (balance <= 0.005) continue;
+      const leaseId = Number(obligation.leaseId);
+      const list = outstandingByLease.get(leaseId) ?? [];
+      list.push({ ...obligation, paid, balance });
+      outstandingByLease.set(leaseId, list);
+    }
+    for (const list of outstandingByLease.values()) {
+      list.sort((left, right) => left.rentPeriod.localeCompare(right.rentPeriod));
+    }
+
+    const historyByLease = new Map<number, typeof history>();
+    for (const item of history) {
+      const leaseId = Number(item.leaseId);
+      const list = historyByLease.get(leaseId) ?? [];
+      list.push(item);
+      historyByLease.set(leaseId, list);
+    }
+
+    const tenantIdsByLease = new Map<number, number[]>();
+    for (const participant of participants) {
+      const leaseId = Number(participant.leaseId);
+      const list = tenantIdsByLease.get(leaseId) ?? [];
+      list.push(Number(participant.tenantId));
+      tenantIdsByLease.set(leaseId, list);
+    }
+
+    return {
+      currentPeriod,
+      leases,
+      unitMap: new Map(units.map((item) => [item.id, item])),
+      buildingMap: new Map(buildings.map((item) => [item.id, item])),
+      locationMap: new Map(locations.map((item) => [item.id, item])),
+      tenantMap: new Map(tenants.map((item) => [item.id, item])),
+      historyByLease,
+      tenantIdsByLease,
+      outstandingByLease,
+    };
+  }
+
+  private scoreTransaction(
+    transaction: { name: string; memo: string; externalId: string; postedDate: string; amount: number },
+    context: Awaited<ReturnType<ReconciliationService["buildSuggestionContext"]>>,
+  ): MatchSuggestion[] {
     const normalizedName = normalize(transaction.name);
     const normalizedMemo = normalize(transaction.memo);
-    const normalizedReference = normalize(transaction.externalId);
     const searchableText = normalize(
       `${transaction.name} ${transaction.memo} ${transaction.externalId}`,
     );
     const postedDay = Number(transaction.postedDate.slice(8, 10));
     const targetPeriod = targetRentPeriod(transaction.postedDate);
-
     const candidates: MatchSuggestion[] = [];
 
-    for (const lease of leases) {
+    for (const lease of context.leases) {
       if (lease.status === "Expired" || lease.status === "Terminated") continue;
+      if (lease.id === undefined) continue;
 
-      const unit = unitMap.get(lease.unitId);
-      const building = unit ? buildingMap.get(unit.buildingId) : undefined;
-      const location = building ? locationMap.get(building.locationId) : undefined;
-      if (!unit || !building || !location || lease.id === undefined) continue;
+      const leaseId = Number(lease.id);
+      const unit = context.unitMap.get(lease.unitId);
+      const building = unit ? context.buildingMap.get(unit.buildingId) : undefined;
+      const location = building ? context.locationMap.get(building.locationId) : undefined;
+      if (!unit || !building || !location) continue;
 
-      const outstanding = await rentLedgerService.getOutstandingObligations(
-        lease.id,
-        currentPeriod,
-      );
+      const outstanding = context.outstandingByLease.get(leaseId) ?? [];
       if (outstanding.length === 0) continue;
 
-      const amountDue = outstanding.reduce(
-        (total, item) => total + item.balance,
-        0,
-      );
+      const amountDue = outstanding.reduce((total, item) => total + item.balance, 0);
       const exactObligations = outstanding.filter(
         (item) => Math.abs(item.balance - transaction.amount) < 0.005,
       );
@@ -126,7 +195,7 @@ export class ReconciliationService {
         (item) => item.rentPeriod === targetPeriod,
       );
 
-      const leaseHistory = history.filter((item) => item.leaseId === lease.id);
+      const leaseHistory = context.historyByLease.get(leaseId) ?? [];
       const amountHistory = leaseHistory.filter(
         (item) => Math.abs(item.amount - transaction.amount) < 0.005,
       );
@@ -140,28 +209,24 @@ export class ReconciliationService {
         (item) => daysApart(item.postedDay, postedDay) <= 3,
       );
 
-      const buildingMatch = containsToken(
-        searchableText,
-        building.civicAddress,
-      );
+      const buildingMatch = containsToken(searchableText, building.civicAddress);
       const unitMatch = Boolean(unit.apartmentNumber) && containsToken(
         searchableText,
         unit.apartmentNumber,
       );
 
-      const leaseTenantIds = participants
-        .filter((participant) => participant.leaseId === lease.id)
-        .map((participant) => participant.tenantId);
-      const tenantNameMatch = leaseTenantIds.some((tenantId) => {
-        const tenant = tenantMap.get(tenantId);
-        if (!tenant) return false;
-        const firstName = normalize(tenant.firstName);
-        const lastName = normalize(tenant.lastName);
-        return (
-          (firstName && searchableText.includes(firstName)) ||
-          (lastName && searchableText.includes(lastName))
-        );
-      });
+      const tenantNameMatch = (context.tenantIdsByLease.get(leaseId) ?? []).some(
+        (tenantId) => {
+          const tenant = context.tenantMap.get(tenantId);
+          if (!tenant) return false;
+          const firstName = normalize(tenant.firstName);
+          const lastName = normalize(tenant.lastName);
+          return (
+            (firstName && searchableText.includes(firstName)) ||
+            (lastName && searchableText.includes(lastName))
+          );
+        },
+      );
 
       let score = 0;
       const reasons: string[] = [];
@@ -172,11 +237,8 @@ export class ReconciliationService {
       } else {
         const penalty = Math.round(amountDifference);
         score -= penalty;
-        reasons.push(
-          `-${penalty} amount differs by $${penalty.toLocaleString("en-CA")}`,
-        );
+        reasons.push(`-${penalty} amount differs by $${penalty.toLocaleString("en-CA")}`);
       }
-
       if (sameRentPeriod) {
         score += 40;
         reasons.push(`+40 exact balance belongs to target period ${targetPeriod}`);
@@ -195,24 +257,15 @@ export class ReconciliationService {
       }
       if (amountHistory.length > 0) {
         score += 15;
-        reasons.push(
-          `+15 same amount previously reconciled to this unit (${amountHistory.length})`,
-        );
+        reasons.push(`+15 same amount previously reconciled to this unit (${amountHistory.length})`);
       }
       if (memoHistory.length > 0 || nameHistory.length > 0) {
         score += 15;
-        reasons.push(
-          `+15 transaction name or memo matches prior history (${Math.max(
-            memoHistory.length,
-            nameHistory.length,
-          )})`,
-        );
+        reasons.push(`+15 transaction name or memo matches prior history (${Math.max(memoHistory.length, nameHistory.length)})`);
       }
       if (timingHistory.length > 0) {
         score += 5;
-        reasons.push(
-          `+5 posting day is near prior reconciliation history (${timingHistory.length})`,
-        );
+        reasons.push(`+5 posting day is near prior reconciliation history (${timingHistory.length})`);
       }
       if (leaseHistory.length > 0) {
         score += 5;
@@ -220,10 +273,8 @@ export class ReconciliationService {
       }
 
       candidates.push({
-        leaseId: lease.id,
-        unitLabel: `${building.civicAddress}${
-          unit.apartmentNumber ? ` ${unit.apartmentNumber}` : ""
-        } ${location.name}`,
+        leaseId,
+        unitLabel: `${building.civicAddress}${unit.apartmentNumber ? ` ${unit.apartmentNumber}` : ""} ${location.name}`,
         amountDue,
         oldestPeriod: outstanding[0]?.rentPeriod ?? "",
         score,
@@ -237,20 +288,15 @@ export class ReconciliationService {
       });
     }
 
-    // Exact outstanding-balance matches are always ranked before non-exact
-    // candidates. Score is used only within the same ranking tier.
     candidates.sort(
       (left, right) =>
-        Number(right.exactOutstandingAmount) -
-          Number(left.exactOutstandingAmount) ||
+        Number(right.exactOutstandingAmount) - Number(left.exactOutstandingAmount) ||
         right.score - left.score ||
         left.amountDifference - right.amountDifference ||
         left.unitLabel.localeCompare(right.unitLabel),
     );
 
-    const exactCandidates = candidates.filter(
-      (candidate) => candidate.exactOutstandingAmount,
-    );
+    const exactCandidates = candidates.filter((candidate) => candidate.exactOutstandingAmount);
     const top = candidates[0];
     const second = candidates[1];
 
@@ -264,38 +310,22 @@ export class ReconciliationService {
         candidate.score - second.score < 15;
 
       candidate.ambiguous = tiedExactTop;
-
       if (candidate === top && tiedExactTop) {
         candidate.classification = "Ambiguous";
-        candidate.reasons.push(
-          "Classification: multiple exact amount candidates require user selection",
-        );
-      } else if (
-        candidate === top &&
-        candidate.exactOutstandingAmount &&
-        candidate.score >= 120
-      ) {
+        candidate.reasons.push("Classification: multiple exact amount candidates require user selection");
+      } else if (candidate === top && candidate.exactOutstandingAmount && candidate.score >= 120) {
         candidate.classification = "Strong Candidate";
-        candidate.reasons.push(
-          "Classification: exact balance plus supporting evidence",
-        );
+        candidate.reasons.push("Classification: exact balance plus supporting evidence");
       } else if (candidate.exactOutstandingAmount) {
         candidate.classification = "Good Candidate";
-        candidate.reasons.push(
-          "Classification: exact balance match; user confirmation is still required",
-        );
+        candidate.reasons.push("Classification: exact balance match; user confirmation is still required");
       } else if (candidate === top && candidate.score > 0) {
         candidate.classification = "Possible Match";
-        candidate.reasons.push(
-          "Classification: supporting evidence exists, but the amount is not exact",
-        );
+        candidate.reasons.push("Classification: supporting evidence exists, but the amount is not exact");
       } else {
         candidate.classification = "Manual Review";
-        if (candidate.reasons.length === 0) {
-          candidate.reasons.push("No matching evidence");
-        }
+        if (candidate.reasons.length === 0) candidate.reasons.push("No matching evidence");
       }
-
       candidate.reasons.push(`Final score: ${candidate.score}`);
     }
 

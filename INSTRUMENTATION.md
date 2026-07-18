@@ -1,24 +1,19 @@
-# Baseline 5.6.3.1 Reconciliation Instrumentation
+# Baseline 5.6.4 Reconciliation Timing
 
-Open the browser developer tools and select the **Console** tab before reconciling a transaction.
+Reconciliation timing remains available but is disabled by default.
 
-Each reconciliation produces a collapsed console group such as:
+Enable from the browser console:
 
-```text
-[Reconcile 123-abc] Transaction 123
+```js
+localStorage.setItem("pm.debug.reconciliationTiming", "true");
+location.reload();
 ```
 
-Expand the group to review timings for:
+Disable it:
 
-- transaction lookup
-- obligation lookup and validation
-- IndexedDB write transaction
-- reconciliation service total
-- modal dismissal
-- queue data loading
-- transaction classification / matching suggestions
-- DataTable initialization
-- Bank Import queue refresh
-- total click-to-ready time
+```js
+localStorage.removeItem("pm.debug.reconciliationTiming");
+location.reload();
+```
 
-The trace identifier links all entries from the same reconciliation. Capture or copy the expanded group after several reconciliations so the slowest phase can be identified. This build changes no reconciliation rules or saved data.
+The queue-classification timing now measures a batched classification pass that loads shared matching data once and scores transactions from in-memory maps.

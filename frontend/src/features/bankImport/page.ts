@@ -1,5 +1,5 @@
 
-import { Modal } from "bootstrap";
+import { Modal, Toast } from "bootstrap";
 import { db } from "../../db/database";
 import type { BankTransaction } from "../../models/domain";
 import type { ImportPreview } from "../../services/bankImportService";
@@ -15,14 +15,15 @@ import { busyOverlay } from "../../services/busyOverlayService";
 let currentPreview: ImportPreview | undefined;
 let queueRefreshInProgress = false;
 
-const INSTRUMENTATION_BUILD = true;
+const RECONCILIATION_TIMING_ENABLED =
+  localStorage.getItem("pm.debug.reconciliationTiming") === "true";
 
 function elapsed(start: number): number {
   return Math.round((performance.now() - start) * 10) / 10;
 }
 
 function traceLog(traceId: string, phase: string, durationMs: number): void {
-  if (!INSTRUMENTATION_BUILD) return;
+  if (!RECONCILIATION_TIMING_ENABLED) return;
   console.info(`[Reconcile ${traceId}] ${phase}: ${durationMs.toFixed(1)} ms`);
 }
 
@@ -99,37 +100,34 @@ export async function renderBankImport(
   }
 
   const classificationStarted = performance.now();
-  const transactions: QueueTransaction[] = await Promise.all(
-    rawTransactions.map(async (transaction) => {
-      if (
-        transaction.status === "Reconciled" ||
-        transaction.status === "Ignored" ||
-        transaction.amount <= 0
-      ) {
-        return {
-          ...transaction,
-          queueClassification: transaction.status,
-        };
-      }
-
-      try {
-        const suggestions =
-          await reconciliationService.suggestions(
-            transaction.id as number,
-          );
-        return {
-          ...transaction,
-          queueClassification:
-            suggestions[0]?.classification ?? "Manual Review",
-        };
-      } catch {
-        return {
-          ...transaction,
-          queueClassification: "Manual Review",
-        };
-      }
-    }),
+  const candidatesToClassify = rawTransactions.filter(
+    (transaction) =>
+      transaction.status !== "Reconciled" &&
+      transaction.status !== "Ignored" &&
+      transaction.amount > 0,
   );
+  let batchSuggestions = new Map<number, Awaited<ReturnType<typeof reconciliationService.suggestions>>>();
+  try {
+    batchSuggestions = await reconciliationService.batchSuggestions(candidatesToClassify);
+  } catch (error) {
+    console.error("Unable to batch-classify reconciliation queue.", error);
+  }
+
+  const transactions: QueueTransaction[] = rawTransactions.map((transaction) => {
+    if (
+      transaction.status === "Reconciled" ||
+      transaction.status === "Ignored" ||
+      transaction.amount <= 0
+    ) {
+      return { ...transaction, queueClassification: transaction.status };
+    }
+
+    const suggestions = batchSuggestions.get(Number(transaction.id)) ?? [];
+    return {
+      ...transaction,
+      queueClassification: suggestions[0]?.classification ?? "Manual Review",
+    };
+  });
 
   traceLog(renderTraceId, `Classify ${rawTransactions.length} queue transactions`, elapsed(classificationStarted));
 
@@ -254,7 +252,7 @@ export async function renderBankImport(
     ${
       successPayload
         ? `<div class="toast-container position-fixed top-0 end-0 p-3 bank-import-toast-container">
-            <div class="toast show text-bg-success border-0" role="status" aria-live="polite" aria-atomic="true">
+            <div id="bank-reconciliation-success-toast" class="toast text-bg-success border-0" role="status" aria-live="polite" aria-atomic="true" data-bs-autohide="true" data-bs-delay="4000">
               <div class="d-flex">
                 <div class="toast-body">
                   <strong>Payment reconciled.</strong>
@@ -430,6 +428,20 @@ export async function renderBankImport(
   `;
 
   traceLog(renderTraceId, "Build Bank Import page markup", elapsed(markupStarted));
+
+  const successToastElement = document.getElementById("bank-reconciliation-success-toast");
+  if (successToastElement) {
+    const successToast = Toast.getOrCreateInstance(successToastElement, {
+      autohide: true,
+      delay: 4000,
+      animation: true,
+    });
+    successToastElement.addEventListener("hidden.bs.toast", () => {
+      successToast.dispose();
+      successToastElement.closest(".toast-container")?.remove();
+    }, { once: true });
+    successToast.show();
+  }
 
   const tablesStarted = performance.now();
   createTable("#bank-transactions-table", {
@@ -902,11 +914,13 @@ async function openReconciliationModal(
 
     const traceId = `${transactionId}-${Date.now().toString(36)}`;
     const totalStarted = performance.now();
-    console.groupCollapsed(`[Reconcile ${traceId}] Transaction ${transactionId}`);
+    if (RECONCILIATION_TIMING_ENABLED) {
+      console.groupCollapsed(`[Reconcile ${traceId}] Transaction ${transactionId}`);
+    }
 
     try {
       const saveStarted = performance.now();
-      await reconciliationService.reconcile(transactionId, selectedLeaseId, allocations, traceId);
+      await reconciliationService.reconcile(transactionId, selectedLeaseId, allocations, RECONCILIATION_TIMING_ENABLED ? traceId : undefined);
       traceLog(traceId, "Reconciliation service", elapsed(saveStarted));
 
       sessionStorage.setItem("bank-reconciliation-success", JSON.stringify({
@@ -928,10 +942,10 @@ async function openReconciliationModal(
         finishQueueRefresh(container);
       }
       traceLog(traceId, "TOTAL click-to-ready", elapsed(totalStarted));
-      console.groupEnd();
+      if (RECONCILIATION_TIMING_ENABLED) console.groupEnd();
     } catch (error) {
       traceLog(traceId, "FAILED after", elapsed(totalStarted));
-      console.groupEnd();
+      if (RECONCILIATION_TIMING_ENABLED) console.groupEnd();
       submitting = false;
       setControlsDisabled(false);
       confirmButton.textContent = "Confirm Reconciliation";

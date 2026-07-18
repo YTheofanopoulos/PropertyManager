@@ -1,3 +1,11 @@
+# Baseline 5.6.4 — Reconciliation Queue Performance and Toast Polish
+
+- Batch-loads reconciliation matching context once per queue render instead of repeating IndexedDB reads for every transaction.
+- Scores all unresolved queue transactions from shared in-memory lookup maps.
+- Keeps reconciliation timing diagnostics available behind `pm.debug.reconciliationTiming`, disabled by default.
+- Success notifications now auto-dismiss after four seconds and clean up their Bootstrap instance.
+- No matching weights, classifications, or accounting rules changed.
+
 # Baseline 5.6.3.1 — Reconciliation Instrumentation Build
 
 - Adds browser-console timing for the complete reconciliation workflow.
