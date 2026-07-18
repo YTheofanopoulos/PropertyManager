@@ -372,9 +372,11 @@ export async function renderPaymentReceiptsReport(
     </div>
   `;
 
+  const paymentReceiptTables: any[] = [];
+
   reports.forEach((report, index) => {
     const tableId = `#payment-receipts-table-${index}`;
-    createTable(tableId, {
+    paymentReceiptTables[index] = createTable(tableId, {
       pageLength: outputMode === "separate" ? 50 : 10,
       lengthMenu: [10, 25, 50],
       paging: outputMode !== "separate",
@@ -481,7 +483,13 @@ export async function renderPaymentReceiptsReport(
   document
     .getElementById("export-payment-report")
     ?.addEventListener("click", () => {
-      exportPaymentWorkbook(reports, periods, startPeriod, endPeriod);
+      exportPaymentWorkbook(
+        reports,
+        periods,
+        startPeriod,
+        endPeriod,
+        paymentReceiptTables,
+      );
     });
 
   document
@@ -819,70 +827,80 @@ function exportPaymentWorkbook(
   periods: string[],
   startPeriod: string,
   endPeriod: string,
+  tables: any[],
 ): void {
-  const transactions = reports.flatMap((report) =>
-    report.rows.flatMap((row) =>
-      periods.flatMap((period) =>
-        (row.transactionsByPeriod[period] ?? []).map((transaction) => ({
-          "Received Date": transaction.transactionDate,
-          "Transaction Month": period,
-          Location: report.locationName ?? "All Locations",
-          Unit: transaction.unitLabel,
-          Amount: transaction.amount,
-          Source: transaction.source,
-          Method: transaction.method,
-          Reference: transaction.reference,
-          Notes: transaction.notes,
-        })),
-      ),
-    ),
-  );
-
-  const summaries = reports.flatMap((report) =>
-    report.monthlySummaries.map((summary) => ({
-      Location: report.locationName ?? "All Locations",
-      "Transaction Month": summary.period,
-      "Bank Imported": summary.bankImported,
-      Manual: summary.manual,
-      Transactions: summary.transactionCount,
-      "Voided Count": summary.voidedCount,
-      "Voided Excluded": summary.voidedExcluded,
-      "Total Received": summary.total,
-    })),
-  );
-
-  const controls = reports.map((report) => ({
-    Location: report.locationName ?? "All Locations",
-    "Start Month": startPeriod,
-    "End Month": endPeriod,
-    "Posted Transactions": report.totalTransactionCount,
-    "Posted Total": report.grandTotal,
-    "Voided Count": report.voidedCount,
-    "Voided Excluded": report.voidedExcluded,
-  }));
-
   const workbook = XLSX.utils.book_new();
-  const txSheet = XLSX.utils.json_to_sheet(transactions);
-  const summarySheet = XLSX.utils.json_to_sheet(summaries);
-  const controlSheet = XLSX.utils.json_to_sheet(controls);
 
-  txSheet["!autofilter"] = transactions.length
-    ? { ref: txSheet["!ref"] ?? "A1:I1" }
-    : undefined;
-  summarySheet["!autofilter"] = summaries.length
-    ? { ref: summarySheet["!ref"] ?? "A1:H1" }
-    : undefined;
+  reports.forEach((report, reportIndex) => {
+    const table = tables[reportIndex];
+    const headers = [
+      "Unit",
+      ...periods.map((period) => monthLabel(period)),
+      "Range Total",
+    ];
 
-  const moneyColumns = [4];
-  for (const column of moneyColumns) {
-    for (let row = 2; row <= transactions.length + 1; row += 1) {
-      const address = XLSX.utils.encode_cell({ r: row - 1, c: column });
-      if (txSheet[address]) txSheet[address].z = "$#,##0.00";
+    // Export the same rows currently represented by DataTables: current
+    // search filter and current ordering, across all pagination pages.
+    const appliedRows = table
+      ? table.rows({ search: "applied", order: "applied" }).data().toArray()
+      : report.rows.map((row) => [
+          row.unitLabel,
+          ...periods.map((period) => accountingCurrency(row.amounts[period] ?? 0)),
+          accountingCurrency(row.total),
+        ]);
+
+    const rows = appliedRows.map((row: unknown[]) =>
+      Array.from(row, (cell) =>
+        typeof cell === "string"
+          ? cell.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim()
+          : String(cell ?? ""),
+      ),
+    );
+
+    const visibleUnitLabels = new Set(rows.map((row: string[]) => row[0]));
+    const visibleReportRows = report.rows.filter((row) =>
+      visibleUnitLabels.has(row.unitLabel),
+    );
+    const monthlyTotals = periods.map((period) =>
+      visibleReportRows.reduce(
+        (sum, row) => sum + (row.amounts[period] ?? 0),
+        0,
+      ),
+    );
+    const rangeTotal = visibleReportRows.reduce(
+      (sum, row) => sum + row.total,
+      0,
+    );
+
+    const worksheetData = [
+      headers,
+      ...rows,
+      [
+        "Monthly Total",
+        ...monthlyTotals.map(accountingCurrency),
+        accountingCurrency(rangeTotal),
+      ],
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    worksheet["!autofilter"] = {
+      ref: `A1:${XLSX.utils.encode_col(headers.length - 1)}${Math.max(1, rows.length + 1)}`,
+    };
+    worksheet["!freeze"] = { xSplit: 1, ySplit: 1 };
+    worksheet["!cols"] = headers.map((header, index) => ({
+      wch: index === 0
+        ? Math.max(18, ...rows.map((row: string[]) => row[0]?.length ?? 0))
+        : Math.max(14, header.length + 2),
+    }));
+
+    const baseName = report.locationName ?? "Payment Receipts";
+    const safeName = baseName.replace(/[\\/?*\[\]:]/g, " ").trim() || "Payment Receipts";
+    let sheetName = safeName.slice(0, 31);
+    if (workbook.SheetNames.includes(sheetName)) {
+      sheetName = `${safeName.slice(0, 27)} ${reportIndex + 1}`.slice(0, 31);
     }
-  }
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  });
 
-  XLSX.utils.book_append_sheet(workbook, txSheet, "Payments");
-  XLSX.utils.book_append_sheet(workbook, summarySheet, "Monthly Summary");
-  XLSX.utils.book_append_sheet(workbook, controlSheet, "Control Totals");
   XLSX.writeFile(workbook, `Payment_Receipts_${startPeriod}_to_${endPeriod}.xlsx`);
 }

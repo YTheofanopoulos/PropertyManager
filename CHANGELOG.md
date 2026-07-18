@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.7.2
+
+- Corrected Payment Receipts XLSX export to mirror the on-screen Apartment Receipts table.
+- Preserves the displayed column names, column order, current search filter, and current row ordering.
+- Exports all matching rows across pagination, not only the visible page.
+- Includes the displayed Monthly Total footer and one worksheet per rendered location report.
+- Removed the custom Payments, Monthly Summary, and Control Totals workbook layout.
+- Displayed application version updated to 0.5.7.2.
+
 ## 0.5.7.1
 
 - Added lease concessions with description, credit amount, and applicable month range.
