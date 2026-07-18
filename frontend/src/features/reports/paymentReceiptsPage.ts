@@ -5,6 +5,7 @@ import type {
 } from "../../services/paymentReceiptReportService";
 import { paymentReceiptReportService } from "../../services/paymentReceiptReportService";
 import { createTable } from "../shared/table";
+import * as XLSX from "xlsx";
 
 import { applicationClock } from "../../services/applicationClockService";
 type OutputMode = "combined" | "separate";
@@ -238,9 +239,14 @@ export async function renderPaymentReceiptsReport(
           Accounting view grouped by the date each payment was processed—not by the rent month it satisfied.
         </p>
       </div>
-      <button id="print-payment-report" class="btn btn-outline-primary" type="button">
-        <i class="fa-solid fa-print me-2"></i>Print Report
-      </button>
+      <div class="d-flex gap-2">
+        <button id="export-payment-report" class="btn btn-success" type="button">
+          <i class="fa-solid fa-file-excel me-2"></i>Export XLSX
+        </button>
+        <button id="print-payment-report" class="btn btn-outline-primary" type="button">
+          <i class="fa-solid fa-print me-2"></i>Print Report
+        </button>
+      </div>
     </div>
 
     <div class="card mb-4 report-controls">
@@ -470,6 +476,12 @@ export async function renderPaymentReceiptsReport(
       }
 
       location.hash = `/reports?${params.toString()}`;
+    });
+
+  document
+    .getElementById("export-payment-report")
+    ?.addEventListener("click", () => {
+      exportPaymentWorkbook(reports, periods, startPeriod, endPeriod);
     });
 
   document
@@ -799,4 +811,78 @@ function metricCard(label: string, value: string): string {
       </div>
     </div>
   `;
+}
+
+
+function exportPaymentWorkbook(
+  reports: PaymentReceiptReport[],
+  periods: string[],
+  startPeriod: string,
+  endPeriod: string,
+): void {
+  const transactions = reports.flatMap((report) =>
+    report.rows.flatMap((row) =>
+      periods.flatMap((period) =>
+        (row.transactionsByPeriod[period] ?? []).map((transaction) => ({
+          "Received Date": transaction.transactionDate,
+          "Transaction Month": period,
+          Location: report.locationName ?? "All Locations",
+          Unit: transaction.unitLabel,
+          Amount: transaction.amount,
+          Source: transaction.source,
+          Method: transaction.method,
+          Reference: transaction.reference,
+          Notes: transaction.notes,
+        })),
+      ),
+    ),
+  );
+
+  const summaries = reports.flatMap((report) =>
+    report.monthlySummaries.map((summary) => ({
+      Location: report.locationName ?? "All Locations",
+      "Transaction Month": summary.period,
+      "Bank Imported": summary.bankImported,
+      Manual: summary.manual,
+      Transactions: summary.transactionCount,
+      "Voided Count": summary.voidedCount,
+      "Voided Excluded": summary.voidedExcluded,
+      "Total Received": summary.total,
+    })),
+  );
+
+  const controls = reports.map((report) => ({
+    Location: report.locationName ?? "All Locations",
+    "Start Month": startPeriod,
+    "End Month": endPeriod,
+    "Posted Transactions": report.totalTransactionCount,
+    "Posted Total": report.grandTotal,
+    "Voided Count": report.voidedCount,
+    "Voided Excluded": report.voidedExcluded,
+  }));
+
+  const workbook = XLSX.utils.book_new();
+  const txSheet = XLSX.utils.json_to_sheet(transactions);
+  const summarySheet = XLSX.utils.json_to_sheet(summaries);
+  const controlSheet = XLSX.utils.json_to_sheet(controls);
+
+  txSheet["!autofilter"] = transactions.length
+    ? { ref: txSheet["!ref"] ?? "A1:I1" }
+    : undefined;
+  summarySheet["!autofilter"] = summaries.length
+    ? { ref: summarySheet["!ref"] ?? "A1:H1" }
+    : undefined;
+
+  const moneyColumns = [4];
+  for (const column of moneyColumns) {
+    for (let row = 2; row <= transactions.length + 1; row += 1) {
+      const address = XLSX.utils.encode_cell({ r: row - 1, c: column });
+      if (txSheet[address]) txSheet[address].z = "$#,##0.00";
+    }
+  }
+
+  XLSX.utils.book_append_sheet(workbook, txSheet, "Payments");
+  XLSX.utils.book_append_sheet(workbook, summarySheet, "Monthly Summary");
+  XLSX.utils.book_append_sheet(workbook, controlSheet, "Control Totals");
+  XLSX.writeFile(workbook, `Payment_Receipts_${startPeriod}_to_${endPeriod}.xlsx`);
 }

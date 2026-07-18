@@ -23,6 +23,7 @@ export interface RentStatusMonth {
     paymentId: number;
     receivedDate: string;
     amount: number;
+    paymentAmount: number;
     reference: string;
     source: string;
   }>;
@@ -267,6 +268,7 @@ export class RentStatusService {
                   receivedDate:
                     payment?.receivedDate ?? "",
                   amount: allocation.amount,
+                  paymentAmount: payment?.amount ?? allocation.amount,
                   reference: payment?.reference ?? "",
                   source: payment?.source ?? "",
                 };

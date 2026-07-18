@@ -819,12 +819,18 @@ export async function renderRentStatus(
               ${month.allocations.map(
                 (allocation) => `
                   <div class="list-group-item">
-                    <div class="d-flex justify-content-between">
-                      <strong>${currency(allocation.amount)}</strong>
-                      <span>${allocation.receivedDate}</span>
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                      <div>
+                        <div class="small text-body-secondary">Payment received</div>
+                        <strong>${currency(allocation.paymentAmount)}</strong>
+                      </div>
+                      <div class="text-end">
+                        <div class="small text-body-secondary">Applied to ${monthLabel(month.period)}</div>
+                        <strong>${currency(allocation.amount)}</strong>
+                      </div>
                     </div>
-                    <div class="small text-body-secondary">
-                      ${allocation.source}
+                    <div class="small text-body-secondary mt-2">
+                      Received ${allocation.receivedDate} · ${allocation.source}
                       ${
                         allocation.reference
                           ? ` · ${allocation.reference}`

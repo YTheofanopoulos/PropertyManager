@@ -1,3 +1,13 @@
+# PropertyManager Roadmap
+
+## Baseline 5.7 — Lease Lifecycle and Accounting Polish
+
+- Money formatting audit — implemented
+- Payment/allocation presentation — implemented
+- Payment Receipts XLSX export — implemented
+- Historical move-in and move-out validation — testing phase
+- Lease lifecycle refinements — driven by month 5 and month 6 playback
+
 
 # PropertyManager Roadmap
 

@@ -1,3 +1,13 @@
+# Changelog
+
+## 0.5.7.0
+
+- Standardized monetary display to two decimal places.
+- Clarified payment versus allocation amounts in Rent Status month details.
+- Added XLSX export for Payment Receipts.
+- Added workbook summary and control-total worksheets.
+- Preserved the validated Baseline 5.6 accounting and reconciliation behavior.
+
 # Baseline 5.6.4 — Reconciliation Queue Performance and Toast Polish
 
 - Batch-loads reconciliation matching context once per queue render instead of repeating IndexedDB reads for every transaction.
