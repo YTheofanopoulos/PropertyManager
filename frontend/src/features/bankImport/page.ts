@@ -15,6 +15,18 @@ import { busyOverlay } from "../../services/busyOverlayService";
 let currentPreview: ImportPreview | undefined;
 let queueRefreshInProgress = false;
 
+const INSTRUMENTATION_BUILD = true;
+
+function elapsed(start: number): number {
+  return Math.round((performance.now() - start) * 10) / 10;
+}
+
+function traceLog(traceId: string, phase: string, durationMs: number): void {
+  if (!INSTRUMENTATION_BUILD) return;
+  console.info(`[Reconcile ${traceId}] ${phase}: ${durationMs.toFixed(1)} ms`);
+}
+
+
 type QueueFilter =
   | "needs-attention"
   | "suggested"
@@ -65,12 +77,17 @@ function badgeClass(value: string): string {
 export async function renderBankImport(
   container: HTMLElement,
 ): Promise<void> {
+  const renderStarted = performance.now();
+  const renderTraceId = `queue-${Date.now().toString(36)}`;
   const activeFilter = filterFromHash();
 
+  const loadStarted = performance.now();
   const [batches, rawTransactions] = await Promise.all([
     db.bankImportBatches.orderBy("importedAt").reverse().toArray(),
     db.bankTransactions.orderBy("postedDate").reverse().toArray(),
   ]);
+
+  traceLog(renderTraceId, "Load import batches and bank transactions", elapsed(loadStarted));
 
   const batchMap = new Map(batches.map((batch) => [batch.id, batch]));
 
@@ -81,6 +98,7 @@ export async function renderBankImport(
     sessionStorage.removeItem("bank-reconciliation-success");
   }
 
+  const classificationStarted = performance.now();
   const transactions: QueueTransaction[] = await Promise.all(
     rawTransactions.map(async (transaction) => {
       if (
@@ -112,6 +130,8 @@ export async function renderBankImport(
       }
     }),
   );
+
+  traceLog(renderTraceId, `Classify ${rawTransactions.length} queue transactions`, elapsed(classificationStarted));
 
   const counts = {
     suggested: transactions.filter(
@@ -229,6 +249,7 @@ export async function renderBankImport(
     };
   });
 
+  const markupStarted = performance.now();
   container.innerHTML = `
     ${
       successPayload
@@ -408,6 +429,9 @@ export async function renderBankImport(
     </div>
   `;
 
+  traceLog(renderTraceId, "Build Bank Import page markup", elapsed(markupStarted));
+
+  const tablesStarted = performance.now();
   createTable("#bank-transactions-table", {
     data: visibleTransactions,
     columns: [
@@ -526,6 +550,9 @@ export async function renderBankImport(
       { data: "newTransactionCount" },
     ],
   });
+
+  traceLog(renderTraceId, "Initialize DataTables", elapsed(tablesStarted));
+  traceLog(renderTraceId, "Total Bank Import render", elapsed(renderStarted));
 
   document
     .getElementById("preview-qfx")
@@ -873,21 +900,38 @@ async function openReconciliationModal(
     confirmButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Reconciling…';
     if (statusElement) statusElement.textContent = "Creating payment and updating the rent ledger…";
 
+    const traceId = `${transactionId}-${Date.now().toString(36)}`;
+    const totalStarted = performance.now();
+    console.groupCollapsed(`[Reconcile ${traceId}] Transaction ${transactionId}`);
+
     try {
-      await reconciliationService.reconcile(transactionId, selectedLeaseId, allocations);
+      const saveStarted = performance.now();
+      await reconciliationService.reconcile(transactionId, selectedLeaseId, allocations, traceId);
+      traceLog(traceId, "Reconciliation service", elapsed(saveStarted));
+
       sessionStorage.setItem("bank-reconciliation-success", JSON.stringify({
         amount: bankTransaction.amount,
         reference: bankTransaction.externalId,
       }));
       beginQueueRefresh(container);
       submitting = false;
+
+      const modalStarted = performance.now();
       await hideModalAndWait();
+      traceLog(traceId, "Hide reconciliation modal", elapsed(modalStarted));
+
       try {
+        const refreshStarted = performance.now();
         await renderBankImport(container);
+        traceLog(traceId, "Refresh Bank Import queue", elapsed(refreshStarted));
       } finally {
         finishQueueRefresh(container);
       }
+      traceLog(traceId, "TOTAL click-to-ready", elapsed(totalStarted));
+      console.groupEnd();
     } catch (error) {
+      traceLog(traceId, "FAILED after", elapsed(totalStarted));
+      console.groupEnd();
       submitting = false;
       setControlsDisabled(false);
       confirmButton.textContent = "Confirm Reconciliation";

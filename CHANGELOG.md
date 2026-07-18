@@ -1,3 +1,10 @@
+# Baseline 5.6.3.1 — Reconciliation Instrumentation Build
+
+- Adds browser-console timing for the complete reconciliation workflow.
+- Separately measures IndexedDB transaction lookup, obligation validation, database writes, modal dismissal, queue classification, DataTable initialization, and total click-to-ready time.
+- Uses a per-reconciliation trace identifier so related timing entries can be reviewed together.
+- No business rules or reconciliation behavior changed.
+
 # Changelog
 
 All notable changes to PropertyManager are documented in this file.

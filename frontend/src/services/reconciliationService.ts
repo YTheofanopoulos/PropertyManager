@@ -306,8 +306,18 @@ export class ReconciliationService {
     transactionId: number,
     leaseId: number,
     allocations: ReconcileAllocation[],
+    traceId?: string,
   ): Promise<number> {
+    const started = performance.now();
+    const logPhase = (phase: string, phaseStarted: number): void => {
+      if (!traceId) return;
+      const duration = Math.round((performance.now() - phaseStarted) * 10) / 10;
+      console.info(`[Reconcile ${traceId}] Service — ${phase}: ${duration.toFixed(1)} ms`);
+    };
+
+    const lookupStarted = performance.now();
     const transaction = await db.bankTransactions.get(transactionId);
+    logPhase("Load transaction", lookupStarted);
     if (!transaction) throw new Error("Bank transaction not found.");
     if (transaction.status === "Reconciled") {
       throw new Error("This transaction is already reconciled.");
@@ -327,9 +337,11 @@ export class ReconciliationService {
       throw new Error("Allocations cannot exceed the bank transaction amount.");
     }
 
+    const obligationsStarted = performance.now();
     const obligations = await db.rentObligations.bulkGet(
       allocations.map((allocation) => allocation.obligationId),
     );
+    logPhase("Load and validate obligations", obligationsStarted);
     for (const allocation of allocations) {
       const obligation = obligations.find(
         (item) => item?.id === allocation.obligationId,
@@ -339,6 +351,7 @@ export class ReconciliationService {
       }
     }
 
+    const writeStarted = performance.now();
     const paymentId = await db.transaction(
       "rw",
       db.payments,
