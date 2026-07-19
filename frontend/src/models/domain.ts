@@ -77,6 +77,7 @@ export interface LeaseConcession {
   amount: number;
   startPeriod: string;
   endPeriod: string;
+  comment?: string;
 }
 
 export interface UnitListItem extends Unit {

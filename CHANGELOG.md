@@ -1,4 +1,60 @@
-# Changelog
+# CHANGELOG
+
+## \[5.8.1.1\] - 2026-07-19
+
+### Added
+
+-   Added **Reason / Comment** field to lease concessions.
+-   Added support for editing existing concession descriptions and
+    comments.
+-   Included concession comments in Backup/Restore.
+
+### Changed
+
+-   Financial concession fields (Amount, Start Month, End Month) become
+    read-only after the concession is recorded.
+-   Backup filenames now use the user-supplied Backup Name together with
+    the export date.
+-   Restore preview now prominently displays Backup Name and Backup
+    Notes.
+-   Browser compatibility improved for HTTP development environments.
+
+### Fixed
+
+-   Fixed restore failure when Web Crypto (`crypto.subtle`) is
+    unavailable during HTTP (`npm run dev -- --host`) testing.
+-   Restore now gracefully skips checksum validation when the browser
+    does not support secure-context cryptography.
+-   Added compatibility with legacy backups lacking checksum metadata.
+
+## \[5.8.1\] - 2026-07-19
+
+### Added
+
+-   Named backups.
+-   Backup Notes metadata.
+-   Enhanced Restore preview.
+-   Backup metadata summary dialog.
+
+### Changed
+
+-   Improved Backup/Restore user interface.
+-   Backup metadata now includes user-friendly identifiers.
+
+## \[5.8.0\] - 2026-07-19
+
+### Added
+
+-   Versioned JSON backup and restore.
+-   Backup compatibility checking.
+-   Restore preview.
+-   SHA-256 integrity validation.
+-   Automatic selection of highest-confidence reconciliation suggestion.
+-   Double-click to accept suggested reconciliation.
+-   Automatic advance to next Suggested transaction.
+-   Keyboard shortcuts for reconciliation.
+-   Production package cleanup.
+
 
 ## 0.5.7.2
 
@@ -897,3 +953,13 @@ All notable changes to PropertyManager are documented here.
 - Streamlined Suggested reconciliation: highest suggestion remains preselected,
   Enter confirms, Up/Down changes suggestion, double-click confirms, and successful
   reconciliation advances to the next Suggested item.
+
+
+## 0.5.8.1.1 — Baseline 5.8.1.1
+
+- Added required backup names and filename sanitization.
+- Made backup notes prominent in the restore preview.
+- Made checksum validation optional when Web Crypto is unavailable in HTTP development sessions.
+- Added concession reason/comment.
+- Existing concessions retain immutable amount and effective months while description and reason remain editable.
+- Blocked deletion when a concession affects an obligation with allocated payments.

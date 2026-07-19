@@ -1,26 +1,23 @@
-# PropertyManager — Baseline 5.8
+# PropertyManager Baseline 5.8.1.1 Delta
 
-Baseline 5.8 is the final browser-only workflow and reliability milestone before the 6.0 backend transition.
+Base version: Baseline 5.8.0
 
-## Included
+Included changes:
+- Named JSON backups and sanitized filenames.
+- Prominent backup notes in the Restore preview.
+- HTTP development compatibility when `crypto.subtle` is unavailable.
+- Concession Reason / Comment field.
+- Editing of existing concession descriptions and comments.
+- Immutable amount/start/end fields after a concession is recorded.
+- Deletion blocked when settled payment allocations would be affected.
+- Version update to 0.5.8.1.1 / Baseline 5.8.1.1.
 
-- Consistent two-decimal CAD formatting throughout the application
-- Clear distinction between payment amount and allocation amount in Rent Status details
-- XLSX Payment Receipts export with Payments, Monthly Summary, and Control Totals worksheets
-- Existing lease lifecycle, reconciliation, payment, and historical playback functionality from 5.6
-- Reconciliation instrumentation retained behind the local-storage debug flag
+Apply by copying this archive over the Baseline 5.8 source tree while preserving paths.
+Then run from `frontend`:
 
-## Development
+    npm install
+    npm run build
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+For deployment, replace the entire existing `frontend/dist` directory with the newly generated one. Do not merge old and new compiled assets.
 
-## Build
-
-```bash
-cd frontend
-npm run build
-```
+This delta intentionally does not include a stale `dist` build. The build environment used to package this delta could not complete dependency installation; rebuilding locally guarantees the compiled files correspond to these source changes.

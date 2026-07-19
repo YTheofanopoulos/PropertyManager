@@ -197,6 +197,8 @@ export async function renderLeaseEditor(
                   concession.amount,
                   concession.startPeriod,
                   concession.endPeriod,
+                  concession.comment ?? "",
+                  concession.id,
                 )).join("")}
               </div>
               <div id="no-concessions" class="text-body-secondary small ${concessions.length ? "d-none" : ""}">No concessions defined.</div>
@@ -285,30 +287,20 @@ function chargeRow(type: ChargeType, amount: number, description: string): strin
   `;
 }
 
-function concessionRow(description = "Move-in concession", amount = 0, startPeriod = "", endPeriod = ""): string {
+function concessionRow(description = "Move-in concession", amount = 0, startPeriod = "", endPeriod = "", comment = "", id?: number): string {
+  const locked = id !== undefined;
   return `
-    <div class="row g-2 align-items-end concession-row mb-3">
-      <div class="col-md-4">
-        <label class="form-label">Description</label>
-        <input class="form-control concession-description" value="${escapeHtml(description)}">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Credit</label>
-        <input class="form-control concession-amount" type="number" min="0.01" step="0.01" value="${amount || ""}">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Start Month</label>
-        <input class="form-control concession-start" type="month" value="${startPeriod}">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">End Month</label>
-        <input class="form-control concession-end" type="month" value="${endPeriod}">
-      </div>
-      <div class="col-md-2">
-        <button class="btn btn-outline-danger w-100 remove-concession" type="button">Remove</button>
-      </div>
-    </div>
-  `;
+    <div class="card concession-row mb-3" ${id !== undefined ? `data-concession-id="${id}"` : ""}>
+      <div class="card-body"><div class="row g-2 align-items-end">
+        <div class="col-md-4"><label class="form-label">Description</label><input class="form-control concession-description" value="${escapeHtml(description)}"></div>
+        <div class="col-md-2"><label class="form-label">Credit</label><input class="form-control concession-amount" type="number" min="0.01" step="0.01" value="${amount || ""}" ${locked ? "readonly" : ""}></div>
+        <div class="col-md-2"><label class="form-label">Start Month</label><input class="form-control concession-start" type="month" value="${startPeriod}" ${locked ? "readonly" : ""}></div>
+        <div class="col-md-2"><label class="form-label">End Month</label><input class="form-control concession-end" type="month" value="${endPeriod}" ${locked ? "readonly" : ""}></div>
+        <div class="col-md-2"><button class="btn btn-outline-danger w-100 remove-concession" type="button">Remove</button></div>
+        <div class="col-12"><label class="form-label">Reason / Comment</label><textarea class="form-control concession-comment" rows="2" placeholder="Why was this concession granted?">${escapeHtml(comment)}</textarea></div>
+        ${locked ? '<div class="col-12 small text-body-secondary"><i class="fa-solid fa-lock me-1"></i>Amount and effective months are locked after the concession is recorded. Description and reason remain editable.</div>' : ''}
+      </div></div>
+    </div>`;
 }
 
 function defaultEndDate(): string {
@@ -442,7 +434,7 @@ function bindEditor(
     const start = (document.getElementById("lease-start") as HTMLInputElement).value.slice(0, 7);
     document.getElementById("concession-list")?.insertAdjacentHTML(
       "beforeend",
-      concessionRow("Move-in concession", 0, start, start),
+      concessionRow("Move-in concession", 0, start, start, ""),
     );
     document.getElementById("no-concessions")?.classList.add("d-none");
     bindConcessionRows();
@@ -498,10 +490,12 @@ function bindEditor(
         amount: Number((row.querySelector(".charge-amount") as HTMLInputElement).value || 0),
       }));
       const concessions = Array.from(document.querySelectorAll<HTMLElement>(".concession-row")).map((row) => ({
+        id: row.dataset.concessionId ? Number(row.dataset.concessionId) : undefined,
         description: (row.querySelector(".concession-description") as HTMLInputElement).value,
         amount: Number((row.querySelector(".concession-amount") as HTMLInputElement).value || 0),
         startPeriod: (row.querySelector(".concession-start") as HTMLInputElement).value,
         endPeriod: (row.querySelector(".concession-end") as HTMLInputElement).value,
+        comment: (row.querySelector(".concession-comment") as HTMLTextAreaElement).value,
       }));
       const unitId = Number(leaseId
         ? (document.getElementById("lease-unit-hidden") as HTMLInputElement).value

@@ -16,10 +16,12 @@ export interface LeaseChargeInput {
 }
 
 export interface LeaseConcessionInput {
+  id?: number;
   description: string;
   amount: number;
   startPeriod: string;
   endPeriod: string;
+  comment?: string;
 }
 
 export interface LeaseSaveInput {
@@ -244,7 +246,6 @@ export class LeaseService {
           await db.leases.update(leaseId, leasePayload);
           await db.leaseParticipants.where("leaseId").equals(leaseId).delete();
           await db.recurringCharges.where("leaseId").equals(leaseId).delete();
-          await db.leaseConcessions.where("leaseId").equals(leaseId).delete();
         } else {
           leaseId = Number(await db.leases.add(leasePayload));
         }
@@ -273,16 +274,43 @@ export class LeaseService {
             } satisfies RecurringCharge)),
         );
 
-        if (input.concessions.length > 0) {
-          await db.leaseConcessions.bulkAdd(
-            input.concessions.map((concession) => ({
+        const existingConcessions = input.id
+          ? await db.leaseConcessions.where("leaseId").equals(leaseId as number).toArray()
+          : [];
+        const retainedIds = new Set(input.concessions.flatMap((item) => item.id ? [item.id] : []));
+        for (const existing of existingConcessions) {
+          if (existing.id && !retainedIds.has(existing.id)) {
+            const affected = await db.rentObligations.where("leaseId").equals(leaseId as number).filter(
+              (obligation) => obligation.rentPeriod >= existing.startPeriod && obligation.rentPeriod <= existing.endPeriod,
+            ).toArray();
+            const settled = await Promise.all(affected.map(async (obligation) => obligation.id
+              ? (await db.paymentAllocations.where("obligationId").equals(obligation.id).count()) > 0
+              : false));
+            if (settled.some(Boolean)) throw new Error("This concession cannot be deleted because it affects a period with allocated payments.");
+            await db.leaseConcessions.delete(existing.id);
+          }
+        }
+        for (const concession of input.concessions) {
+          if (concession.id) {
+            const original = existingConcessions.find((item) => item.id === concession.id);
+            if (!original) throw new Error("An existing concession could not be found.");
+            if (original.amount !== concession.amount || original.startPeriod !== concession.startPeriod || original.endPeriod !== concession.endPeriod) {
+              throw new Error("A recorded concession's amount and effective period cannot be changed.");
+            }
+            await db.leaseConcessions.update(concession.id, {
+              description: concession.description.trim() || "Lease concession",
+              comment: concession.comment?.trim() ?? "",
+            });
+          } else {
+            await db.leaseConcessions.add({
               leaseId: leaseId as number,
               description: concession.description.trim() || "Lease concession",
               amount: concession.amount,
               startPeriod: concession.startPeriod,
               endPeriod: concession.endPeriod,
-            } satisfies LeaseConcession)),
-          );
+              comment: concession.comment?.trim() ?? "",
+            } satisfies LeaseConcession);
+          }
         }
 
         await this.reconcileObligations(
