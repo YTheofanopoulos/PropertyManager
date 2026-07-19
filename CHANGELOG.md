@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 0.5.8.3.2 — 2026-07-19
+
+### Fixed
+
+- Leaseholder and other non-financial lease edits no longer run payment-allocation validation.
+- Changing participants on an active lease now preserves existing rent obligations and payment allocations when dates, recurring charge amounts, and concession financial terms are unchanged.
+- Financial validation still runs when lease dates, lease term type, recurring charge amounts, or concession amounts/effective periods change.
+- Updated the displayed application and backup version to 0.5.8.3.2.
+
 ## [5.8.3.1] - 2026-07-19
 
 ### Changed

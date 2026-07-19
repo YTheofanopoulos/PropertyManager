@@ -98,6 +98,12 @@ export class LeaseService {
     const existingParticipants = input.id
       ? await db.leaseParticipants.where("leaseId").equals(input.id).toArray()
       : [];
+    const existingCharges = input.id
+      ? await db.recurringCharges.where("leaseId").equals(input.id).toArray()
+      : [];
+    const existingConcessionsForComparison = input.id
+      ? await db.leaseConcessions.where("leaseId").equals(input.id).toArray()
+      : [];
 
     const effectiveEndDate =
       input.termType === "Month-to-Month" ? "" : input.endDate;
@@ -116,6 +122,35 @@ export class LeaseService {
       existingParticipantIds.length !== incomingParticipantIds.length ||
       existingParticipantIds.some(
         (tenantId, index) => tenantId !== incomingParticipantIds[index],
+      );
+
+    const toCents = (amount: number): number => Math.round(amount * 100);
+    const existingChargeDefinition = existingCharges
+      .map((charge) => `${charge.chargeType}:${toCents(charge.amount)}`)
+      .sort();
+    const incomingChargeDefinition = input.charges
+      .filter((charge) => charge.amount > 0)
+      .map((charge) => `${charge.chargeType}:${toCents(charge.amount)}`)
+      .sort();
+    const existingConcessionDefinition = existingConcessionsForComparison
+      .map((concession) => `${concession.id ?? "new"}:${toCents(concession.amount)}:${concession.startPeriod}:${concession.endPeriod}`)
+      .sort();
+    const incomingConcessionDefinition = input.concessions
+      .map((concession) => `${concession.id ?? "new"}:${toCents(concession.amount)}:${concession.startPeriod}:${concession.endPeriod}`)
+      .sort();
+
+    const financialDefinitionChanged =
+      !existingLease ||
+      existingLease.startDate !== input.startDate ||
+      existingLease.endDate !== effectiveEndDate ||
+      (existingLease.termType ?? "Fixed") !== input.termType ||
+      existingChargeDefinition.length !== incomingChargeDefinition.length ||
+      existingChargeDefinition.some(
+        (definition, index) => definition !== incomingChargeDefinition[index],
+      ) ||
+      existingConcessionDefinition.length !== incomingConcessionDefinition.length ||
+      existingConcessionDefinition.some(
+        (definition, index) => definition !== incomingConcessionDefinition[index],
       );
 
     const incomingStatusReservesOccupancy =
@@ -322,13 +357,15 @@ export class LeaseService {
           }
         }
 
-        await this.reconcileObligations(
-          leaseId as number,
-          input.startDate,
-          effectiveEnd,
-          input.charges,
-          input.concessions,
-        );
+        if (financialDefinitionChanged) {
+          await this.reconcileObligations(
+            leaseId as number,
+            input.startDate,
+            effectiveEnd,
+            input.charges,
+            input.concessions,
+          );
+        }
         await this.refreshUnitOccupancy(input.unitId);
         return leaseId;
       },
