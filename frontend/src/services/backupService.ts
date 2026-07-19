@@ -2,7 +2,7 @@ import { db } from "../db/database";
 
 export const BACKUP_FORMAT = "PropertyManagerBackup";
 export const BACKUP_VERSION = 3;
-export const APPLICATION_VERSION = "0.5.8.3";
+export const APPLICATION_VERSION = "0.5.8.3.1";
 export const DATABASE_SCHEMA_VERSION = 8;
 
 const tableNames = [

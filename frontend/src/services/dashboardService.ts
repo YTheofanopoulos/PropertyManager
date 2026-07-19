@@ -54,6 +54,7 @@ export interface DashboardSummary {
     endDate: string;
     daysLeft: number;
     renewalStatus: string;
+    attentionLevel: "Planning" | "Urgent" | "Deadline Passed";
   }>;
 }
 
@@ -275,9 +276,8 @@ export class DashboardService {
 
     const urgentRenewals = renewalCandidates
       .filter((item) =>
-        item.daysLeft <= 90 &&
-        item.renewalStatus !== "Renewed" &&
-        item.renewalStatus !== "Non-Renewal"
+        item.daysLeft <= 180 &&
+        item.renewalStatus === "Not Started"
       )
       .sort((left, right) => left.daysLeft - right.daysLeft)
       .slice(0, 5)
@@ -288,6 +288,13 @@ export class DashboardService {
         endDate: item.lease.endDate,
         daysLeft: item.daysLeft,
         renewalStatus: item.renewalStatus,
+        attentionLevel: (
+          item.daysLeft <= 90
+            ? "Deadline Passed"
+            : item.daysLeft <= 120
+              ? "Urgent"
+              : "Planning"
+        ) as "Planning" | "Urgent" | "Deadline Passed",
       }));
 
     const upcomingExpirations = leases

@@ -127,16 +127,16 @@ export async function renderDashboard(
             <div class="card-header fw-semibold">Renewals Requiring Attention</div>
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0 dashboard-table">
-                <thead><tr><th>Unit</th><th>Expires</th><th>Status</th></tr></thead>
+                <thead><tr><th>Unit</th><th>Expires</th><th>Priority</th></tr></thead>
                 <tbody>
                   ${summary.urgentRenewals.length > 0
                     ? summary.urgentRenewals.map((lease) => `
                       <tr>
                         <td><a href="#/leases/${lease.leaseId}">${escapeHtml(lease.unitLabel)}</a><div class="small text-body-secondary">${escapeHtml(lease.tenantNames)}</div></td>
                         <td>${lease.endDate}<div class="small text-body-secondary">${lease.daysLeft} days</div></td>
-                        <td>${escapeHtml(lease.renewalStatus)}</td>
+                        <td><span class="badge ${lease.attentionLevel === "Deadline Passed" ? "text-bg-danger" : lease.attentionLevel === "Urgent" ? "text-bg-warning" : "text-bg-info"}">${escapeHtml(lease.attentionLevel)}</span></td>
                       </tr>`).join("")
-                    : emptyRow(3, "No renewal actions are currently due.")}
+                    : emptyRow(3, "No renewal letters currently require attention.")}
                 </tbody>
               </table>
             </div>

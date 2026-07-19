@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## [5.8.3.1] - 2026-07-19
+
+### Changed
+- Expanded Renewals Requiring Attention to include leases from 180 days before expiration.
+- Classified unsent renewal letters as Planning from 180–121 days, Urgent from 120–91 days, and Deadline Passed at 90 days or fewer.
+- Removed leases from the attention queue once a renewal letter has been recorded as sent or the renewal has otherwise advanced beyond Not Started.
+- Updated the displayed application and backup version to 0.5.8.3.1.
+
 ## [5.8.3] - 2026-07-19
 
 ### Added
