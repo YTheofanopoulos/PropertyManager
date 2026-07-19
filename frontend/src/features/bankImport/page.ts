@@ -743,6 +743,29 @@ async function openReconciliationModal(
     modalElement.querySelectorAll<HTMLButtonElement>("[data-bs-dismiss='modal']"),
   );
 
+  const handleModalKeydown = (event: KeyboardEvent): void => {
+    if (submitting) return;
+    const target = event.target as HTMLElement | null;
+    if (event.key === "Enter" && target?.tagName !== "INPUT" && !confirmButton.disabled) {
+      event.preventDefault();
+      confirmButton.click();
+      return;
+    }
+
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      const items = Array.from(
+        modalElement.querySelectorAll<HTMLButtonElement>(".modal-suggestion-item"),
+      );
+      if (items.length === 0) return;
+      const activeIndex = Math.max(items.findIndex((item) => item.classList.contains("active")), 0);
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      const nextIndex = (activeIndex + direction + items.length) % items.length;
+      event.preventDefault();
+      items[nextIndex].click();
+      items[nextIndex].focus();
+    }
+  };
+
   const hideModal = (): void => {
     if (submitting) return;
     modal.hide();
@@ -783,11 +806,13 @@ async function openReconciliationModal(
     document.querySelectorAll(".modal-backdrop").forEach((backdrop) => backdrop.remove());
     modalElement.removeEventListener("hide.bs.modal", handleHide);
     modalElement.removeEventListener("hidden.bs.modal", handleHidden);
+    modalElement.removeEventListener("keydown", handleModalKeydown);
   };
 
   modalElement.addEventListener("hide.bs.modal", handleHide);
   modalElement.addEventListener("hidden.bs.modal", handleHidden);
   modal.show();
+  modalElement.addEventListener("keydown", handleModalKeydown);
   modalBody.innerHTML = `
     <div class="text-center py-5">
       <div class="spinner-border" role="status"><span class="visually-hidden">Loading…</span></div>
@@ -875,7 +900,7 @@ async function openReconciliationModal(
   document
     .querySelectorAll<HTMLElement>(".modal-suggestion-item")
     .forEach((item) => {
-      item.addEventListener("click", async () => {
+      const selectItem = async (): Promise<void> => {
         if (submitting) return;
         document
           .querySelectorAll(".modal-suggestion-item")
@@ -883,6 +908,12 @@ async function openReconciliationModal(
         item.classList.add("active");
         selectedLeaseId = Number(item.dataset.leaseId);
         await loadAllocations();
+      };
+
+      item.addEventListener("click", () => void selectItem());
+      item.addEventListener("dblclick", async () => {
+        await selectItem();
+        if (!submitting && !confirmButton.disabled) confirmButton.click();
       });
     });
 
@@ -938,6 +969,17 @@ async function openReconciliationModal(
         const refreshStarted = performance.now();
         await renderBankImport(container);
         traceLog(traceId, "Refresh Bank Import queue", elapsed(refreshStarted));
+
+        const nextSuggestedButton = Array.from(
+          container.querySelectorAll<HTMLButtonElement>(".open-reconciliation-modal"),
+        ).find((button) => {
+          const rowText = button.closest("tr")?.textContent ?? "";
+          return rowText.includes("Strong Candidate") || rowText.includes("Good Candidate");
+        });
+        const nextId = Number(nextSuggestedButton?.dataset.id ?? 0);
+        if (nextId) {
+          window.setTimeout(() => void openReconciliationModal(container, nextId), 0);
+        }
       } finally {
         finishQueueRefresh(container);
       }

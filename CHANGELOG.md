@@ -886,3 +886,14 @@ All notable changes to PropertyManager are documented here.
 - Corrected the Baseline 5.2 vacancies to 116 Clermont, 383-4 Edouard-Charles, and 387-1 Edouard-Charles.
 - All other units now receive active leases for July 1, 2026 through June 30, 2027.
 - Updated the normalized test-data reference file and documentation.
+
+## 0.5.8.0 — Baseline 5.8
+
+- Replaced Import/Export JSON labels with Create Backup and Restore Backup.
+- Added versioned backup envelope with application version, database schema,
+  creation timestamp, optional notes, record counts, and SHA-256 integrity check.
+- Backup now includes every IndexedDB object store, including lease concessions.
+- Added restore preview, schema compatibility checks, and legacy 5.x backup support.
+- Streamlined Suggested reconciliation: highest suggestion remains preselected,
+  Enter confirms, Up/Down changes suggestion, double-click confirms, and successful
+  reconciliation advances to the next Suggested item.

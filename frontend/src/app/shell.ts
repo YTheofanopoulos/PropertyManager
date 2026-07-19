@@ -31,8 +31,8 @@ export function renderShell(): HTMLElement {
 
         <div class="nav-heading">Administration</div>
         <a href="#/settings" data-route="/settings"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
-        <button class="nav-button" id="export-data"><i class="fa-solid fa-download"></i><span>Export JSON</span></button>
-        <button class="nav-button" id="import-data"><i class="fa-solid fa-upload"></i><span>Import JSON</span></button>
+        <button class="nav-button" id="export-data"><i class="fa-solid fa-download"></i><span>Create Backup</span></button>
+        <button class="nav-button" id="import-data"><i class="fa-solid fa-upload"></i><span>Restore Backup</span></button>
         <input id="import-data-file" type="file" accept="application/json,.json" class="d-none">
         <button class="nav-button" id="reset-data"><i class="fa-solid fa-rotate-left"></i><span>Reset Sample Data</span></button>
       </nav>
@@ -52,7 +52,7 @@ export function renderShell(): HTMLElement {
           data-bs-target="#about-property-manager"
         >
           <i class="fa-solid fa-circle-info me-2"></i>
-          <span>v0.5.7.2</span>
+          <span>v0.5.8.0</span>
         </button>
       </div>
     </aside>
@@ -78,7 +78,7 @@ export function renderShell(): HTMLElement {
       }
       <header class="topbar d-flex justify-content-between align-items-center">
         <span class="fw-semibold">PropertyManager</span>
-        <span class="small text-body-secondary">Baseline 5.7.2 · DB Schema 8</span>
+        <span class="small text-body-secondary">Baseline 5.8 · DB Schema 8</span>
       </header>
       <section id="page-content" class="content"></section>
     </main>
@@ -97,13 +97,13 @@ export function renderShell(): HTMLElement {
         <div class="modal-body">
           <dl class="row mb-0">
             <dt class="col-5">Application Version</dt>
-            <dd class="col-7">0.5.7.2</dd>
+            <dd class="col-7">0.5.8.0</dd>
 
             <dt class="col-5">Baseline</dt>
-            <dd class="col-7">5.7.1</dd>
+            <dd class="col-7">5.8</dd>
 
             <dt class="col-5">Database Schema</dt>
-            <dd class="col-7">7</dd>
+            <dd class="col-7">8</dd>
 
             <dt class="col-5">Sample Data</dt>
             <dd class="col-7">Historical leases: Jul 2025 – Jun 2026</dd>

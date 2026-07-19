@@ -31,7 +31,8 @@ async function start(): Promise<void> {
 
   document.getElementById("export-data")?.addEventListener("click", async () => {
     try {
-      await backupService.exportBackup();
+      const notes = window.prompt("Optional backup notes:", "") ?? "";
+      await backupService.exportBackup(notes);
     } catch (error) {
       window.alert((error as Error).message);
     }
@@ -50,14 +51,29 @@ async function start(): Promise<void> {
     importInput.value = "";
     if (!file) return;
 
-    const confirmed = window.confirm(
-      "Import this JSON backup?\n\n" +
-        "All current PropertyManager data in this browser will be replaced. " +
-        "This cannot be undone unless you export the current data first.",
-    );
-    if (!confirmed) return;
-
     try {
+      const preview = await backupService.inspectBackup(file);
+      const exported = preview.exportedAt === "Unknown"
+        ? "Unknown"
+        : new Date(preview.exportedAt).toLocaleString();
+      const notes = preview.notes ? `\nNotes: ${preview.notes}` : "";
+      const legacy = preview.legacy ? "\nLegacy backup: Yes" : "";
+      const confirmed = window.confirm(
+        `Restore this PropertyManager backup?\n\n` +
+        `Created: ${exported}\n` +
+        `Application: ${preview.applicationVersion}\n` +
+        `Schema: ${preview.schemaVersion}\n` +
+        `Records: ${preview.totalRecords}${notes}${legacy}\n\n` +
+        `Locations: ${preview.counts.locations}\n` +
+        `Units: ${preview.counts.units}\n` +
+        `Tenants: ${preview.counts.tenants}\n` +
+        `Leases: ${preview.counts.leases}\n` +
+        `Payments: ${preview.counts.payments}\n` +
+        `Rent obligations: ${preview.counts.rentObligations}\n\n` +
+        "All current PropertyManager data in this browser will be replaced.",
+      );
+      if (!confirmed) return;
+
       await backupService.importBackup(file);
       window.alert("JSON data imported successfully. The application will reload.");
       window.location.reload();

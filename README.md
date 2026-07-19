@@ -1,6 +1,6 @@
-# PropertyManager — Baseline 5.7
+# PropertyManager — Baseline 5.8
 
-Baseline 5.7 builds on the validated 5.6 accounting baseline.
+Baseline 5.8 is the final browser-only workflow and reliability milestone before the 6.0 backend transition.
 
 ## Included
 
