@@ -349,3 +349,74 @@ div.dt-container .dt-length select {
 .bank-import-queue-refreshing #reconciliation-queue-card .card-header {
   cursor: wait;
 }
+
+/* Baseline 5.8.1.1 UI enhancement: compact, scrollable accordion navigation */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.nav-section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px 7px;
+  color: #90a4ae;
+  background: transparent;
+  border: 0;
+  font-size: .7rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.nav-section-toggle:hover,
+.nav-section-toggle:focus-visible {
+  color: #fff;
+  outline: 0;
+}
+
+.nav-section-chevron {
+  width: auto !important;
+  font-size: .65rem;
+  transition: transform .15s ease;
+}
+
+.nav-section-toggle[aria-expanded="false"] .nav-section-chevron {
+  transform: rotate(-90deg);
+}
+
+.nav-section-items[hidden] {
+  display: none !important;
+}
+
+.currency-input .input-group-text {
+  min-width: 2.35rem;
+  justify-content: center;
+}
+
+@media (max-width: 850px) {
+  .nav-section-toggle {
+    justify-content: center;
+    padding: 12px 0 5px;
+  }
+
+  .nav-section-toggle span,
+  .nav-section-chevron {
+    display: none;
+  }
+
+  .nav-section-items[hidden] {
+    display: block !important;
+  }
+}

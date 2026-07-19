@@ -10,6 +10,33 @@ import { backupService, type BackupPreview } from "./services/backupService";
 import { applicationClock } from "./services/applicationClockService";
 import { escapeHtml } from "./features/shared/format";
 
+
+function bindSidebarSections(): void {
+  const storageKey = "propertyManager.sidebarSections";
+  let saved: Record<string, boolean> = {};
+  try { saved = JSON.parse(localStorage.getItem(storageKey) ?? "{}"); } catch { saved = {}; }
+
+  document.querySelectorAll<HTMLElement>(".nav-section").forEach((section) => {
+    const key = section.dataset.navSection;
+    const toggle = section.querySelector<HTMLButtonElement>(".nav-section-toggle");
+    const items = section.querySelector<HTMLElement>(".nav-section-items");
+    if (!key || !toggle || !items) return;
+
+    const defaultExpanded = toggle.getAttribute("aria-expanded") === "true";
+    const expanded = saved[key] ?? defaultExpanded;
+    toggle.setAttribute("aria-expanded", String(expanded));
+    items.hidden = !expanded;
+
+    toggle.addEventListener("click", () => {
+      const next = toggle.getAttribute("aria-expanded") !== "true";
+      toggle.setAttribute("aria-expanded", String(next));
+      items.hidden = !next;
+      saved[key] = next;
+      localStorage.setItem(storageKey, JSON.stringify(saved));
+    });
+  });
+}
+
 function promptForBackup(): { name: string; notes: string } | null {
   const name = window.prompt("Backup name (required):", "")?.trim();
   if (name === undefined || name === null) return null;
@@ -54,6 +81,7 @@ function confirmRestore(preview: BackupPreview): Promise<boolean> {
 async function start(): Promise<void> {
   await seedDatabase();
   const container = renderShell();
+  bindSidebarSections();
   window.addEventListener("hashchange", () => void route(container));
   document.getElementById("banner-restore-system-date")?.addEventListener("click", () => { applicationClock.useSystemDate(); window.location.reload(); });
   document.getElementById("reset-data")?.addEventListener("click", async () => { if (!window.confirm("Reset browser data to the sample portfolio?")) return; await seedDatabase(true); await route(container); window.alert("Sample data restored."); });

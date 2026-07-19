@@ -8,33 +8,63 @@ export function renderShell(): HTMLElement {
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand"><i class="fa-solid fa-building me-2"></i><span>Property Manager</span></div>
-      <nav>
+      <nav class="sidebar-nav" aria-label="Primary navigation">
         <a href="#/" data-route="/"><i class="fa-solid fa-gauge"></i><span>Dashboard</span></a>
 
-        <div class="nav-heading">Portfolio</div>
-        <a href="#/locations" data-route="/locations"><i class="fa-solid fa-map-location-dot"></i><span>Locations</span></a>
-        <a href="#/buildings" data-route="/buildings"><i class="fa-solid fa-building"></i><span>Buildings</span></a>
-        <a href="#/units" data-route="/units"><i class="fa-solid fa-door-open"></i><span>Units</span></a>
+        <section class="nav-section" data-nav-section="portfolio">
+          <button class="nav-section-toggle" type="button" aria-expanded="true" aria-controls="nav-section-portfolio">
+            <span>Portfolio</span><i class="fa-solid fa-chevron-down nav-section-chevron"></i>
+          </button>
+          <div class="nav-section-items" id="nav-section-portfolio">
+            <a href="#/locations" data-route="/locations"><i class="fa-solid fa-map-location-dot"></i><span>Locations</span></a>
+            <a href="#/buildings" data-route="/buildings"><i class="fa-solid fa-building"></i><span>Buildings</span></a>
+            <a href="#/units" data-route="/units"><i class="fa-solid fa-door-open"></i><span>Units</span></a>
+          </div>
+        </section>
 
-        <div class="nav-heading">Residents</div>
-        <a href="#/tenants" data-route="/tenants"><i class="fa-solid fa-users"></i><span>Tenants</span></a>
-        <a href="#/leases" data-route="/leases"><i class="fa-solid fa-file-signature"></i><span>Leases</span></a>
+        <section class="nav-section" data-nav-section="residents">
+          <button class="nav-section-toggle" type="button" aria-expanded="true" aria-controls="nav-section-residents">
+            <span>Residents</span><i class="fa-solid fa-chevron-down nav-section-chevron"></i>
+          </button>
+          <div class="nav-section-items" id="nav-section-residents">
+            <a href="#/tenants" data-route="/tenants"><i class="fa-solid fa-users"></i><span>Tenants</span></a>
+            <a href="#/leases" data-route="/leases"><i class="fa-solid fa-file-signature"></i><span>Leases</span></a>
+          </div>
+        </section>
 
-        <div class="nav-heading">Financial</div>
-        <a href="#/payments" data-route="/payments"><i class="fa-solid fa-money-check-dollar"></i><span>Payments</span></a>
-        <a href="#/bank-import" data-route="/bank-import"><i class="fa-solid fa-file-import"></i><span>Import Bank Statement</span></a>
-        <a href="#/rent-roll" data-route="/rent-roll"><i class="fa-solid fa-table-list"></i><span>Rent Roll</span></a>
+        <section class="nav-section" data-nav-section="financial">
+          <button class="nav-section-toggle" type="button" aria-expanded="true" aria-controls="nav-section-financial">
+            <span>Financial</span><i class="fa-solid fa-chevron-down nav-section-chevron"></i>
+          </button>
+          <div class="nav-section-items" id="nav-section-financial">
+            <a href="#/payments" data-route="/payments"><i class="fa-solid fa-money-check-dollar"></i><span>Payments</span></a>
+            <a href="#/bank-import" data-route="/bank-import"><i class="fa-solid fa-file-import"></i><span>Import Bank Statement</span></a>
+            <a href="#/rent-roll" data-route="/rent-roll"><i class="fa-solid fa-table-list"></i><span>Rent Roll</span></a>
+          </div>
+        </section>
 
-        <div class="nav-heading">Reports</div>
-        <a href="#/rent-status" data-route="/rent-status"><i class="fa-solid fa-calendar-check"></i><span>Rent Status</span></a>
-        <a href="#/reports" data-route="/reports"><i class="fa-solid fa-receipt"></i><span>Payment Receipts</span></a>
+        <section class="nav-section" data-nav-section="reports">
+          <button class="nav-section-toggle" type="button" aria-expanded="false" aria-controls="nav-section-reports">
+            <span>Reports</span><i class="fa-solid fa-chevron-down nav-section-chevron"></i>
+          </button>
+          <div class="nav-section-items" id="nav-section-reports" hidden>
+            <a href="#/rent-status" data-route="/rent-status"><i class="fa-solid fa-calendar-check"></i><span>Rent Status</span></a>
+            <a href="#/reports" data-route="/reports"><i class="fa-solid fa-receipt"></i><span>Payment Receipts</span></a>
+          </div>
+        </section>
 
-        <div class="nav-heading">Administration</div>
-        <a href="#/settings" data-route="/settings"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
-        <button class="nav-button" id="export-data"><i class="fa-solid fa-download"></i><span>Create Backup</span></button>
-        <button class="nav-button" id="import-data"><i class="fa-solid fa-upload"></i><span>Restore Backup</span></button>
-        <input id="import-data-file" type="file" accept="application/json,.json" class="d-none">
-        <button class="nav-button" id="reset-data"><i class="fa-solid fa-rotate-left"></i><span>Reset Sample Data</span></button>
+        <section class="nav-section" data-nav-section="administration">
+          <button class="nav-section-toggle" type="button" aria-expanded="false" aria-controls="nav-section-administration">
+            <span>Administration</span><i class="fa-solid fa-chevron-down nav-section-chevron"></i>
+          </button>
+          <div class="nav-section-items" id="nav-section-administration" hidden>
+            <a href="#/settings" data-route="/settings"><i class="fa-solid fa-gear"></i><span>Settings</span></a>
+            <button class="nav-button" id="export-data"><i class="fa-solid fa-download"></i><span>Create Backup</span></button>
+            <button class="nav-button" id="import-data"><i class="fa-solid fa-upload"></i><span>Restore Backup</span></button>
+            <input id="import-data-file" type="file" accept="application/json,.json" class="d-none">
+            <button class="nav-button" id="reset-data"><i class="fa-solid fa-rotate-left"></i><span>Reset Sample Data</span></button>
+          </div>
+        </section>
       </nav>
 
       <div class="sidebar-clock-card mx-3 mt-auto mb-3">

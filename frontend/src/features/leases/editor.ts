@@ -281,7 +281,7 @@ function chargeRow(type: ChargeType, amount: number, description: string): strin
   return `
     <div class="row g-2 align-items-end charge-row mb-3" data-type="${type}">
       <div class="col-md-4"><label class="form-label">${type}</label><input class="form-control charge-description" value="${escapeHtml(description)}"></div>
-      <div class="col-md-4"><label class="form-label">Monthly Amount</label><input class="form-control charge-amount" type="number" min="0" step="0.01" value="${amount}"></div>
+      <div class="col-md-4"><label class="form-label">Monthly Amount</label><div class="input-group currency-input"><span class="input-group-text">$</span><input class="form-control charge-amount" type="number" min="0" step="0.01" inputmode="decimal" value="${amount.toFixed(2)}"></div></div>
       <div class="col-md-4 small text-body-secondary pb-2">${type === "Apartment Rent" ? "Required base rent" : "Optional"}</div>
     </div>
   `;
@@ -441,7 +441,14 @@ function bindEditor(
   });
   bindConcessionRows();
 
-  document.querySelectorAll<HTMLInputElement>(".charge-amount").forEach((input) => input.addEventListener("input", () => refreshReview(selectedTenantIds.length)));
+  document.querySelectorAll<HTMLInputElement>(".charge-amount").forEach((input) => {
+    input.addEventListener("input", () => refreshReview(selectedTenantIds.length));
+    input.addEventListener("blur", () => {
+      const amount = Number(input.value || 0);
+      input.value = Number.isFinite(amount) ? amount.toFixed(2) : "0.00";
+      refreshReview(selectedTenantIds.length);
+    });
+  });
   document.getElementById("lease-unit")?.addEventListener("change", () => refreshReview(selectedTenantIds.length));
   document.getElementById("lease-term")?.addEventListener("change", () => {
     const term = (document.getElementById("lease-term") as HTMLSelectElement).value;

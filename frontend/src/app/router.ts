@@ -31,6 +31,15 @@ export async function route(container: HTMLElement): Promise<void> {
           ? path === "/bank-import" || path.startsWith("/bank-import/")
           : routePath === path;
     element.classList.toggle("active", active);
+    if (active) {
+      const section = element.closest<HTMLElement>(".nav-section");
+      const toggle = section?.querySelector<HTMLButtonElement>(".nav-section-toggle");
+      const items = section?.querySelector<HTMLElement>(".nav-section-items");
+      if (toggle && items) {
+        toggle.setAttribute("aria-expanded", "true");
+        items.hidden = false;
+      }
+    }
   });
 
   if (path === "/settings") return renderSettings(container);

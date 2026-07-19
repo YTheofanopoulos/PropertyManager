@@ -1,23 +1,23 @@
-# PropertyManager Baseline 5.8.1.1 Delta
+# PropertyManager Baseline 5.8.1.1 UI Enhancement Delta
 
-Base version: Baseline 5.8.0
+Apply over the existing Baseline 5.8.1.1 source tree.
 
-Included changes:
-- Named JSON backups and sanitized filenames.
-- Prominent backup notes in the Restore preview.
-- HTTP development compatibility when `crypto.subtle` is unavailable.
-- Concession Reason / Comment field.
-- Editing of existing concession descriptions and comments.
-- Immutable amount/start/end fields after a concession is recorded.
-- Deletion blocked when settled payment allocations would be affected.
-- Version update to 0.5.8.1.1 / Baseline 5.8.1.1.
+## Included
 
-Apply by copying this archive over the Baseline 5.8 source tree while preserving paths.
-Then run from `frontend`:
+- Collapsible Portfolio, Residents, Financial, Reports, and Administration menu sections.
+- Independently scrollable left navigation for smaller-height displays.
+- Expanded/collapsed section state stored in local storage.
+- The section containing the active route opens automatically.
+- Recurring charge inputs show a dollar prefix and normalize to two decimal places when focus leaves the field.
+- Updated CHANGELOG.md.
 
-    npm install
-    npm run build
+## Build
 
-For deployment, replace the entire existing `frontend/dist` directory with the newly generated one. Do not merge old and new compiled assets.
+After copying the delta, run from `frontend`:
 
-This delta intentionally does not include a stale `dist` build. The build environment used to package this delta could not complete dependency installation; rebuilding locally guarantees the compiled files correspond to these source changes.
+```bash
+npm install
+npm run build
+```
+
+The archive contains source changes only; `node_modules`, `.git`, and generated build output are excluded.
