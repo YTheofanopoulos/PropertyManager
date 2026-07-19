@@ -5,11 +5,12 @@
 ### Added
 - Added a centralized **Unapplied Credits** page showing each payment's original amount, applied amount, and remaining credit.
 - Added one-click credit application to outstanding rent obligations with validation and ledger status refresh.
-- Added direct backup-folder selection through the File System Access API when supported by the browser.
-- Added automatic fallback to the standard browser download flow when folder selection is unavailable.
 
 ### Changed
 - Added Unapplied Credits to the collapsible Financial navigation section.
+- Backup creation now uses the browser's standard download workflow on every supported platform.
+- Users can select the destination through the browser's native Save dialog when the browser is configured to ask where downloads should be saved.
+- Removed the File System Access API directory-picker dependency for consistent behavior on macOS, Windows, and across browsers.
 - Updated application version to 0.5.8.2 / Baseline 5.8.2.
 
 # Changelog

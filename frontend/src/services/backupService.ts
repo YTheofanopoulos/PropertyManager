@@ -93,12 +93,18 @@ export class BackupService {
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
     const filename = `PropertyManager_${sanitizeBackupName(cleanName)}_${new Date().toISOString().slice(0, 10)}.json`;
-    const picker = (window as unknown as { showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle> }).showDirectoryPicker;
-    if (picker) {
-      try { const directory = await picker(); const handle = await directory.getFileHandle(filename, { create: true }); const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); localStorage.setItem("propertyManager.lastBackupDirectoryName", directory.name); return; }
-      catch (error) { if ((error as DOMException).name === "AbortError") return; }
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = filename;
+      anchor.style.display = "none";
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+    } finally {
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
     }
-    const anchor = document.createElement("a"); anchor.href = URL.createObjectURL(blob); anchor.download = filename; anchor.click(); URL.revokeObjectURL(anchor.href);
   }
 
   async inspectBackup(file: File): Promise<BackupPreview> { return (await this.prepareBackup(file)).preview; }
