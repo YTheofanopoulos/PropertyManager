@@ -1,6 +1,6 @@
-# PropertyManager Baseline 5.8.1.1 UI Enhancement Delta
+# PropertyManager Baseline 5.8.2 UI Enhancement Delta
 
-Apply over the existing Baseline 5.8.1.1 source tree.
+Apply over the existing Baseline 5.8.2 source tree.
 
 ## Included
 

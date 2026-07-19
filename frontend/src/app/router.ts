@@ -14,6 +14,7 @@ import { renderRentStatus } from "../features/rentStatus/page";
 import { renderPaymentReceiptsReport } from "../features/reports/paymentReceiptsPage";
 import { renderTenants } from "../features/tenants/page";
 import { renderUnits } from "../features/units/page";
+import { renderCredits } from "../features/credits/page";
 
 const placeholders: Record<string, [string, string]> = {};
 
@@ -52,6 +53,7 @@ export async function route(container: HTMLElement): Promise<void> {
   if (path === "/rent-status") return renderRentStatus(container);
   if (path === "/reports") return renderPaymentReceiptsReport(container);
   if (path === "/payments") return renderPayments(container);
+  if (path === "/credits") return renderCredits(container);
   if (path === "/bank-import") return renderBankImport(container);
   if (path.startsWith("/payments/new")) return renderPaymentEditor(container);
   if (path === "/leases/new") return renderLeaseEditor(container);

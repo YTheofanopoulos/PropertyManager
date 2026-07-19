@@ -1,3 +1,17 @@
+# CHANGELOG
+
+## [5.8.2] - 2026-07-19
+
+### Added
+- Added a centralized **Unapplied Credits** page showing each payment's original amount, applied amount, and remaining credit.
+- Added one-click credit application to outstanding rent obligations with validation and ledger status refresh.
+- Added direct backup-folder selection through the File System Access API when supported by the browser.
+- Added automatic fallback to the standard browser download flow when folder selection is unavailable.
+
+### Changed
+- Added Unapplied Credits to the collapsible Financial navigation section.
+- Updated application version to 0.5.8.2 / Baseline 5.8.2.
+
 # Changelog
 
 ## 0.5.7.2

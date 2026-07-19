@@ -2,7 +2,7 @@ import { db } from "../db/database";
 
 export const BACKUP_FORMAT = "PropertyManagerBackup";
 export const BACKUP_VERSION = 3;
-export const APPLICATION_VERSION = "0.5.8.1.1";
+export const APPLICATION_VERSION = "0.5.8.2";
 export const DATABASE_SCHEMA_VERSION = 8;
 
 const tableNames = [
@@ -92,11 +92,13 @@ export class BackupService {
       database,
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
-    const anchor = document.createElement("a");
-    anchor.href = URL.createObjectURL(blob);
-    anchor.download = `PropertyManager_${sanitizeBackupName(cleanName)}_${new Date().toISOString().slice(0, 10)}.json`;
-    anchor.click();
-    URL.revokeObjectURL(anchor.href);
+    const filename = `PropertyManager_${sanitizeBackupName(cleanName)}_${new Date().toISOString().slice(0, 10)}.json`;
+    const picker = (window as unknown as { showDirectoryPicker?: () => Promise<FileSystemDirectoryHandle> }).showDirectoryPicker;
+    if (picker) {
+      try { const directory = await picker(); const handle = await directory.getFileHandle(filename, { create: true }); const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); localStorage.setItem("propertyManager.lastBackupDirectoryName", directory.name); return; }
+      catch (error) { if ((error as DOMException).name === "AbortError") return; }
+    }
+    const anchor = document.createElement("a"); anchor.href = URL.createObjectURL(blob); anchor.download = filename; anchor.click(); URL.revokeObjectURL(anchor.href);
   }
 
   async inspectBackup(file: File): Promise<BackupPreview> { return (await this.prepareBackup(file)).preview; }
