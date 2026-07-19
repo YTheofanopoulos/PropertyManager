@@ -35,6 +35,7 @@ export async function renderLeases(container: HTMLElement): Promise<void> {
               <th>End</th>
               <th>Monthly Total</th>
               <th>Status</th>
+              <th>Renewal</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -74,6 +75,23 @@ export async function renderLeases(container: HTMLElement): Promise<void> {
         data: "status",
         render: (value: string) =>
           `<span class="badge text-bg-${value === "Active" ? "success" : value === "Future" ? "info" : value === "Terminated" ? "danger" : "secondary"}">${escapeHtml(value)}</span>`,
+      },
+      {
+        data: "renewalStatus",
+        render: (value: string | undefined) => {
+          const status = value ?? "Not Started";
+          const badgeClass: Record<string, string> = {
+            "Not Started": "secondary",
+            "Planning": "primary",
+            "Urgent": "warning",
+            "Renewal Letter Sent": "info",
+            "Awaiting Tenant Response": "info",
+            "Renewed": "success",
+            "Non-Renewal": "dark",
+            "Under Dispute": "danger",
+          };
+          return `<span class="badge text-bg-${badgeClass[status] ?? "secondary"}">${escapeHtml(status)}</span>`;
+        },
       },
       {
         data: "id",

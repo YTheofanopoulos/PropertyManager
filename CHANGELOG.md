@@ -1,5 +1,11 @@
 # CHANGELOG
 
+### Additional UI refinement
+
+- Added a sortable and searchable **Renewal** column to the Leases table.
+- Positioned the new column between **Status** and **Actions**.
+- Renewal states are displayed as color-coded badges for quick scanning.
+
 ## 0.5.8.3.2 — 2026-07-19
 
 ### Fixed
