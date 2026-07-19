@@ -11,6 +11,9 @@ export interface Building {
   id?: EntityId;
   locationId: EntityId;
   civicAddress: string;
+  city?: string;
+  stateProvince?: string;
+  postalCode?: string;
 }
 
 export type UnitStatus = "Occupied" | "Vacant" | "Maintenance";
@@ -36,6 +39,7 @@ export interface Tenant {
 }
 
 export type LeaseStatus = "Active" | "Expired" | "Future" | "Terminated";
+export type RenewalStatus = "Not Started" | "Renewal Letter Sent" | "Renewed" | "Under Dispute" | "Non-Renewal";
 export type LeaseTermType = "Fixed" | "Month-to-Month";
 
 export interface Lease {
@@ -45,6 +49,10 @@ export interface Lease {
   endDate: string;
   termType?: LeaseTermType;
   status: LeaseStatus;
+  renewalStatus?: RenewalStatus;
+  renewalLetterSentDate?: string;
+  renewalResponseDate?: string;
+  renewalNotes?: string;
   notes?: string;
 }
 

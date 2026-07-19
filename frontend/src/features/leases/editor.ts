@@ -2,6 +2,7 @@ import { db } from "../../db/database";
 import type {
   ChargeType,
   LeaseStatus,
+  RenewalStatus,
   LeaseTermType,
   Tenant,
 } from "../../models/domain";
@@ -158,7 +159,29 @@ export async function renderLeaseEditor(
           </div>
 
           <div class="card mb-4">
-            <div class="card-header fw-semibold">4. Recurring Charges</div>
+            <div class="card-header fw-semibold">4. Renewal Tracking</div>
+            <div class="card-body">
+              <div class="row g-3">
+                <div class="col-md-4">
+                  <label class="form-label">Renewal Status</label>
+                  <select id="renewal-status" class="form-select">
+                    ${(["Not Started", "Renewal Letter Sent", "Renewed", "Under Dispute", "Non-Renewal"] as RenewalStatus[]).map((status) =>
+                      `<option ${lease?.renewalStatus === status || (!lease?.renewalStatus && status === "Not Started") ? "selected" : ""}>${status}</option>`,
+                    ).join("")}
+                  </select>
+                </div>
+                <div class="col-md-4"><label class="form-label">Renewal Letter Sent Date</label>
+                  <input id="renewal-letter-date" type="date" class="form-control" value="${lease?.renewalLetterSentDate ?? ""}"></div>
+                <div class="col-md-4"><label class="form-label">Response / Resolution Date</label>
+                  <input id="renewal-response-date" type="date" class="form-control" value="${lease?.renewalResponseDate ?? ""}"></div>
+                <div class="col-12"><label class="form-label">Renewal Notes</label>
+                  <textarea id="renewal-notes" class="form-control" rows="2">${escapeHtml(lease?.renewalNotes ?? "")}</textarea></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-4">
+            <div class="card-header fw-semibold">5. Recurring Charges</div>
             <div class="card-body">
               <p class="text-body-secondary">
                 Apartment rent is required. Market Rent is used only as the initial suggestion; the saved lease rent becomes authoritative.
@@ -182,7 +205,7 @@ export async function renderLeaseEditor(
 
           <div class="card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-              <span class="fw-semibold">5. Lease Concessions</span>
+              <span class="fw-semibold">6. Lease Concessions</span>
               <button class="btn btn-sm btn-outline-primary" type="button" id="add-concession">
                 <i class="fa-solid fa-plus me-1"></i>Add Concession
               </button>
@@ -516,6 +539,10 @@ function bindEditor(
         termType: (document.getElementById("lease-term") as HTMLSelectElement).value as LeaseTermType,
         status: (document.getElementById("lease-status") as HTMLSelectElement).value as LeaseStatus,
         notes: (document.getElementById("lease-notes") as HTMLTextAreaElement).value,
+        renewalStatus: (document.getElementById("renewal-status") as HTMLSelectElement).value as RenewalStatus,
+        renewalLetterSentDate: (document.getElementById("renewal-letter-date") as HTMLInputElement).value,
+        renewalResponseDate: (document.getElementById("renewal-response-date") as HTMLInputElement).value,
+        renewalNotes: (document.getElementById("renewal-notes") as HTMLTextAreaElement).value,
         participantIds: [...selectedTenantIds],
         primaryTenantId: selectedTenantIds[0] ?? 0,
         charges,

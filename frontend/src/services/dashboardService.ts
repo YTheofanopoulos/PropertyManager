@@ -40,6 +40,21 @@ export interface DashboardSummary {
     endDate: string;
     daysLeft: number;
   }>;
+  renewalPipeline: Array<{
+    window: string;
+    notStarted: number;
+    letterSent: number;
+    renewed: number;
+    underDispute: number;
+  }>;
+  urgentRenewals: Array<{
+    leaseId: number;
+    unitLabel: string;
+    tenantNames: string;
+    endDate: string;
+    daysLeft: number;
+    renewalStatus: string;
+  }>;
 }
 
 function addMonths(period: string, amount: number): string {
@@ -224,6 +239,57 @@ export class DashboardService {
         };
       });
 
+    const renewalWindows = [
+      { label: "0–30 days", min: 0, max: 30 },
+      { label: "31–60 days", min: 31, max: 60 },
+      { label: "61–90 days", min: 61, max: 90 },
+      { label: "91–180 days", min: 91, max: 180 },
+    ];
+
+    const renewalCandidates = leases
+      .filter((lease) =>
+        lease.id !== undefined &&
+        Boolean(lease.endDate) &&
+        lease.status !== "Terminated" &&
+        lease.endDate >= applicationDate
+      )
+      .map((lease) => ({
+        lease,
+        daysLeft: daysBetween(applicationDate, lease.endDate),
+        renewalStatus: lease.renewalStatus ?? "Not Started",
+      }))
+      .filter((item) => item.daysLeft >= 0 && item.daysLeft <= 180);
+
+    const renewalPipeline = renewalWindows.map((window) => {
+      const rows = renewalCandidates.filter((item) =>
+        item.daysLeft >= window.min && item.daysLeft <= window.max
+      );
+      return {
+        window: window.label,
+        notStarted: rows.filter((item) => item.renewalStatus === "Not Started").length,
+        letterSent: rows.filter((item) => item.renewalStatus === "Renewal Letter Sent").length,
+        renewed: rows.filter((item) => item.renewalStatus === "Renewed").length,
+        underDispute: rows.filter((item) => item.renewalStatus === "Under Dispute").length,
+      };
+    });
+
+    const urgentRenewals = renewalCandidates
+      .filter((item) =>
+        item.daysLeft <= 90 &&
+        item.renewalStatus !== "Renewed" &&
+        item.renewalStatus !== "Non-Renewal"
+      )
+      .sort((left, right) => left.daysLeft - right.daysLeft)
+      .slice(0, 5)
+      .map((item) => ({
+        leaseId: item.lease.id as number,
+        unitLabel: unitLabel(item.lease.unitId),
+        tenantNames: tenantNames(item.lease.id as number),
+        endDate: item.lease.endDate,
+        daysLeft: item.daysLeft,
+        renewalStatus: item.renewalStatus,
+      }));
+
     const upcomingExpirations = leases
       .filter(
         (lease) =>
@@ -257,6 +323,8 @@ export class DashboardService {
       rentStatus,
       recentPayments,
       upcomingExpirations,
+      renewalPipeline,
+      urgentRenewals,
     };
   }
 }

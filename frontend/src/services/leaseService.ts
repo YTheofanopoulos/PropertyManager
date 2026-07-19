@@ -7,6 +7,7 @@ import type {
   LeaseParticipant,
   LeaseConcession,
   RecurringCharge,
+  RenewalStatus,
 } from "../models/domain";
 
 export interface LeaseChargeInput {
@@ -32,6 +33,10 @@ export interface LeaseSaveInput {
   termType: "Fixed" | "Month-to-Month";
   status: "Active" | "Expired" | "Future" | "Terminated";
   notes: string;
+  renewalStatus: RenewalStatus;
+  renewalLetterSentDate: string;
+  renewalResponseDate: string;
+  renewalNotes: string;
   participantIds: number[];
   primaryTenantId: number;
   charges: LeaseChargeInput[];
@@ -238,6 +243,10 @@ export class LeaseService {
           termType: input.termType,
           status: input.status,
           notes: input.notes.trim(),
+          renewalStatus: input.renewalStatus,
+          renewalLetterSentDate: input.renewalLetterSentDate,
+          renewalResponseDate: input.renewalResponseDate,
+          renewalNotes: input.renewalNotes.trim(),
         };
 
         let leaseId = input.id;

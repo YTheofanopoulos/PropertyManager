@@ -113,32 +113,35 @@ export async function renderDashboard(
         </div>
 
         <div class="col-xl-5">
-          <div class="card dashboard-card">
+          <div class="card dashboard-card mb-4">
             <div class="card-header d-flex justify-content-between align-items-center">
-              <span class="fw-semibold">Upcoming Lease Expirations</span>
-              <a class="btn btn-sm btn-outline-primary" href="#/leases">View All</a>
+              <span class="fw-semibold">Lease Renewal Pipeline (Next 180 Days)</span>
+              <a class="btn btn-sm btn-outline-primary" href="#/leases">View Leases</a>
             </div>
+            <div class="card-body">
+              <div class="dashboard-chart-wrap"><canvas id="renewal-chart"></canvas></div>
+              <div class="small text-body-secondary mt-2">Click a bar to open the lease list.</div>
+            </div>
+          </div>
+          <div class="card dashboard-card">
+            <div class="card-header fw-semibold">Renewals Requiring Attention</div>
             <div class="table-responsive">
               <table class="table table-hover align-middle mb-0 dashboard-table">
-                <thead><tr><th>Unit</th><th>Tenant(s)</th>
-                <th>Lease End Date</th><th class="text-end">Days Left</th></tr></thead>
+                <thead><tr><th>Unit</th><th>Expires</th><th>Status</th></tr></thead>
                 <tbody>
-                  ${summary.upcomingExpirations.length > 0
-                    ? summary.upcomingExpirations.map((lease) => `
+                  ${summary.urgentRenewals.length > 0
+                    ? summary.urgentRenewals.map((lease) => `
                       <tr>
-                        <td><a href="#/leases/${lease.leaseId}">${escapeHtml(lease.unitLabel)}</a></td>
-                        <td>${escapeHtml(lease.tenantNames)}</td>
-                        <td>${lease.endDate}</td>
-                        <td class="text-end">${lease.daysLeft}</td>
+                        <td><a href="#/leases/${lease.leaseId}">${escapeHtml(lease.unitLabel)}</a><div class="small text-body-secondary">${escapeHtml(lease.tenantNames)}</div></td>
+                        <td>${lease.endDate}<div class="small text-body-secondary">${lease.daysLeft} days</div></td>
+                        <td>${escapeHtml(lease.renewalStatus)}</td>
                       </tr>`).join("")
-                    : emptyRow(4, "No upcoming lease expirations.")}
+                    : emptyRow(3, "No renewal actions are currently due.")}
                 </tbody>
               </table>
             </div>
-            <div class="card-footer small text-body-secondary">
-              Showing the next five lease expirations after the application date.
-            </div>
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -198,6 +201,27 @@ export async function renderDashboard(
       plugins: { legend: { display: false } },
     },
   });
+
+  const renewalChart = new Chart(document.getElementById("renewal-chart") as HTMLCanvasElement, {
+    type: "bar",
+    data: {
+      labels: summary.renewalPipeline.map((item) => item.window),
+      datasets: [
+        { label: "Set to Expire", data: summary.renewalPipeline.map((item) => item.notStarted), backgroundColor: "#6c757d" },
+        { label: "Renewal Letter Sent", data: summary.renewalPipeline.map((item) => item.letterSent), backgroundColor: "#0d6efd" },
+        { label: "Renewed", data: summary.renewalPipeline.map((item) => item.renewed), backgroundColor: "#198754" },
+        { label: "Under Dispute", data: summary.renewalPipeline.map((item) => item.underDispute), backgroundColor: "#dc3545" },
+      ],
+    },
+    options: {
+      maintainAspectRatio: false,
+      responsive: true,
+      onClick: () => { location.hash = "#/leases"; },
+      plugins: { legend: { position: "bottom" } },
+      scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+  void renewalChart;
 }
 
 function metricCard(title: string, value: string, subtitle: string,

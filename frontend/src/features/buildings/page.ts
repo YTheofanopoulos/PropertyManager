@@ -15,7 +15,7 @@ export async function renderBuildings(container: HTMLElement): Promise<void> {
     </div>
     <div class="card"><div class="card-body">
       <table id="buildings-table" class="table table-hover align-middle w-100">
-        <thead><tr><th>Street</th><th>Civic Address</th><th>Units</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Street</th><th>Civic Address</th><th>City</th><th>State / Province</th><th>ZIP / Postal Code</th><th>Units</th><th>Actions</th></tr></thead>
       </table>
     </div></div>${editor()}
   `;
@@ -43,7 +43,8 @@ async function refresh(): Promise<void> {
   table = createTable("#buildings-table", {
     data: await dataRows(),
     columns: [
-      { data: "street" }, { data: "civicAddress" }, { data: "unitCount" },
+      { data: "street" }, { data: "civicAddress" }, { data: "city", defaultContent: "" },
+      { data: "stateProvince", defaultContent: "" }, { data: "postalCode", defaultContent: "" }, { data: "unitCount" },
       { data: "id", orderable: false, searchable: false, render: buttons },
     ],
   });
@@ -64,6 +65,9 @@ async function openEditor(id?: number): Promise<void> {
     (document.getElementById("building-id") as HTMLInputElement).value = String(id);
     (document.getElementById("building-location") as HTMLSelectElement).value = String(item.locationId);
     (document.getElementById("building-address") as HTMLInputElement).value = item.civicAddress;
+    (document.getElementById("building-city") as HTMLInputElement).value = item.city ?? "";
+    (document.getElementById("building-state") as HTMLInputElement).value = item.stateProvince ?? "";
+    (document.getElementById("building-postal") as HTMLInputElement).value = item.postalCode ?? "";
   }
   modal("building-modal").show();
 }
@@ -76,6 +80,9 @@ async function save(event: Event): Promise<void> {
       id: value ? Number(value) : undefined,
       locationId: Number((document.getElementById("building-location") as HTMLSelectElement).value),
       civicAddress: (document.getElementById("building-address") as HTMLInputElement).value,
+      city: (document.getElementById("building-city") as HTMLInputElement).value,
+      stateProvince: (document.getElementById("building-state") as HTMLInputElement).value,
+      postalCode: (document.getElementById("building-postal") as HTMLInputElement).value,
     });
     modal("building-modal").hide();
     await refresh();
@@ -105,6 +112,11 @@ function editor(): string {
     <div class="modal-body"><input type="hidden" id="building-id">
       <div class="mb-3"><label class="form-label">Location</label><select class="form-select" id="building-location" required></select></div>
       <div class="mb-3"><label class="form-label">Civic address</label><input class="form-control" id="building-address" required></div>
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">City</label><input class="form-control" id="building-city"></div>
+        <div class="col-md-6"><label class="form-label">State / Province</label><input class="form-control" id="building-state"></div>
+        <div class="col-md-6"><label class="form-label">ZIP / Postal Code</label><input class="form-control" id="building-postal"></div>
+      </div>
     </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save</button></div>
     </form></div></div></div>`;
 }

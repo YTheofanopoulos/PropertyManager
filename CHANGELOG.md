@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## [5.8.3] - 2026-07-19
+
+### Added
+- Added City, State / Province, and ZIP / Postal Code fields to Building records.
+- Added lease renewal workflow tracking: Not Started, Renewal Letter Sent, Renewed, Under Dispute, and Non-Renewal.
+- Added renewal letter sent date, response/resolution date, and renewal notes to leases.
+- Added a stacked Lease Renewal Pipeline chart for leases expiring within 180 days.
+- Added a Renewals Requiring Attention list for unresolved leases within 90 days of expiration.
+
+### Changed
+- Replaced the dashboard's simple upcoming-expirations list with renewal workflow reporting.
+- Building address details are now tied to the civic address rather than the broader Location record.
+- Updated application version to 0.5.8.3 and IndexedDB schema to 9.
+
+### Compatibility
+- Existing buildings are migrated with blank City, State / Province, and ZIP / Postal Code fields.
+- Existing leases are migrated to renewal status Not Started.
+- Backup and Restore include the new fields through the existing table-based backup format.
+
 ## [5.8.2] - 2026-07-19
 
 ### Added

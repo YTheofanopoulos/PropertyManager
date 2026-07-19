@@ -18,7 +18,13 @@ export class BuildingService {
     );
     if (duplicate) throw new Error("That civic address already exists at this location.");
 
-    const { id, ...payload } = { ...building, civicAddress };
+    const { id, ...payload } = {
+      ...building,
+      civicAddress,
+      city: building.city?.trim() ?? "",
+      stateProvince: building.stateProvince?.trim() ?? "",
+      postalCode: building.postalCode?.trim().toUpperCase() ?? "",
+    };
     if (id) {
       await buildingRepository.update(id, payload);
       return id;
