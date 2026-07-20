@@ -27,9 +27,14 @@ def main() -> int:
         cursor = connection.cursor()
         cursor.execute("SELECT MAX(version) FROM schema_migrations")
         print(f"Schema version: {cursor.fetchone()[0]}")
+        total_records = 0
         for table in TABLES:
             cursor.execute(f"SELECT COUNT(*) FROM `{table}`")
-            print(f"{table:26} {cursor.fetchone()[0]:8}")
+            count = cursor.fetchone()[0]
+            total_records += count
+            print(f"{table:26} {count:8}")
+        print(f"{'-' * 26} {'-' * 8}")
+        print(f"{'TOTAL IMPORTED RECORDS':26} {total_records:8}")
         cursor.close()
     finally:
         connection.close()

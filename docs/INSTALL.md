@@ -1,6 +1,6 @@
 # PropertyManager Baseline 6.0.0.1 Installation
 
-Baseline 6.0.0.5 includes the 6.0.0 foundation, coordinated development workflow, and a hardened Baseline 5.x JSON importer. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
+Baseline 6.0.0.6 includes the 6.0.0 foundation, coordinated development workflow, and a hardened Baseline 5.x JSON importer. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
 
 ## 1. Requirements
 
@@ -230,6 +230,10 @@ python scripts/verify_database.py
 ```
 
 Compare these counts to the dry-run report.
+
+The final `TOTAL IMPORTED RECORDS` line sums the 14 imported data tables. It
+deliberately excludes `schema_migrations` and `application_settings`, allowing a
+direct comparison with the total reported by the Baseline 5.x importer.
 
 For importer output, diagnostics, and exit codes, see
 `docs/IMPORTING_5X_BACKUPS.md`.

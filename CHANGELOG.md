@@ -1,5 +1,12 @@
 # Changelog
 
+## 6.0.0.6 — 2026-07-20
+
+### Changed
+
+- Added a clearly labeled grand total to `verify_database.sh` output.
+- The total includes the 14 imported PropertyManager data tables while excluding schema migrations and application settings.
+
 ## 6.0.0.5 — 2026-07-20
 
 ### Fixed
