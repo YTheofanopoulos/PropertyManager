@@ -1,4 +1,4 @@
-# Developer Workflow — Baseline 6.0.0.2
+# Developer Workflow — Baseline 6.0.0.3
 
 PropertyManager uses two development processes: the Vite frontend and the Python API. MariaDB normally runs continuously as an operating-system service. The helper scripts coordinate the frontend and backend for you.
 
@@ -27,6 +27,13 @@ Optionally validate and import a Baseline 5.x JSON backup:
 ./scripts/import_5x_backup.sh /path/to/backup.json --dry-run
 ./scripts/import_5x_backup.sh /path/to/backup.json
 ```
+
+Always run the dry run first. It validates relationships and converts every
+field to its MariaDB parameter type without opening or changing the database.
+During a live import, each collection reports its progress and record count.
+If conversion fails, the diagnostic identifies the collection, row, JSON field,
+Python type, and value. See `docs/IMPORTING_5X_BACKUPS.md` for examples and
+troubleshooting guidance.
 
 ## Daily development
 

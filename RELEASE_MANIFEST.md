@@ -1,42 +1,32 @@
 # Release Manifest
 
-- Application version: **6.0.0.2**
-- REST API version: **v1**
-- Database schema version: **1**
-- Package type: **Delta**
-- Required baseline: **6.0.0**
-- Archive layout: **Project-root-relative; no enclosing folder**
-- Generated: **2026-07-20**
+- Application version: 6.0.0.3
+- REST API version: v1
+- Database schema version: 1
+- Source baseline: 6.0.0.2
+- Package type: Delta
 
-## Purpose
+## Modified files
 
-This delta adds and documents the coordinated development workflow for running the Python API and Vite frontend together, and standardizes release archives so they unpack directly into whichever baseline-named project directory the developer uses.
-
-## Included paths
-
-- `scripts/`
-- `backend/.env.example`
-- `backend/.env.migrate.example`
-- `backend/property_manager/__init__.py`
-- `frontend/vite.config.ts`
-- `frontend/src/app/shell.ts`
-- `frontend/src/services/backupService.ts`
+- `scripts/import_5x_backup.py`
+- `CHANGELOG.md`
+- `RELEASE_MANIFEST.md`
 - `docs/INSTALL.md`
 - `docs/DeveloperWorkflow.md`
-- `README.md`
-- `CHANGELOG.md`
-- `DELTA_INSTALL.md`
-- `RELEASE_MANIFEST.md`
+
+## Added files
+
+- `docs/IMPORTING_5X_BACKUPS.md`
 
 ## Removed files
 
-None.
+- None
 
-## Post-install
+## Apply
 
-```bash
-chmod +x scripts/*.sh
-./scripts/setup_dev.sh
-./scripts/check_dev.sh
-./scripts/start_dev.sh
-```
+Extract the archive directly into the root of an existing Baseline 6.0.0.2
+project directory. The archive intentionally has no enclosing project folder.
+
+No database schema migration or frontend rebuild is required.
+
+Primary installation guide: `docs/INSTALL.md`

@@ -1,6 +1,6 @@
-# PropertyManager Baseline 6.0.0.2 Installation
+# PropertyManager Baseline 6.0.0.1 Installation
 
-Baseline 6.0.0.2 includes the 6.0.0 foundation and adds a coordinated development workflow. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
+Baseline 6.0.0.3 includes the 6.0.0 foundation, coordinated development workflow, and a hardened Baseline 5.x JSON importer. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
 
 ## 1. Requirements
 
@@ -195,9 +195,15 @@ The dry run checks:
 - duplicate identifiers
 - references between all related records
 - backup checksum, when present
+- conversion of every JSON value to its MariaDB parameter type
+- rejection of nested objects, arrays, invalid decimals, and invalid booleans
 - record counts
 
 No MariaDB data is changed during a dry run.
+
+If a value cannot be converted, the error reports the collection, one-based row,
+one-based column, JSON field name, Python type, value, and reason. Correct the
+source data or importer mapping and repeat the dry run before importing.
 
 ## 9. Import the 5.8 data
 
@@ -207,7 +213,7 @@ For an empty database:
 python scripts/import_5x_backup.py /path/to/PropertyManager_backup.json
 ```
 
-The importer preserves existing 5.x numeric IDs so that relationships remain intact. The import is one MariaDB transaction. Any failure causes a rollback.
+The importer preserves existing 5.x numeric IDs so that relationships remain intact. The import is one MariaDB transaction. Any failure causes a rollback. Progress is displayed for every collection so the last collection shown identifies where a database error occurred.
 
 To replace an already populated development database:
 
@@ -224,6 +230,9 @@ python scripts/verify_database.py
 ```
 
 Compare these counts to the dry-run report.
+
+For importer output, diagnostics, and exit codes, see
+`docs/IMPORTING_5X_BACKUPS.md`.
 
 ## 10. Switch to the runtime account
 
@@ -244,7 +253,7 @@ This confirms that the restricted runtime account has sufficient read access.
 
 ## 11. Recommended development workflow
 
-The helper scripts are the recommended way to develop and test Baseline 6.0.0.2. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend together and shuts both down on `Ctrl+C`.
+The helper scripts are the recommended way to develop and test Baseline 6.0.0.1. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend together and shuts both down on `Ctrl+C`.
 
 Run `./scripts/check_dev.sh` whenever setup or connectivity is uncertain.
 
@@ -277,7 +286,7 @@ curl http://127.0.0.1:5000/api/v1/system/health
 
 A successful response includes:
 
-- application version `6.0.0.2`
+- application version `6.0.0.1`
 - API version `v1`
 - expected schema version `1`
 - MariaDB server and user information

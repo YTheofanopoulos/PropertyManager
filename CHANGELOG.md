@@ -1,13 +1,22 @@
 # Changelog
 
-## 6.0.0.2 — 2026-07-20
+## 6.0.0.3 — 2026-07-20
 
-- Standardized full and delta ZIP packages to contain project-root-relative paths with no enclosing `PropertyManager/` directory.
-- Added a release manifest that identifies the required baseline and exact files included in the delta.
-- Clarified the one-command development workflow and root-relative delta installation steps.
-- Retained the coordinated frontend/backend helper scripts introduced for the 6.0 development environment.
+### Fixed
 
-## 6.0.0.2 — 2026-07-20
+- Normalized every Baseline 5.x import value to the expected MariaDB parameter type before bulk insertion.
+- Converted unit bedroom and bathroom values to `Decimal`, avoiding Connector/Python bulk-protocol failures such as `Invalid parameter type at row 3, column 5`.
+- Ensured connection and transaction failures are reported without secondary tracebacks or partial imports.
+
+### Changed
+
+- Added collection-by-collection progress reporting with imported record counts.
+- Added actionable conversion diagnostics containing the collection, one-based row, one-based column, JSON field name, Python type, value, and failure reason.
+- Added row-level database diagnostics when MariaDB rejects an already-converted row.
+- Expanded `--dry-run` to perform the same parameter conversion checks as a live import without changing MariaDB.
+- Added dedicated Baseline 5.x import troubleshooting documentation.
+
+## 6.0.0.1 — 2026-07-20
 
 - Added one-command coordinated development startup for the Python API and Vite frontend.
 - Added setup, health-check, database initialization/import/verification, backup, restore, and stop helpers.
