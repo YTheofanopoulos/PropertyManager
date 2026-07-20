@@ -1,10 +1,10 @@
-# PropertyManager Baseline 6.4.0
+# PropertyManager Baseline 6.4.0.1
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
 Version identifiers:
 
-- Application: **6.4.0**
+- Application: **6.4.0.1**
 - REST API: **v1**
 - Database schema: **1**
 

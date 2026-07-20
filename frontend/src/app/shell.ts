@@ -1,4 +1,26 @@
 import { applicationClock } from "../services/applicationClockService";
+import { apiRequest } from "../repositories/apiClient";
+
+interface SystemInfo {
+  applicationVersion:string;
+  apiVersion:string;
+  expectedSchemaVersion:number;
+  database:{schemaVersion:number|null;database:string;databaseVersion:string;};
+}
+
+async function hydrateSystemInfo():Promise<void>{
+  try{
+    const info=await apiRequest<SystemInfo>("/api/v1/system/info");
+    const schema=info.database.schemaVersion??info.expectedSchemaVersion;
+    document.querySelectorAll<HTMLElement>("[data-system-app-version]").forEach(element=>element.textContent=info.applicationVersion);
+    document.querySelectorAll<HTMLElement>("[data-system-api-version]").forEach(element=>element.textContent=info.apiVersion);
+    document.querySelectorAll<HTMLElement>("[data-system-schema-version]").forEach(element=>element.textContent=String(schema));
+    const database=document.querySelector<HTMLElement>("[data-system-database]");if(database)database.textContent=info.database.database;
+    const server=document.querySelector<HTMLElement>("[data-system-database-server]");if(server)server.textContent=info.database.databaseVersion;
+  }catch{
+    document.querySelectorAll<HTMLElement>("[data-system-live]").forEach(element=>element.textContent="Unavailable");
+  }
+}
 
 
 export function renderShell(): HTMLElement {
@@ -83,7 +105,7 @@ export function renderShell(): HTMLElement {
           data-bs-target="#about-property-manager"
         >
           <i class="fa-solid fa-circle-info me-2"></i>
-          <span>v6.4.0</span>
+          <span>v<span data-system-app-version>6.4.0.1</span></span>
         </button>
       </div>
     </aside>
@@ -109,7 +131,7 @@ export function renderShell(): HTMLElement {
       }
       <header class="topbar d-flex justify-content-between align-items-center">
         <span class="fw-semibold">PropertyManager</span>
-        <span class="small text-body-secondary">Baseline 5.8.3 · DB Schema 9</span>
+        <span class="small text-body-secondary">Baseline <span data-system-app-version>6.4.0.1</span> · MariaDB Schema <span data-system-schema-version data-system-live>1</span></span>
       </header>
       <section id="page-content" class="content"></section>
     </main>
@@ -128,19 +150,31 @@ export function renderShell(): HTMLElement {
         <div class="modal-body">
           <dl class="row mb-0">
             <dt class="col-5">Application Version</dt>
-            <dd class="col-7">6.4.0</dd>
+            <dd class="col-7" data-system-app-version>6.4.0.1</dd>
 
             <dt class="col-5">Baseline</dt>
-            <dd class="col-7">5.8.1.1</dd>
+            <dd class="col-7" data-system-app-version>6.4.0.1</dd>
 
-            <dt class="col-5">Database Schema</dt>
-            <dd class="col-7">8</dd>
+            <dt class="col-5">REST API</dt>
+            <dd class="col-7" data-system-api-version data-system-live>v1</dd>
+
+            <dt class="col-5">MariaDB Schema</dt>
+            <dd class="col-7" data-system-schema-version data-system-live>1</dd>
+
+            <dt class="col-5">Database</dt>
+            <dd class="col-7" data-system-database data-system-live>Checking…</dd>
+
+            <dt class="col-5">MariaDB Server</dt>
+            <dd class="col-7" data-system-database-server data-system-live>Checking…</dd>
+
+            <dt class="col-5">Legacy Browser Schema</dt>
+            <dd class="col-7">9 (backup compatibility only)</dd>
 
             <dt class="col-5">Sample Data</dt>
             <dd class="col-7">Historical leases: Jul 2025 – Jun 2026</dd>
 
             <dt class="col-5">Build Date</dt>
-            <dd class="col-7">2026-07-19</dd>
+            <dd class="col-7">2026-07-20</dd>
           </dl>
         </div>
         <div class="modal-footer">
@@ -151,5 +185,6 @@ export function renderShell(): HTMLElement {
   </div>
 
   <div class="toast-container position-fixed top-0 end-0 p-3" id="toast-container"></div>`;
+  void hydrateSystemInfo();
   return document.getElementById("page-content") as HTMLElement;
 }

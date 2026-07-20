@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.4.0.1 — 2026-07-20
+
+### Fixed
+
+- Replaced obsolete hard-coded Baseline 5.8.x and browser-schema labels in the application header and About dialog.
+- Displayed the running backend application version, API version, and actual MariaDB schema from `/api/v1/system/info`.
+- Clearly labeled IndexedDB schema 9 as the legacy browser schema used only for backup compatibility.
+
 ## 6.4.0 — 2026-07-20
 
 ### Added
