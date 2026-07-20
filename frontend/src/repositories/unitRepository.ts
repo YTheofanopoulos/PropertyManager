@@ -3,8 +3,14 @@ import { db } from "../db/database";
 import type { Unit, UnitListItem } from "../models/domain";
 import type { Repository } from "./repository";
 import { applicationClock } from "../services/applicationClockService";
+import { apiRequest } from "./apiClient";
+import { repositoryConfiguration } from "./repositoryConfiguration";
 
-export class DexieUnitRepository implements Repository<Unit> {
+export interface UnitRepository extends Repository<Unit> {
+  getListItems(): Promise<UnitListItem[]>;
+}
+
+export class DexieUnitRepository implements UnitRepository {
   getAll(): Promise<Unit[]> {
     return db.units.toArray();
   }
@@ -89,4 +95,43 @@ export class DexieUnitRepository implements Repository<Unit> {
   }
 }
 
-export const unitRepository = new DexieUnitRepository();
+export class ApiUnitRepository implements UnitRepository {
+  getAll(): Promise<Unit[]> {
+    return apiRequest<UnitListItem[]>("/api/v1/units");
+  }
+
+  getById(id: number): Promise<Unit | undefined> {
+    return apiRequest<Unit>(`/api/v1/units/${id}`);
+  }
+
+  async add(entity: Omit<Unit, "id">): Promise<number> {
+    const created = await apiRequest<Unit>("/api/v1/units", {
+      method: "POST",
+      body: JSON.stringify(entity),
+    });
+    if (created.id === undefined) throw new Error("The backend did not return a unit identifier.");
+    return created.id;
+  }
+
+  async update(id: number, changes: Partial<Omit<Unit, "id">>): Promise<void> {
+    const current = await this.getById(id);
+    if (!current) throw new Error("Unit not found.");
+    await apiRequest<Unit>(`/api/v1/units/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ ...current, ...changes }),
+    });
+  }
+
+  delete(id: number): Promise<void> {
+    return apiRequest<void>(`/api/v1/units/${id}`, { method: "DELETE" });
+  }
+
+  getListItems(): Promise<UnitListItem[]> {
+    return apiRequest<UnitListItem[]>("/api/v1/units");
+  }
+}
+
+export const unitRepository: UnitRepository =
+  repositoryConfiguration.units === "api"
+    ? new ApiUnitRepository()
+    : new DexieUnitRepository();

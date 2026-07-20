@@ -1,4 +1,4 @@
-# Developer Workflow — Baseline 6.0.0.7
+# Developer Workflow — Baseline 6.1.0
 
 PropertyManager uses two development processes: the Vite frontend and the Python API. MariaDB normally runs continuously as an operating-system service. The helper scripts coordinate the frontend and backend for you.
 
@@ -96,3 +96,9 @@ proxy.
 ## What npm does
 
 `npm` manages only the frontend. It does not start Python or MariaDB. `start_dev.sh` starts npm/Vite and Python together, while MariaDB continues as a system service.
+
+## Verifying the Units REST migration
+
+Open the browser developer tools, select the Network panel, and visit Units. The page must issue `GET /api/v1/units`. Adding, editing, or deleting an eligible unit uses the matching API v1 endpoint. Other pages should not begin making entity API requests in this baseline because their repositories remain on IndexedDB.
+
+If the Units request fails, the table remains usable as an empty table and a visible error explains that the backend could not be reached. Check `/api/v1/system/health`, the backend log, and the Vite `/api` proxy before changing browser data.

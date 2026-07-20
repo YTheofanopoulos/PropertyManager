@@ -1,5 +1,20 @@
 # Changelog
 
+## 6.1.0 — 2026-07-20
+
+### Added
+
+- Added the API v1 Units repository, service, and versioned Flask routes.
+- Added an API-backed frontend Units repository and centralized repository selection.
+- Added user-readable handling for backend, validation, conflict, and not-found failures.
+- Added backend unit-service regression tests.
+
+### Changed
+
+- Made MariaDB authoritative for Units while retaining IndexedDB for every other domain.
+- Preserved Units list, add, edit, delete, effective-rent, and lease-history safeguards through the REST path.
+- Updated application and backup version identifiers to 6.1.0.
+
 ## 6.0.0.7 — 2026-07-20
 
 ### Changed

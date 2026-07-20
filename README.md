@@ -1,18 +1,18 @@
-# PropertyManager Baseline 6.0.0.2
+# PropertyManager Baseline 6.1.0
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
 Version identifiers:
 
-- Application: **6.0.0.2**
+- Application: **6.1.0**
 - REST API: **v1**
 - Database schema: **1**
 
-Baseline 6.0.0 is the infrastructure release. It includes the complete 5.8.3.2 frontend, a Flask/Gunicorn backend foundation, the normalized MariaDB schema, migration tools, and a transactional importer for the real JSON data exported by Baseline 5.8.
+Baseline 6.1.0 is the first live REST repository milestone. Units are read and maintained through API v1 and MariaDB; every other application domain continues to use its established IndexedDB repository.
 
 Start with [docs/INSTALL.md](docs/INSTALL.md).
 
-Important: the 6.0.0 frontend still uses its established IndexedDB repositories. MariaDB-backed UI repositories will be introduced in the next 6.0.x integration milestone. This allows the database foundation and real-data migration to be verified independently before changing all user workflows.
+The repository selection is deliberately explicit in `frontend/src/repositories/repositoryConfiguration.ts`. Only `units` is set to `api`; no other frontend repository was migrated in this baseline.
 
 ## Development quick start
 

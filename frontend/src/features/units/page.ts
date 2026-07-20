@@ -1,6 +1,6 @@
 
 import { db } from "../../db/database";
-import type { UnitStatus } from "../../models/domain";
+import type { UnitListItem, UnitStatus } from "../../models/domain";
 import { unitRepository } from "../../repositories/unitRepository";
 import { unitService } from "../../services/unitService";
 import { createTable } from "../shared/table";
@@ -12,7 +12,7 @@ let table: ReturnType<typeof createTable> | undefined;
 export async function renderUnits(container: HTMLElement): Promise<void> {
   container.innerHTML = `
     <div class="page-heading d-flex justify-content-between align-items-center">
-      <div><h1>Units</h1><p class="text-body-secondary mb-0">Persistent apartments stored in IndexedDB</p></div>
+      <div><h1>Units</h1><p class="text-body-secondary mb-0">Apartments stored in MariaDB</p></div>
       <button class="btn btn-primary" id="add-unit"><i class="fa-solid fa-plus me-1"></i>Add Unit</button>
     </div>
     <div class="card"><div class="card-body">
@@ -30,8 +30,15 @@ export async function renderUnits(container: HTMLElement): Promise<void> {
 
 async function refresh(): Promise<void> {
   table?.destroy();
+  let units: UnitListItem[];
+  try {
+    units = await unitRepository.getListItems();
+  } catch (error) {
+    notify((error as Error).message, "danger");
+    units = [];
+  }
   table = createTable("#units-table", {
-    data: await unitRepository.getListItems(),
+    data: units,
     columns: [
       { data: "street" }, { data: "civicAddress" },
       { data: "apartmentNumber", render: (value: string) => value || "—" },
