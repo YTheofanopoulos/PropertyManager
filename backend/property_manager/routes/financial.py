@@ -37,3 +37,6 @@ def rent_roll():return handle(lambda:jsonify(service.rent_roll(request.args.get(
 def rent_status():
     payload=request.get_json(silent=True) or {}
     return handle(lambda:jsonify(service.rent_status(payload.get("periods",[]),payload.get("currentPeriod",""))))
+
+@blueprint.get("/financial/context")
+def financial_context():return handle(lambda:jsonify(service.client_context(request.args.get("throughPeriod",""))))

@@ -1,4 +1,4 @@
-# Developer Workflow — Baseline 6.4.0
+# Developer Workflow — Baseline 6.5.0
 
 PropertyManager uses two development processes: the Vite frontend and the Python API. MariaDB normally runs continuously as an operating-system service. The helper scripts coordinate the frontend and backend for you.
 
@@ -111,4 +111,4 @@ Visiting Locations and Buildings must issue `GET /api/v1/locations` and `GET /ap
 
 Tenant navigation must issue `GET /api/v1/tenants`; Lease navigation must issue `GET /api/v1/leases`. Test Tenant create/edit/delete and its leaseholder deletion safeguard. Test Lease create/edit/terminate, multiple leaseholders, recurring charges, concessions, overlap rejection, and unchanged non-financial edits.
 
-Payments, Credits, Rent Roll, and Rent Status are MariaDB-backed. Verify their `/api/v1/payments`, `/api/v1/credits`, and `/api/v1/rent-ledger/*` requests in the Network panel. Bank Import, Reconciliation, Dashboard calculations, and reports remain IndexedDB-backed.
+All operational screens are MariaDB-backed. Verify Dashboard and Payment Receipts request `/api/v1/financial/context`; Bank Import uses `/api/v1/bank/*`; and reconciliation creates its payment, allocations, bank match, and history in one backend transaction. Browser backup/restore and sample reset remain legacy IndexedDB utilities.

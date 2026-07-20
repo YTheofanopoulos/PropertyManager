@@ -11,6 +11,7 @@ from .routes import (
     buildings_blueprint,
     leases_blueprint,
     financial_blueprint,
+    bank_blueprint,
     locations_blueprint,
     system_blueprint,
     units_blueprint,
@@ -32,6 +33,7 @@ def create_app() -> Flask:
     app.register_blueprint(buildings_blueprint)
     app.register_blueprint(leases_blueprint)
     app.register_blueprint(financial_blueprint)
+    app.register_blueprint(bank_blueprint)
     app.register_blueprint(locations_blueprint)
     app.register_blueprint(system_blueprint)
     app.register_blueprint(units_blueprint)

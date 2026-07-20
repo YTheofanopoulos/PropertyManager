@@ -135,6 +135,23 @@ class FinancialService:
             due=[m for m in months if m["period"]<=current];rows.append({"unitId":int(unit["id"]),"leaseId":int(displayed["id"]) if displayed else None,"unitLabel":self._unit_label(unit),"tenantNames":", ".join(r["name"] for r in occupants),"occupants":occupants,"months":months,"outstandingToday":sum(m["remaining"] for m in due),"monthsBehind":len([m for m in due if m["remaining"]>.005])})
         return rows
 
+    def client_context(self,through):
+        self.ensure(through);c=self.repository.context()
+        date_value=lambda value:value.isoformat() if value else ""
+        return {
+          "units":[{"id":int(r["id"]),"buildingId":int(r["building_id"]),"apartmentNumber":r["apartment_number"],"bedrooms":float(r["bedrooms"]),"bathrooms":float(r["bathrooms"]),"monthlyRent":float(r["monthly_rent"]),"status":r["status"],"active":bool(r["active"])} for r in c["units"]],
+          "buildings":[{"id":int(r["id"]),"locationId":int(r["location_id"]),"civicAddress":r["civic_address"],"city":r["city"],"stateProvince":r["state_province"],"postalCode":r["postal_code"]} for r in c["buildings"]],
+          "locations":[{"id":int(r["id"]),"name":r["name"],"city":r["city"]} for r in c["locations"]],
+          "leases":[{"id":int(r["id"]),"unitId":int(r["unit_id"]),"startDate":date_value(r["start_date"]),"endDate":"" if r["term_type"]=="Month-to-Month" else date_value(r["end_date"]),"termType":r["term_type"],"status":r["status"],"renewalStatus":r["renewal_status"],"renewalLetterSentDate":date_value(r["renewal_letter_sent_date"]),"renewalResponseDate":date_value(r["renewal_response_date"]),"renewalNotes":r["renewal_notes"],"notes":r["notes"]} for r in c["leases"]],
+          "recurringCharges":[{"id":int(r["id"]),"leaseId":int(r["lease_id"]),"chargeType":r["charge_type"],"description":r["description"],"amount":float(r["amount"]),"frequency":r["frequency"],"startDate":date_value(r["start_date"]),"endDate":"" if r["end_date"].year==9999 else date_value(r["end_date"])} for r in c["charges"]],
+          "participants":[{"id":int(r["id"]),"leaseId":int(r["lease_id"]),"tenantId":int(r["tenant_id"]),"primary":bool(r["is_primary"]),"sortOrder":int(r["sort_order"])} for r in c["participants"]],
+          "tenants":[{"id":int(r["id"]),"firstName":r["first_name"],"lastName":r["last_name"],"email":r["email"],"phone":r["phone"],"active":bool(r["active"])} for r in c["tenants"]],
+          "payments":[{"id":int(r["id"]),"leaseId":int(r["lease_id"]),"tenantId":int(r["tenant_id"]) if r["tenant_id"] else None,"receivedDate":date_value(r["received_date"]),"amount":float(r["amount"]),"paymentMethod":r["payment_method"],"reference":r["reference"],"notes":r["notes"],"source":r["source"],"status":r["status"],"voidedAt":date_value(r["voided_at"]),"voidReason":r["void_reason"],"createdAt":date_value(r["created_at"])} for r in c["payments"]],
+          "obligations":[self._obligation(r) for r in c["obligations"]],
+          "allocations":[{"id":int(r["id"]),"paymentId":int(r["payment_id"]),"obligationId":int(r["obligation_id"]),"amount":float(r["amount"])} for r in c["allocations"]],
+          "history":[{"id":int(r["id"]),"bankTransactionId":int(r["bank_transaction_id"]),"paymentId":int(r["payment_id"]),"leaseId":int(r["lease_id"]),"amount":float(r["amount"]),"postedDate":date_value(r["posted_date"]),"postedDay":int(r["posted_day"]),"normalizedName":r["normalized_name"],"normalizedMemo":r["normalized_memo"],"createdAt":date_value(r["created_at"])} for r in c["history"]],
+        }
+
     @staticmethod
     def _payment_input(payload):
         if not isinstance(payload,dict):raise FinancialValidationError("A JSON object is required.")

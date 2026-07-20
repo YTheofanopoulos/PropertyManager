@@ -1,6 +1,5 @@
-import { db } from "../db/database";
 import { applicationClock } from "./applicationClockService";
-import { rentLedgerService } from "./rentLedgerService";
+import { financialContextService } from "./financialContextService";
 
 export interface DashboardMonthlyCollection {
   period: string;
@@ -95,17 +94,8 @@ export class DashboardService {
   async getSummary(): Promise<DashboardSummary> {
     const applicationDate = applicationClock.today();
     const currentPeriod = applicationClock.currentPeriod();
-    await rentLedgerService.ensureObligationsThrough(currentPeriod);
-
-    const [
-      units, buildings, locations, leases, recurringCharges, payments,
-      obligations, allocations, participants, tenants,
-    ] = await Promise.all([
-      db.units.toArray(), db.buildings.toArray(), db.locations.toArray(),
-      db.leases.toArray(), db.recurringCharges.toArray(), db.payments.toArray(),
-      db.rentObligations.toArray(), db.paymentAllocations.toArray(),
-      db.leaseParticipants.toArray(), db.tenants.toArray(),
-    ]);
+    const context=await financialContextService.get(currentPeriod);
+    const {units,buildings,locations,leases,recurringCharges,payments,obligations,allocations,participants,tenants}=context;
 
     const unitMap = new Map(units.map((item) => [item.id, item]));
     const buildingMap = new Map(buildings.map((item) => [item.id, item]));

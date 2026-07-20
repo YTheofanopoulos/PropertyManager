@@ -1,11 +1,12 @@
 import { Chart } from "chart.js/auto";
 import { dashboardService } from "../../services/dashboardService";
+import type {DashboardSummary} from "../../services/dashboardService";
 import { currency } from "../shared/format";
 
 export async function renderDashboard(
   container: HTMLElement,
 ): Promise<void> {
-  const summary = await dashboardService.getSummary();
+  let summary:DashboardSummary;try{summary=await dashboardService.getSummary();}catch(error){container.innerHTML=`<div class="alert alert-danger">${(error as Error).message}</div>`;return;}
   const statusTotal =
     summary.rentStatus.current +
     summary.rentStatus.oneMonthBehind +

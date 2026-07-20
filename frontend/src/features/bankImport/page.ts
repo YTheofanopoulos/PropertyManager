@@ -1,6 +1,5 @@
 
 import { Modal, Toast } from "bootstrap";
-import { db } from "../../db/database";
 import type { BankTransaction } from "../../models/domain";
 import type { ImportPreview } from "../../services/bankImportService";
 import { bankImportService } from "../../services/bankImportService";
@@ -83,10 +82,7 @@ export async function renderBankImport(
   const activeFilter = filterFromHash();
 
   const loadStarted = performance.now();
-  const [batches, rawTransactions] = await Promise.all([
-    db.bankImportBatches.orderBy("importedAt").reverse().toArray(),
-    db.bankTransactions.orderBy("postedDate").reverse().toArray(),
-  ]);
+  let batches;let rawTransactions;try{[batches,rawTransactions]=await Promise.all([bankImportService.listBatches(),bankImportService.listTransactions()]);}catch(error){container.innerHTML=`<div class="alert alert-danger">${(error as Error).message}</div>`;return;}
 
   traceLog(renderTraceId, "Load import batches and bank transactions", elapsed(loadStarted));
 
@@ -821,7 +817,7 @@ async function openReconciliationModal(
   if (statusElement) statusElement.textContent = "";
 
   const [transaction, suggestions] = await Promise.all([
-    db.bankTransactions.get(transactionId),
+    bankImportService.getTransaction(transactionId),
     reconciliationService.suggestions(transactionId),
   ]);
 
@@ -1162,7 +1158,7 @@ export async function renderReconciliation(
   container: HTMLElement,
   transactionId: number,
 ): Promise<void> {
-  const transaction = await db.bankTransactions.get(transactionId);
+  const transaction = await bankImportService.getTransaction(transactionId).catch(()=>undefined);
   if (!transaction) {
     container.innerHTML =
       '<div class="alert alert-danger">Transaction not found.</div>';

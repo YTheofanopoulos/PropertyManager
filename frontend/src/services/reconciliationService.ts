@@ -1,12 +1,11 @@
-import { db } from "../db/database";
 import { applicationClock } from "./applicationClockService";
 import type {
   MatchClassification,
-  Payment,
-  PaymentAllocation,
-  ReconciliationHistory,
 } from "../models/domain";
 import { rentLedgerService } from "./rentLedgerService";
+import {financialContextService} from "./financialContextService";
+import {bankImportService} from "./bankImportService";
+import {apiRequest} from "../repositories/apiClient";
 
 export interface MatchSuggestion {
   leaseId: number;
@@ -59,8 +58,7 @@ function containsToken(haystack: string, token: string): boolean {
 
 export class ReconciliationService {
   async suggestions(transactionId: number): Promise<MatchSuggestion[]> {
-    const transaction = await db.bankTransactions.get(transactionId);
-    if (!transaction) throw new Error("Bank transaction not found.");
+    const transaction = await bankImportService.getTransaction(transactionId);
 
     const context = await this.buildSuggestionContext();
     return this.scoreTransaction(transaction, context);
@@ -84,27 +82,8 @@ export class ReconciliationService {
     const currentPeriod = applicationClock.currentPeriod();
     await rentLedgerService.ensureObligationsThrough(currentPeriod);
 
-    const [
-      leases,
-      units,
-      buildings,
-      locations,
-      history,
-      participants,
-      tenants,
-      obligations,
-      allocations,
-    ] = await Promise.all([
-      db.leases.toArray(),
-      db.units.toArray(),
-      db.buildings.toArray(),
-      db.locations.toArray(),
-      db.reconciliationHistory.toArray(),
-      db.leaseParticipants.toArray(),
-      db.tenants.toArray(),
-      db.rentObligations.toArray(),
-      db.paymentAllocations.toArray(),
-    ]);
+    const context=await financialContextService.get(currentPeriod);
+    const {leases,units,buildings,locations,history,participants,tenants,obligations,allocations}=context;
 
     const paidByObligation = new Map<number, number>();
     for (const allocation of allocations) {
@@ -346,7 +325,7 @@ export class ReconciliationService {
     };
 
     const lookupStarted = performance.now();
-    const transaction = await db.bankTransactions.get(transactionId);
+    const transaction = await bankImportService.getTransaction(transactionId);
     logPhase("Load transaction", lookupStarted);
     if (!transaction) throw new Error("Bank transaction not found.");
     if (transaction.status === "Reconciled") {
@@ -367,98 +346,13 @@ export class ReconciliationService {
       throw new Error("Allocations cannot exceed the bank transaction amount.");
     }
 
-    const obligationsStarted = performance.now();
-    const obligations = await db.rentObligations.bulkGet(
-      allocations.map((allocation) => allocation.obligationId),
-    );
-    logPhase("Load and validate obligations", obligationsStarted);
-    for (const allocation of allocations) {
-      const obligation = obligations.find(
-        (item) => item?.id === allocation.obligationId,
-      );
-      if (!obligation || obligation.leaseId !== leaseId) {
-        throw new Error("An allocation does not belong to the selected unit.");
-      }
-    }
-
-    const writeStarted = performance.now();
-    const paymentId = await db.transaction(
-      "rw",
-      db.payments,
-      db.paymentAllocations,
-      db.bankTransactions,
-      db.reconciliationHistory,
-      async () => {
-        const id = Number(
-          await db.payments.add({
-            leaseId,
-            receivedDate: transaction.postedDate,
-            amount: transaction.amount,
-            paymentMethod: "Electronic Transfer",
-            reference: transaction.externalId,
-            notes: `${transaction.name}${transaction.memo ? ` — ${transaction.memo}` : ""}`,
-            source: "Bank Import",
-            status: "Posted",
-            createdAt: new Date().toISOString(),
-          } satisfies Payment),
-        );
-
-        const rows = allocations
-          .filter((allocation) => allocation.amount > 0)
-          .map((allocation) => ({
-            paymentId: id,
-            obligationId: allocation.obligationId,
-            amount: allocation.amount,
-          } satisfies PaymentAllocation));
-
-        await db.paymentAllocations.bulkAdd(rows);
-        await db.bankTransactions.update(transactionId, {
-          status: "Reconciled",
-          matchedPaymentId: id,
-        });
-        await db.reconciliationHistory.add({
-          bankTransactionId: transactionId,
-          paymentId: id,
-          leaseId,
-          amount: transaction.amount,
-          postedDate: transaction.postedDate,
-          postedDay: Number(transaction.postedDate.slice(8, 10)),
-          normalizedName: normalize(transaction.name),
-          normalizedMemo: normalize(transaction.memo),
-          createdAt: new Date().toISOString(),
-        } satisfies ReconciliationHistory);
-        return id;
-      },
-    );
-
-    await rentLedgerService.refreshAllStatuses();
-    return paymentId;
+    const writeStarted=performance.now();
+    const result=await apiRequest<{paymentId:number}>(`/api/v1/bank/transactions/${transactionId}/reconcile`,{method:"POST",body:JSON.stringify({leaseId,allocations})});
+    logPhase("Commit MariaDB reconciliation",writeStarted);
+    return result.paymentId;
   }
 
-  async reopenForVoidedPayment(paymentId: number): Promise<void> {
-    const transaction = await db.bankTransactions
-      .where("matchedPaymentId")
-      .equals(paymentId)
-      .first();
-
-    if (transaction) {
-      await db.transaction(
-        "rw",
-        db.bankTransactions,
-        db.reconciliationHistory,
-        async () => {
-          await db.bankTransactions.update(transaction.id as number, {
-            status: "Unmatched",
-            matchedPaymentId: undefined,
-          });
-          await db.reconciliationHistory
-            .where("paymentId")
-            .equals(paymentId)
-            .delete();
-        },
-      );
-    }
-  }
+  async reopenForVoidedPayment(_paymentId:number):Promise<void>{/* The backend payment transaction performs this atomically. */}
 }
 
 export const reconciliationService = new ReconciliationService();

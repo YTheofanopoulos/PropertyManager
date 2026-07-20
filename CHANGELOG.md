@@ -1,5 +1,23 @@
 # Changelog
 
+## 6.5.0 — 2026-07-20
+
+### Added
+
+- Added MariaDB API operations for QFX preview, duplicate detection, bank import batches and transactions, ignore, reconciliation, payment creation, allocations, and reconciliation history.
+- Added a consolidated MariaDB financial context endpoint for Dashboard, Payment Receipts, and reconciliation matching calculations.
+- Added regression coverage for bank data serialization.
+
+### Changed
+
+- Made Payment Receipts, Import Bank Statements, reconciliation, and Dashboard calculations MariaDB-backed.
+- Made payment voiding reopen matched bank transactions and remove reconciliation history transactionally.
+- Updated application and backup versions to 6.5.0.
+
+### Compatibility
+
+- Browser backup/restore and sample-data reset remain legacy IndexedDB utilities and do not replace or reset MariaDB data.
+
 ## 6.4.0.1 — 2026-07-20
 
 ### Fixed

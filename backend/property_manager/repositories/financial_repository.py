@@ -53,6 +53,10 @@ class FinancialRepository:
             "payments": self.rows("SELECT * FROM payments ORDER BY id"),
             "allocations": self.rows("""SELECT pa.* FROM payment_allocations pa JOIN payments p ON p.id=pa.payment_id
                 WHERE p.status='Posted' ORDER BY pa.id"""),
+            "buildings": self.rows("SELECT * FROM buildings ORDER BY id"),
+            "locations": self.rows("SELECT * FROM locations ORDER BY id"),
+            "tenants": self.rows("SELECT * FROM tenants ORDER BY id"),
+            "history": self.rows("SELECT * FROM reconciliation_history ORDER BY id"),
         }
 
     @staticmethod
@@ -91,6 +95,7 @@ class FinancialRepository:
         cursor=connection.cursor(); cursor.execute("DELETE FROM payment_allocations WHERE payment_id=?",(payment_id,))
         cursor.execute("UPDATE payments SET status='Voided',voided_at=UTC_TIMESTAMP(6),void_reason=? WHERE id=?",(reason,payment_id))
         cursor.execute("UPDATE bank_transactions SET matched_payment_id=NULL,status='Unmatched' WHERE matched_payment_id=?",(payment_id,)); cursor.close()
+        cursor=connection.cursor();cursor.execute("DELETE FROM reconciliation_history WHERE payment_id=?",(payment_id,));cursor.close()
 
     @staticmethod
     def set_status(connection, obligation_id, expected, paid):

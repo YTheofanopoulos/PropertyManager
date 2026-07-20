@@ -2,7 +2,7 @@
 
 ## Version boundaries
 
-- Application: 6.4.0
+- Application: 6.5.0
 - REST API: v1
 - MariaDB schema: 1
 
@@ -65,6 +65,10 @@ Payments, credits, rent-ledger generation, bank import, reconciliation, dashboar
 ## Baseline 6.4.0 financial vertical slice
 
 Payments, allocations, credits, rent-obligation generation, Rent Roll, and Rent Status now use API v1 and MariaDB transactions. Bank Import, Reconciliation, Dashboard calculations, Payment Receipt reports, and other reports remain IndexedDB-backed.
+
+## Baseline 6.5.0 completion slice
+
+Payment Receipts, Dashboard calculations, Bank Statement Import, duplicate detection, queue display, matching, ignore, and reconciliation now read and write MariaDB through API v1. Reconciliation atomically creates the payment and allocations, updates the bank transaction, records matching history, and refreshes obligation status. All operational pages now use MariaDB; only explicitly legacy browser backup/restore and sample reset continue to touch IndexedDB.
 
 ## Security principles
 

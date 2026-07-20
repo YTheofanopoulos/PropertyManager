@@ -8,4 +8,8 @@ export const repositoryConfiguration = {
   allocations: "api",
   credits: "api",
   rentLedger: "api",
+  paymentReceipts: "api",
+  bankImport: "api",
+  reconciliation: "api",
+  dashboard: "api",
 } as const;

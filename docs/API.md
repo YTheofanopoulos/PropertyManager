@@ -20,6 +20,19 @@ Base path:
 
 Payment, allocation, credit, and obligation mutations execute transactionally. Validation failures return 400, missing records return 404, and balance or state conflicts return 409.
 
+## Reporting and bank endpoints (Baseline 6.5.0)
+
+- `GET /financial/context?throughPeriod=YYYY-MM`
+- `GET /bank/batches`
+- `GET /bank/transactions`
+- `GET /bank/transactions/{id}`
+- `POST /bank/preview`
+- `POST /bank/imports`
+- `POST /bank/transactions/{id}/ignore`
+- `POST /bank/transactions/{id}/reconcile`
+
+The financial context provides one consistent MariaDB snapshot for Dashboard, Payment Receipts, and reconciliation scoring. Import and reconciliation writes are transactional and repeat duplicate checks at commit time.
+
 ## System endpoints
 
 ### GET `/api/v1`

@@ -1,6 +1,9 @@
 
-import { db } from "../db/database";
 import type { PaymentSource } from "../models/domain";
+import {locationRepository} from "../repositories/locationRepository";
+import {buildingRepository} from "../repositories/buildingRepository";
+import {financialContextService} from "./financialContextService";
+import {applicationClock} from "./applicationClockService";
 
 export interface PaymentReceiptTransaction {
   paymentId: number;
@@ -64,7 +67,7 @@ export class PaymentReceiptReportService {
   async locationOptions(): Promise<
     Array<{ id: number; label: string }>
   > {
-    const locations = await db.locations.toArray();
+    const locations = await locationRepository.getAll();
 
     return locations
       .map((location) => ({
@@ -82,8 +85,8 @@ export class PaymentReceiptReportService {
     locationId?: number,
   ): Promise<Array<{ id: number; locationId: number; label: string }>> {
     const [buildings, locations] = await Promise.all([
-      db.buildings.toArray(),
-      db.locations.toArray(),
+      buildingRepository.getAll(),
+      locationRepository.getAll(),
     ]);
     const locationMap = new Map(
       locations.map((location) => [location.id, location]),
@@ -125,19 +128,8 @@ export class PaymentReceiptReportService {
       };
     }
 
-    const [
-      units,
-      buildings,
-      locations,
-      leases,
-      payments,
-    ] = await Promise.all([
-      db.units.toArray(),
-      db.buildings.toArray(),
-      db.locations.toArray(),
-      db.leases.toArray(),
-      db.payments.toArray(),
-    ]);
+    const context=await financialContextService.get(applicationClock.currentPeriod());
+    const {units,buildings,locations,leases,payments}=context;
 
     const buildingMap = new Map(
       buildings.map((building) => [building.id, building]),
