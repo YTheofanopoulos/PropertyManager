@@ -2,8 +2,8 @@ import { db } from "../db/database";
 
 export const BACKUP_FORMAT = "PropertyManagerBackup";
 export const BACKUP_VERSION = 3;
-export const APPLICATION_VERSION = "0.5.8.3.2";
-export const DATABASE_SCHEMA_VERSION = 8;
+export const APPLICATION_VERSION = "6.0.0";
+export const DATABASE_SCHEMA_VERSION = 9;
 
 const tableNames = [
   "locations", "buildings", "units", "tenants", "leases", "leaseParticipants",

@@ -1,3 +1,16 @@
+# Changelog
+
+## 6.0.0 — 2026-07-20
+
+- Established independent application 6.0.0, REST API v1, and MariaDB schema 1 versioning.
+- Added Flask application factory, WSGI entry point, MariaDB connection pooling, and route/service/repository foundation.
+- Added a normalized InnoDB schema for every Baseline 5.8 backup collection.
+- Added separate runtime and migration database account guidance.
+- Added repeatable schema migration and database verification scripts.
+- Added a dry-run capable, transactional Baseline 5.x JSON importer that preserves identifiers and validates relationships.
+- Added complete development and Apache/Gunicorn/systemd production installation instructions.
+- Retained the Baseline 5.8.3.2 frontend for regression comparison pending REST repository conversion in a subsequent 6.0.x milestone.
+
 # CHANGELOG
 
 ### Additional UI refinement

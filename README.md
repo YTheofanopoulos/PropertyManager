@@ -1,23 +1,15 @@
-# PropertyManager Baseline 5.8.2 UI Enhancement Delta
+# PropertyManager Baseline 6.0.0
 
-Apply over the existing Baseline 5.8.2 source tree.
+PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
-## Included
+Version identifiers:
 
-- Collapsible Portfolio, Residents, Financial, Reports, and Administration menu sections.
-- Independently scrollable left navigation for smaller-height displays.
-- Expanded/collapsed section state stored in local storage.
-- The section containing the active route opens automatically.
-- Recurring charge inputs show a dollar prefix and normalize to two decimal places when focus leaves the field.
-- Updated CHANGELOG.md.
+- Application: **6.0.0**
+- REST API: **v1**
+- Database schema: **1**
 
-## Build
+Baseline 6.0.0 is the infrastructure release. It includes the complete 5.8.3.2 frontend, a Flask/Gunicorn backend foundation, the normalized MariaDB schema, migration tools, and a transactional importer for the real JSON data exported by Baseline 5.8.
 
-After copying the delta, run from `frontend`:
+Start with [docs/INSTALL.md](docs/INSTALL.md).
 
-```bash
-npm install
-npm run build
-```
-
-The archive contains source changes only; `node_modules`, `.git`, and generated build output are excluded.
+Important: the 6.0.0 frontend still uses its established IndexedDB repositories. MariaDB-backed UI repositories will be introduced in the next 6.0.x integration milestone. This allows the database foundation and real-data migration to be verified independently before changing all user workflows.

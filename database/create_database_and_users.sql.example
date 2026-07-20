@@ -1,0 +1,16 @@
+-- Run as a MariaDB administrator after replacing both passwords.
+CREATE DATABASE IF NOT EXISTS property_manager
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+CREATE USER IF NOT EXISTS 'propertymanager_app'@'localhost'
+  IDENTIFIED BY 'REPLACE_APPLICATION_PASSWORD';
+CREATE USER IF NOT EXISTS 'propertymanager_migrate'@'localhost'
+  IDENTIFIED BY 'REPLACE_MIGRATION_PASSWORD';
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+  ON property_manager.* TO 'propertymanager_app'@'localhost';
+
+GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, DROP,
+      CREATE VIEW, SHOW VIEW, TRIGGER
+  ON property_manager.* TO 'propertymanager_migrate'@'localhost';
