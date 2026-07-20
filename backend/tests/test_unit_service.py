@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from contextlib import nullcontext
 from decimal import Decimal
+from unittest.mock import patch
 
 from property_manager.services.unit_service import (
     UnitNotFoundError,
@@ -38,6 +40,28 @@ class ReadOnlyFakeUnitRepository:
         return row
 
 
+class WritableFakeUnitRepository(ReadOnlyFakeUnitRepository):
+    def __init__(self) -> None:
+        self.inserted = None
+
+    def building_exists(self, connection, building_id: int) -> bool:
+        return building_id == 2
+
+    def find_duplicate(self, connection, building_id, apartment_number):
+        return None
+
+    def next_id(self, connection) -> int:
+        return 8
+
+    def insert(self, connection, unit_id, values) -> None:
+        self.inserted = {"id": unit_id, **values}
+
+    def get_by_id(self, unit_id: int):
+        if self.inserted and self.inserted["id"] == unit_id:
+            return self.inserted
+        return super().get_by_id(unit_id)
+
+
 class UnitServiceTests(unittest.TestCase):
     def setUp(self) -> None:
         self.service = UnitService(
@@ -66,6 +90,26 @@ class UnitServiceTests(unittest.TestCase):
                     "status": "Occupied",
                 }
             )
+
+    def test_create_assigns_id_before_insert_and_returns_unit(self) -> None:
+        repository = WritableFakeUnitRepository()
+        service = UnitService(repository)  # type: ignore[arg-type]
+        payload = {
+            "buildingId": 2,
+            "apartmentNumber": "5",
+            "bedrooms": 2,
+            "bathrooms": 1,
+            "monthlyRent": 1200,
+            "status": "Vacant",
+        }
+        with patch(
+            "property_manager.services.unit_service.transaction",
+            return_value=nullcontext(object()),
+        ):
+            created = service.create_unit(payload)
+
+        self.assertEqual(created["id"], 8)
+        self.assertEqual(created["apartmentNumber"], "5")
 
 
 if __name__ == "__main__":

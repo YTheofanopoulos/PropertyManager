@@ -40,8 +40,6 @@ class UnitService:
     def create_unit(self, payload: object) -> dict[str, Any]:
         values = self._validate(payload)
         with transaction() as connection:
-            if not self.repository.exists(connection, unit_id):
-                raise UnitNotFoundError("Unit not found.")
             if not self.repository.building_exists(connection, values["building_id"]):
                 raise UnitValidationError("The selected building does not exist.")
             if self.repository.find_duplicate(
@@ -57,6 +55,8 @@ class UnitService:
     def update_unit(self, unit_id: int, payload: object) -> dict[str, Any]:
         values = self._validate(payload)
         with transaction() as connection:
+            if not self.repository.exists(connection, unit_id):
+                raise UnitNotFoundError("Unit not found.")
             if not self.repository.building_exists(connection, values["building_id"]):
                 raise UnitValidationError("The selected building does not exist.")
             if self.repository.find_duplicate(

@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.2.0.1 — 2026-07-20
+
+### Fixed
+
+- Fixed Unit creation failing with `UnboundLocalError` before a new unit identifier had been assigned.
+- Kept the existence check on Unit updates, where it correctly distinguishes a missing record from an unchanged update.
+- Added a Unit creation regression test covering identifier assignment, insertion, and response serialization.
+
 ## 6.2.0 — 2026-07-20
 
 ### Added

@@ -1,14 +1,14 @@
-# PropertyManager Baseline 6.2.0
+# PropertyManager Baseline 6.2.0.1
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
 Version identifiers:
 
-- Application: **6.2.0**
+- Application: **6.2.0.1**
 - REST API: **v1**
 - Database schema: **1**
 
-Baseline 6.2.0 makes Locations, Buildings, and Units live REST-backed domains. Their list projections and editors use API v1 and MariaDB; every other application domain continues to use its established IndexedDB repository.
+Baseline 6.2.0.1 makes Locations, Buildings, and Units live REST-backed domains and corrects Unit creation through API v1. Their list projections and editors use MariaDB; every other application domain continues to use its established IndexedDB repository.
 
 Start with [docs/INSTALL.md](docs/INSTALL.md).
 
