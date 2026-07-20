@@ -2,7 +2,7 @@
 
 ## Version boundaries
 
-- Application: 6.3.0
+- Application: 6.4.0
 - REST API: v1
 - MariaDB schema: 1
 
@@ -61,6 +61,10 @@ All remaining domains continue using IndexedDB.
 Tenants and Leases use API v1 and MariaDB. Lease saves are transactional across leases, participants, recurring charges, concessions, rent obligations, allocations validation, and unit occupancy. The existing editor contract is preserved.
 
 Payments, credits, rent-ledger generation, bank import, reconciliation, dashboard calculations, and reports still use IndexedDB. They must be migrated before newly created MariaDB leases can participate in those screens.
+
+## Baseline 6.4.0 financial vertical slice
+
+Payments, allocations, credits, rent-obligation generation, Rent Roll, and Rent Status now use API v1 and MariaDB transactions. Bank Import, Reconciliation, Dashboard calculations, Payment Receipt reports, and other reports remain IndexedDB-backed.
 
 ## Security principles
 

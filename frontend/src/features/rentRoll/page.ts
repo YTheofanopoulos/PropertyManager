@@ -4,13 +4,16 @@ import { createTable } from "../shared/table";
 import { currency } from "../shared/format";
 
 import { applicationClock } from "../../services/applicationClockService";
+import type { RentRollRow } from "../../models/domain";
 const currentPeriod = (): string => applicationClock.currentPeriod();
 
 export async function renderRentRoll(container: HTMLElement): Promise<void> {
   const period =
     new URLSearchParams(location.hash.split("?")[1] ?? "").get("period") ??
     currentPeriod();
-  const rows = await rentLedgerService.getRentRoll(period);
+  let rows: RentRollRow[];
+  try { rows = await rentLedgerService.getRentRoll(period); }
+  catch (error) { container.innerHTML=`<div class="alert alert-danger">${(error as Error).message}</div>`; return; }
 
   container.innerHTML = `
     <div class="page-heading d-flex justify-content-between align-items-end">

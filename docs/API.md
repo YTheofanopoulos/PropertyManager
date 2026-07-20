@@ -6,6 +6,20 @@ Base path:
 /api/v1
 ```
 
+## Financial endpoints (Baseline 6.4.0)
+
+- `GET /payments`
+- `POST /payments`
+- `POST /payments/{id}/void`
+- `GET /credits`
+- `POST /credits/{paymentId}/apply`
+- `POST /rent-ledger/ensure`
+- `GET /rent-ledger/leases/{leaseId}/outstanding`
+- `GET /rent-ledger/rent-roll?period=YYYY-MM`
+- `POST /rent-ledger/rent-status`
+
+Payment, allocation, credit, and obligation mutations execute transactionally. Validation failures return 400, missing records return 404, and balance or state conflicts return 409.
+
 ## System endpoints
 
 ### GET `/api/v1`

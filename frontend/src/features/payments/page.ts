@@ -1,53 +1,20 @@
 
-import { db } from "../../db/database";
 import type { PaymentMethod } from "../../models/domain";
-import { paymentService } from "../../services/paymentService";
+import { paymentService, type PaymentListRow } from "../../services/paymentService";
 import { rentLedgerService } from "../../services/rentLedgerService";
+import { leaseRepository } from "../../repositories/leaseRepository";
+import { unitRepository } from "../../repositories/unitRepository";
+import { buildingRepository } from "../../repositories/buildingRepository";
+import { locationRepository } from "../../repositories/locationRepository";
+import { tenantRepository } from "../../repositories/tenantRepository";
 import { createTable } from "../shared/table";
 import { currency } from "../shared/format";
 
 import { applicationClock } from "../../services/applicationClockService";
 export async function renderPayments(container: HTMLElement): Promise<void> {
-  const [payments, allocations, leases, units, buildings, locations] =
-    await Promise.all([
-      db.payments.orderBy("receivedDate").reverse().toArray(),
-      db.paymentAllocations.toArray(),
-      db.leases.toArray(),
-      db.units.toArray(),
-      db.buildings.toArray(),
-      db.locations.toArray(),
-    ]);
-
-  const leaseMap = new Map(leases.map((item) => [item.id, item]));
-  const unitMap = new Map(units.map((item) => [item.id, item]));
-  const buildingMap = new Map(buildings.map((item) => [item.id, item]));
-  const locationMap = new Map(locations.map((item) => [item.id, item]));
-
-  const rows = payments.map((payment) => {
-    const isVoided = (payment.status ?? "Posted") === "Voided";
-    const allocated = isVoided
-      ? 0
-      : allocations
-          .filter((allocation) => allocation.paymentId === payment.id)
-          .reduce((total, allocation) => total + allocation.amount, 0);
-
-    const lease = leaseMap.get(payment.leaseId);
-    const unit = lease ? unitMap.get(lease.unitId) : undefined;
-    const building = unit ? buildingMap.get(unit.buildingId) : undefined;
-    const location = building ? locationMap.get(building.locationId) : undefined;
-    const unitLabel =
-      `${building?.civicAddress ?? "?"}` +
-      `${unit?.apartmentNumber ? ` ${unit.apartmentNumber}` : ""}` +
-      `${location?.name ? ` ${location.name}` : ""}`;
-
-    return {
-      ...payment,
-      unitLabel: unitLabel.trim(),
-      allocated,
-      unapplied: isVoided ? 0 : payment.amount - allocated,
-      effectiveStatus: payment.status ?? "Posted",
-    };
-  });
+  let rows: PaymentListRow[];
+  try { rows = await paymentService.list(); }
+  catch (error) { container.innerHTML=`<div class="alert alert-danger">${(error as Error).message}</div>`; return; }
 
   container.innerHTML = `
     <div class="page-heading">
@@ -163,15 +130,16 @@ export async function renderPaymentEditor(
     obligationThrough,
   );
 
-  const [leases, units, buildings, locations, participants, tenants] =
+  const [leases, units, buildings, locations, tenants] =
     await Promise.all([
-      db.leases.toArray(),
-      db.units.toArray(),
-      db.buildings.toArray(),
-      db.locations.toArray(),
-      db.leaseParticipants.toArray(),
-      db.tenants.toArray(),
+      leaseRepository.getAll(),
+      unitRepository.getAll(),
+      buildingRepository.getAll(),
+      locationRepository.getAll(),
+      tenantRepository.getAll(),
     ]);
+  const participantGroups = await Promise.all(leases.map((lease) => leaseRepository.getParticipants(lease.id as number)));
+  const participants = participantGroups.flat();
 
   const unitMap = new Map(units.map((item) => [item.id, item]));
   const buildingMap = new Map(buildings.map((item) => [item.id, item]));

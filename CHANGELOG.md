@@ -1,5 +1,21 @@
 # Changelog
 
+## 6.4.0 — 2026-07-20
+
+### Added
+
+- Added API v1 and MariaDB services for payments, allocations, credits, obligation generation, Rent Roll, and Rent Status.
+- Added transactional payment posting, voiding, and credit application with server-side balance validation.
+
+### Changed
+
+- Made MariaDB authoritative for Payments, Allocations, Credits, Rent Roll, and Rent Status while preserving their existing UI.
+- Updated application and backup versions to 6.4.0.
+
+### Known migration boundary
+
+- Bank Import, Reconciliation, Dashboard calculations, Payment Receipt reports, and other reports remain IndexedDB-backed.
+
 ## 6.3.0 — 2026-07-20
 
 ### Added

@@ -112,10 +112,9 @@ export async function renderRentStatus(
       addMonths(startPeriod, index),
   );
 
-  const rows = await rentStatusService.getStatus(
-    periods,
-    currentPeriod,
-  );
+  let rows: RentStatusRow[];
+  try { rows = await rentStatusService.getStatus(periods,currentPeriod); }
+  catch (error) { container.innerHTML=`<div class="alert alert-danger">${(error as Error).message}</div>`; return; }
 
   const currentMonthIndex = periods.indexOf(currentPeriod);
   const currentExpected = rows.reduce(
