@@ -1,5 +1,20 @@
 # Changelog
 
+## 6.0.0.2 — 2026-07-20
+
+- Standardized full and delta ZIP packages to contain project-root-relative paths with no enclosing `PropertyManager/` directory.
+- Added a release manifest that identifies the required baseline and exact files included in the delta.
+- Clarified the one-command development workflow and root-relative delta installation steps.
+- Retained the coordinated frontend/backend helper scripts introduced for the 6.0 development environment.
+
+## 6.0.0.2 — 2026-07-20
+
+- Added one-command coordinated development startup for the Python API and Vite frontend.
+- Added setup, health-check, database initialization/import/verification, backup, restore, and stop helpers.
+- Added separate runtime and migration environment templates.
+- Added a Vite `/api` proxy to the local Python backend.
+- Added explicit developer workflow and revised installation guidance.
+
 ## 6.0.0 — 2026-07-20
 
 - Established independent application 6.0.0, REST API v1, and MariaDB schema 1 versioning.

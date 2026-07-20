@@ -83,7 +83,7 @@ export function renderShell(): HTMLElement {
           data-bs-target="#about-property-manager"
         >
           <i class="fa-solid fa-circle-info me-2"></i>
-          <span>v6.0.0</span>
+          <span>v6.0.0.2</span>
         </button>
       </div>
     </aside>
@@ -128,7 +128,7 @@ export function renderShell(): HTMLElement {
         <div class="modal-body">
           <dl class="row mb-0">
             <dt class="col-5">Application Version</dt>
-            <dd class="col-7">6.0.0</dd>
+            <dd class="col-7">6.0.0.2</dd>
 
             <dt class="col-5">Baseline</dt>
             <dd class="col-7">5.8.1.1</dd>

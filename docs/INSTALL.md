@@ -1,6 +1,6 @@
-# PropertyManager Baseline 6.0.0 Installation
+# PropertyManager Baseline 6.0.0.2 Installation
 
-Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
+Baseline 6.0.0.2 includes the 6.0.0 foundation and adds a coordinated development workflow. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
 
 ## 1. Requirements
 
@@ -13,6 +13,27 @@ Recommended production platform:
 - Apache 2.4 with `mod_proxy` and `mod_proxy_http`, or another reverse proxy
 
 Python 3.14 may work, but third-party binary packages can lag behind new Python releases. Use 3.12 or 3.13 for the most predictable deployment.
+
+## Development quick start
+
+During development, MariaDB runs as a system service while one helper script starts both application processes:
+
+```text
+Browser → Vite (5173) → /api proxy → Python (5000) → MariaDB
+```
+
+After installing the operating-system prerequisites and creating the MariaDB accounts:
+
+```bash
+./scripts/setup_dev.sh
+# Edit backend/.env and backend/.env.migrate
+./scripts/init_database.sh
+./scripts/import_5x_backup.sh /path/to/backup.json --dry-run
+./scripts/import_5x_backup.sh /path/to/backup.json
+./scripts/start_dev.sh
+```
+
+For ordinary daily testing, only `./scripts/start_dev.sh` is needed. Press `Ctrl+C` to stop both Vite and Python. See `docs/DeveloperWorkflow.md` for details.
 
 ## 2. Install operating-system packages
 
@@ -221,7 +242,13 @@ python scripts/verify_database.py
 
 This confirms that the restricted runtime account has sufficient read access.
 
-## 11. Build the frontend
+## 11. Recommended development workflow
+
+The helper scripts are the recommended way to develop and test Baseline 6.0.0.2. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend together and shuts both down on `Ctrl+C`.
+
+Run `./scripts/check_dev.sh` whenever setup or connectivity is uncertain.
+
+## 12. Build the frontend
 
 ```bash
 ./scripts/build_frontend.sh
@@ -236,7 +263,7 @@ cd frontend
 npm run dev -- --host 0.0.0.0
 ```
 
-## 12. Run the development backend
+## 13. Manual development startup (advanced)
 
 ```bash
 ./scripts/run_dev_server.sh
@@ -250,7 +277,7 @@ curl http://127.0.0.1:5000/api/v1/system/health
 
 A successful response includes:
 
-- application version `6.0.0`
+- application version `6.0.0.2`
 - API version `v1`
 - expected schema version `1`
 - MariaDB server and user information
