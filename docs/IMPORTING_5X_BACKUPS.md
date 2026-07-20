@@ -1,6 +1,6 @@
 # Importing Baseline 5.x Backups
 
-Baseline 6.0.0.3 hardens the official JSON migration path from the browser-based
+Baseline 6.0.0.4 hardens the official JSON migration path from the browser-based
 5.x application to MariaDB schema 1.
 
 ## Recommended workflow
@@ -73,6 +73,9 @@ MariaDB driver error.
 - IDs and counters become Python integers.
 - Currency, rent, bedroom, and bathroom values become `Decimal` values.
 - Boolean fields accept JSON booleans, `0`/`1`, and common true/false text.
+- ISO calendar dates become native Python `date` values.
+- ISO 8601 timestamps, including values ending in `Z`, become native Python
+  `datetime` values; timezone-aware values are normalized to UTC for MariaDB.
 - Empty nullable fields become SQL `NULL`.
 - Scalar text fields accept strings and scalar numeric values.
 

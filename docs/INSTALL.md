@@ -1,6 +1,6 @@
 # PropertyManager Baseline 6.0.0.1 Installation
 
-Baseline 6.0.0.3 includes the 6.0.0 foundation, coordinated development workflow, and a hardened Baseline 5.x JSON importer. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
+Baseline 6.0.0.4 includes the 6.0.0 foundation, coordinated development workflow, and a hardened Baseline 5.x JSON importer. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
 
 ## 1. Requirements
 

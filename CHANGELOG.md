@@ -1,5 +1,13 @@
 # Changelog
 
+## 6.0.0.4 — 2026-07-20
+
+### Fixed
+
+- Converted Baseline 5.x ISO 8601 timestamps such as `2026-07-17T18:03:25.030Z` to native Python `datetime` values accepted by MariaDB `DATETIME` columns.
+- Converted ISO calendar dates to native Python `date` values before insertion.
+- Normalized timezone-aware timestamps to UTC before storing them in timezone-neutral MariaDB `DATETIME` columns.
+
 ## 6.0.0.3 — 2026-07-20
 
 ### Fixed

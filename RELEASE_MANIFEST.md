@@ -1,9 +1,9 @@
 # Release Manifest
 
-- Application version: 6.0.0.3
+- Application version: 6.0.0.4
 - REST API version: v1
 - Database schema version: 1
-- Source baseline: 6.0.0.2
+- Source baseline: 6.0.0.3
 - Package type: Delta
 
 ## Modified files
@@ -12,11 +12,11 @@
 - `CHANGELOG.md`
 - `RELEASE_MANIFEST.md`
 - `docs/INSTALL.md`
-- `docs/DeveloperWorkflow.md`
+- `docs/IMPORTING_5X_BACKUPS.md`
 
 ## Added files
 
-- `docs/IMPORTING_5X_BACKUPS.md`
+- None
 
 ## Removed files
 
@@ -24,7 +24,7 @@
 
 ## Apply
 
-Extract the archive directly into the root of an existing Baseline 6.0.0.2
+Extract the archive directly into the root of an existing Baseline 6.0.0.3
 project directory. The archive intentionally has no enclosing project folder.
 
 No database schema migration or frontend rebuild is required.

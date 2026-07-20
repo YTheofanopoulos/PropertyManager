@@ -8,6 +8,7 @@ import os
 import sys
 from collections import Counter
 from dataclasses import dataclass
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Callable
@@ -36,6 +37,7 @@ TABLE_MAP = {
 }
 
 JSON_PRIMITIVES = (str, int, float, bool, type(None))
+BINDABLE_TYPES = (str, int, float, Decimal, bool, date, datetime, type(None))
 
 
 class ImportValueError(ValueError):
@@ -147,6 +149,40 @@ def as_boolean(raw: Any) -> int:
     raise TypeError("expected a boolean, 0/1, or true/false text")
 
 
+def as_date(raw: Any) -> date:
+    if isinstance(raw, datetime):
+        return raw.date()
+    if isinstance(raw, date):
+        return raw
+    if not isinstance(raw, str):
+        raise TypeError("expected an ISO date string")
+    try:
+        return date.fromisoformat(raw.strip())
+    except ValueError as exc:
+        raise TypeError("expected an ISO date in YYYY-MM-DD format") from exc
+
+
+def as_datetime(raw: Any) -> datetime:
+    if isinstance(raw, datetime):
+        value = raw
+    elif isinstance(raw, str):
+        normalized = raw.strip()
+        if normalized.endswith(("Z", "z")):
+            normalized = normalized[:-1] + "+00:00"
+        try:
+            value = datetime.fromisoformat(normalized)
+        except ValueError as exc:
+            raise TypeError("expected an ISO date/time value") from exc
+    else:
+        raise TypeError("expected an ISO date/time string")
+
+    # MariaDB DATETIME has no timezone component. Preserve the represented
+    # instant by normalizing aware timestamps to UTC before removing tzinfo.
+    if value.tzinfo is not None:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+    return value
+
+
 def text(name: str, default: str = "", nullable: bool = False) -> Column:
     return Column(name, as_string, default, nullable)
 
@@ -161,6 +197,14 @@ def decimal(name: str, default: Any = "") -> Column:
 
 def boolean(name: str, default: bool = False) -> Column:
     return Column(name, as_boolean, default)
+
+
+def date_column(name: str, default: Any = "", nullable: bool = False) -> Column:
+    return Column(name, as_date, default, nullable)
+
+
+def datetime_column(name: str, default: Any = "", nullable: bool = False) -> Column:
+    return Column(name, as_datetime, default, nullable)
 
 
 SPECS: dict[str, CollectionSpec] = {
@@ -182,7 +226,7 @@ SPECS: dict[str, CollectionSpec] = {
     ),
     "leases": CollectionSpec(
         "INSERT INTO leases(id,unit_id,start_date,end_date,term_type,status,renewal_status,renewal_letter_sent_date,renewal_response_date,renewal_notes,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-        (integer("id"), integer("unitId"), text("startDate"), text("endDate"), text("termType", "Fixed"), text("status"), text("renewalStatus", "Not Started"), text("renewalLetterSentDate", nullable=True), text("renewalResponseDate", nullable=True), text("renewalNotes"), text("notes")),
+        (integer("id"), integer("unitId"), date_column("startDate"), date_column("endDate"), text("termType", "Fixed"), text("status"), text("renewalStatus", "Not Started"), date_column("renewalLetterSentDate", nullable=True), date_column("renewalResponseDate", nullable=True), text("renewalNotes"), text("notes")),
     ),
     "leaseParticipants": CollectionSpec(
         "INSERT INTO lease_participants(id,lease_id,tenant_id,is_primary,sort_order) VALUES (?,?,?,?,?)",
@@ -190,7 +234,7 @@ SPECS: dict[str, CollectionSpec] = {
     ),
     "recurringCharges": CollectionSpec(
         "INSERT INTO recurring_charges(id,lease_id,charge_type,description,amount,frequency,start_date,end_date) VALUES (?,?,?,?,?,?,?,?)",
-        (integer("id"), integer("leaseId"), text("chargeType"), text("description"), decimal("amount"), text("frequency"), text("startDate"), text("endDate")),
+        (integer("id"), integer("leaseId"), text("chargeType"), text("description"), decimal("amount"), text("frequency"), date_column("startDate"), date_column("endDate")),
     ),
     "leaseConcessions": CollectionSpec(
         "INSERT INTO lease_concessions(id,lease_id,description,amount,start_period,end_period,comment) VALUES (?,?,?,?,?,?,?)",
@@ -198,11 +242,11 @@ SPECS: dict[str, CollectionSpec] = {
     ),
     "rentObligations": CollectionSpec(
         "INSERT INTO rent_obligations(id,lease_id,rent_period,expected_amount,status,created_at) VALUES (?,?,?,?,?,?)",
-        (integer("id"), integer("leaseId"), text("rentPeriod"), decimal("expectedAmount"), text("status"), text("createdAt")),
+        (integer("id"), integer("leaseId"), text("rentPeriod"), decimal("expectedAmount"), text("status"), datetime_column("createdAt")),
     ),
     "payments": CollectionSpec(
         "INSERT INTO payments(id,lease_id,tenant_id,received_date,amount,payment_method,reference,notes,source,status,voided_at,void_reason,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (integer("id"), integer("leaseId"), integer("tenantId", nullable=True), text("receivedDate"), decimal("amount"), text("paymentMethod", "Other"), text("reference"), text("notes"), text("source"), text("status", "Posted"), text("voidedAt", nullable=True), text("voidReason", nullable=True), text("createdAt")),
+        (integer("id"), integer("leaseId"), integer("tenantId", nullable=True), date_column("receivedDate"), decimal("amount"), text("paymentMethod", "Other"), text("reference"), text("notes"), text("source"), text("status", "Posted"), datetime_column("voidedAt", nullable=True), text("voidReason", nullable=True), datetime_column("createdAt")),
     ),
     "paymentAllocations": CollectionSpec(
         "INSERT INTO payment_allocations(id,payment_id,obligation_id,amount) VALUES (?,?,?,?)",
@@ -210,15 +254,15 @@ SPECS: dict[str, CollectionSpec] = {
     ),
     "bankImportBatches": CollectionSpec(
         "INSERT INTO bank_import_batches(id,filename,imported_at,account_last_four,currency,statement_start,statement_end,transaction_count,total_credits,total_debits,new_transaction_count,duplicate_count,status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (integer("id"), text("filename"), text("importedAt"), text("accountLastFour"), text("currency"), text("statementStart"), text("statementEnd"), integer("transactionCount"), decimal("totalCredits", 0), decimal("totalDebits", 0), integer("newTransactionCount", 0), integer("duplicateCount", 0), text("status")),
+        (integer("id"), text("filename"), datetime_column("importedAt"), text("accountLastFour"), text("currency"), date_column("statementStart"), date_column("statementEnd"), integer("transactionCount"), decimal("totalCredits", 0), decimal("totalDebits", 0), integer("newTransactionCount", 0), integer("duplicateCount", 0), text("status")),
     ),
     "bankTransactions": CollectionSpec(
         "INSERT INTO bank_transactions(id,import_batch_id,external_id,account_last_four,posted_date,amount,transaction_type,name,memo,status,matched_payment_id,ignored_reason,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-        (integer("id"), integer("importBatchId"), text("externalId"), text("accountLastFour"), text("postedDate"), decimal("amount"), text("transactionType"), text("name"), text("memo"), text("status"), integer("matchedPaymentId", nullable=True), text("ignoredReason", nullable=True), text("createdAt")),
+        (integer("id"), integer("importBatchId"), text("externalId"), text("accountLastFour"), date_column("postedDate"), decimal("amount"), text("transactionType"), text("name"), text("memo"), text("status"), integer("matchedPaymentId", nullable=True), text("ignoredReason", nullable=True), datetime_column("createdAt")),
     ),
     "reconciliationHistory": CollectionSpec(
         "INSERT INTO reconciliation_history(id,bank_transaction_id,payment_id,lease_id,amount,posted_date,posted_day,normalized_name,normalized_memo,created_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-        (integer("id"), integer("bankTransactionId"), integer("paymentId"), integer("leaseId"), decimal("amount"), text("postedDate"), integer("postedDay"), text("normalizedName"), text("normalizedMemo"), text("createdAt")),
+        (integer("id"), integer("bankTransactionId"), integer("paymentId"), integer("leaseId"), decimal("amount"), date_column("postedDate"), integer("postedDay"), text("normalizedName"), text("normalizedMemo"), datetime_column("createdAt")),
     ),
 }
 
@@ -318,7 +362,7 @@ def convert_rows(name: str, rows: list[dict[str, Any]]) -> list[tuple[Any, ...]]
                 raise ImportValueError(
                     name, row_number, column_number, column.json_name, raw, str(exc),
                 ) from exc
-            if not isinstance(converted_value, (str, int, float, Decimal, bool, type(None))):
+            if not isinstance(converted_value, BINDABLE_TYPES):
                 raise ImportValueError(
                     name, row_number, column_number, column.json_name, converted_value,
                     "converter produced a non-bindable Python value",
