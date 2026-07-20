@@ -2,7 +2,7 @@
 
 ## Version boundaries
 
-- Application: 6.2.0
+- Application: 6.3.0
 - REST API: v1
 - MariaDB schema: 1
 
@@ -55,6 +55,12 @@ All other domain repositories remain unchanged and continue using IndexedDB. Thi
 Locations and Buildings join Units as REST-backed domains. Their API list projections calculate relationship counts in MariaDB, and referential deletion checks execute transactionally in the backend. The Units editor now obtains its location/building choices from these API repositories so the connected screens share one authoritative data source.
 
 All remaining domains continue using IndexedDB.
+
+## Baseline 6.3.0 vertical slice
+
+Tenants and Leases use API v1 and MariaDB. Lease saves are transactional across leases, participants, recurring charges, concessions, rent obligations, allocations validation, and unit occupancy. The existing editor contract is preserved.
+
+Payments, credits, rent-ledger generation, bank import, reconciliation, dashboard calculations, and reports still use IndexedDB. They must be migrated before newly created MariaDB leases can participate in those screens.
 
 ## Security principles
 

@@ -1,6 +1,6 @@
-# PropertyManager Baseline 6.2.0.1 Installation
+# PropertyManager Baseline 6.3.0 Installation
 
-Baseline 6.2.0.1 includes the 6.2 REST-backed Locations, Buildings, and Units domains plus the Unit creation correction. All other user-interface repositories remain on IndexedDB while the conversion proceeds incrementally.
+Baseline 6.3.0 adds REST-backed Tenants and Leases to Locations, Buildings, and Units. Financial, reporting, bank-import, and reconciliation services remain on IndexedDB while conversion proceeds incrementally.
 
 ## 1. Requirements
 
@@ -269,7 +269,7 @@ This confirms that the restricted runtime account has sufficient read access.
 
 ## 11. Recommended development workflow
 
-The helper scripts are the recommended way to develop and test Baseline 6.2.0.1. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend in separate process groups and shuts both complete process trees down on `Ctrl+C` or `SIGTERM`. Flask's reloader is disabled during coordinated startup.
+The helper scripts are the recommended way to develop and test Baseline 6.3.0. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend in separate process groups and shuts both complete process trees down on `Ctrl+C` or `SIGTERM`. Flask's reloader is disabled during coordinated startup.
 
 Run `./scripts/check_dev.sh` whenever setup or connectivity is uncertain.
 
@@ -305,7 +305,7 @@ curl http://127.0.0.1:5000/api/v1/system/health
 
 A successful response includes:
 
-- application version `6.2.0.1`
+- application version `6.3.0`
 - API version `v1`
 - expected schema version `1`
 - MariaDB server and user information
@@ -461,4 +461,4 @@ Do not manually delete individual tables. Confirm whether schema migration 1 was
 
 ## 17. Baseline limitation
 
-Baseline 6.2.0.1 makes MariaDB authoritative for Locations, Buildings, and Units through API v1. Other user-interface domains still use their established IndexedDB repositories and will be converted in subsequent vertical slices. After startup, use the browser Network panel to confirm that these screens request `/api/v1/locations`, `/api/v1/buildings`, and `/api/v1/units`.
+Baseline 6.3.0 makes MariaDB authoritative for Locations, Buildings, Units, Tenants, and Leases through API v1. Financial and reporting domains still use IndexedDB and will be converted in subsequent vertical slices. After startup, use the browser Network panel to verify the migrated entity requests.

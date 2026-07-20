@@ -20,7 +20,17 @@ Checks Python and MariaDB connectivity and returns application, API, and schema 
 
 Currently equivalent to the health endpoint.
 
-Locations, Buildings, and Units are implemented as connected vertical slices. Other entity and workflow endpoints remain deferred so they can be migrated and tested independently.
+Locations, Buildings, Units, Tenants, and Leases are implemented as connected vertical slices. Other entity and workflow endpoints remain deferred so they can be migrated and tested independently.
+
+## Tenants endpoints
+
+`GET /api/v1/tenants` returns tenant list projections; `GET /api/v1/tenants/{id}` returns one tenant. `POST`, `PUT`, and `DELETE` maintain tenants. Duplicate email addresses and deletion of leaseholders return `409`.
+
+## Leases endpoints
+
+`GET /api/v1/leases` returns the lease list projection. `GET /api/v1/leases/{id}` returns one lease. Related editor collections are available at `/participants`, `/charges`, and `/concessions`. `POST /api/v1/leases` creates a complete lease; `PUT /api/v1/leases/{id}` updates it transactionally; `POST /api/v1/leases/{id}/terminate` terminates it and refreshes occupancy.
+
+Lease write failures return `400` for invalid input, `404` for missing records, and `409` for overlaps or financial conflicts. A failed multi-table operation is rolled back.
 
 ## Locations endpoints
 

@@ -1,5 +1,4 @@
 
-import { db } from "../db/database";
 import type { Unit } from "../models/domain";
 import { unitRepository } from "../repositories/unitRepository";
 
@@ -29,9 +28,6 @@ export class UnitService {
   }
 
   async remove(id: number): Promise<void> {
-    if (await db.leases.where("unitId").equals(id).count()) {
-      throw new Error("A unit with lease history cannot be deleted.");
-    }
     await unitRepository.delete(id);
   }
 }

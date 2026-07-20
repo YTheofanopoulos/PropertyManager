@@ -1,4 +1,4 @@
-
+import type { LeaseListItem } from "../../models/domain";
 import { leaseRepository } from "../../repositories/leaseRepository";
 import { leaseService } from "../../services/leaseService";
 import { createTable } from "../shared/table";
@@ -6,7 +6,9 @@ import { currency, escapeHtml } from "../shared/format";
 import { notify } from "../shared/ui";
 
 export async function renderLeases(container: HTMLElement): Promise<void> {
-  const rows = await leaseRepository.getListItems();
+  let rows: LeaseListItem[];
+  try { rows = await leaseRepository.getListItems(); }
+  catch (error) { notify((error as Error).message, "danger"); rows = []; }
 
   container.innerHTML = `
     <div class="page-heading d-flex justify-content-between align-items-center">

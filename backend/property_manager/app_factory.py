@@ -9,9 +9,11 @@ from .config import PROJECT_DIR, Settings
 from .database import initialize_pool
 from .routes import (
     buildings_blueprint,
+    leases_blueprint,
     locations_blueprint,
     system_blueprint,
     units_blueprint,
+    tenants_blueprint,
 )
 
 
@@ -27,9 +29,11 @@ def create_app() -> Flask:
     app = Flask(__name__, static_folder=str(dist_dir), static_url_path="")
     app.config["PM_SETTINGS"] = settings
     app.register_blueprint(buildings_blueprint)
+    app.register_blueprint(leases_blueprint)
     app.register_blueprint(locations_blueprint)
     app.register_blueprint(system_blueprint)
     app.register_blueprint(units_blueprint)
+    app.register_blueprint(tenants_blueprint)
 
     @app.get("/api/v1")
     def api_root():

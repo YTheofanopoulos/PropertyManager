@@ -1,5 +1,22 @@
 # Changelog
 
+## 6.3.0 — 2026-07-20
+
+### Added
+
+- Added MariaDB repositories, services, and API v1 CRUD routes for Tenants.
+- Added transactional MariaDB lease creation and editing with participants, recurring charges, concessions, obligations, and occupancy updates.
+- Added lease list, detail, participant, charge, concession, and termination API endpoints.
+- Added Tenant and Lease backend regression tests.
+
+### Changed
+
+- Made MariaDB authoritative for Tenant and Lease screens and the Lease editor.
+- Moved overlap, duplicate, referential deletion, concession, and allocated-payment validation to backend services.
+- Changed the Lease editor's Unit, Building, Location, and Tenant data sources to REST repositories.
+- Retained IndexedDB for financial screens and other domains not yet migrated.
+- Updated application and backup versions to 6.3.0.
+
 ## 6.2.0.1 — 2026-07-20
 
 ### Fixed

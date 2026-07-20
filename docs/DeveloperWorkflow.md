@@ -1,4 +1,4 @@
-# Developer Workflow — Baseline 6.2.0
+# Developer Workflow — Baseline 6.3.0
 
 PropertyManager uses two development processes: the Vite frontend and the Python API. MariaDB normally runs continuously as an operating-system service. The helper scripts coordinate the frontend and backend for you.
 
@@ -106,3 +106,9 @@ If the Units request fails, the table remains usable as an empty table and a vis
 ## Verifying Locations and Buildings
 
 Visiting Locations and Buildings must issue `GET /api/v1/locations` and `GET /api/v1/buildings`. Their create, edit, and delete actions use the corresponding API routes. Opening the Unit editor also loads its selectors through the Locations and Buildings repositories. Deleting a location with buildings or a building with units must return a visible conflict message without changing MariaDB.
+
+## Verifying Tenants and Leases
+
+Tenant navigation must issue `GET /api/v1/tenants`; Lease navigation must issue `GET /api/v1/leases`. Test Tenant create/edit/delete and its leaseholder deletion safeguard. Test Lease create/edit/terminate, multiple leaseholders, recurring charges, concessions, overlap rejection, and unchanged non-financial edits.
+
+Financial and reporting screens remain IndexedDB-backed in this baseline and are not expected to reflect newly created MariaDB leases yet.

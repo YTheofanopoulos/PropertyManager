@@ -1,4 +1,3 @@
-import { db } from "../../db/database";
 import type {
   ChargeType,
   LeaseStatus,
@@ -7,6 +6,10 @@ import type {
   Tenant,
 } from "../../models/domain";
 import { leaseRepository } from "../../repositories/leaseRepository";
+import { unitRepository } from "../../repositories/unitRepository";
+import { buildingRepository } from "../../repositories/buildingRepository";
+import { locationRepository } from "../../repositories/locationRepository";
+import { tenantRepository } from "../../repositories/tenantRepository";
 import { leaseService } from "../../services/leaseService";
 import { tenantService } from "../../services/tenantService";
 import { currency, escapeHtml } from "../shared/format";
@@ -25,10 +28,11 @@ export async function renderLeaseEditor(
   leaseId?: number,
 ): Promise<void> {
   const [units, buildings, locations, tenants] = await Promise.all([
-    db.units.toArray(),
-    db.buildings.toArray(),
-    db.locations.toArray(),
-    db.tenants.orderBy("lastName").toArray(),
+    unitRepository.getAll(),
+    buildingRepository.getAll(),
+    locationRepository.getAll(),
+    tenantRepository.getAll().then((rows) => rows.sort((left, right) =>
+      left.lastName.localeCompare(right.lastName) || left.firstName.localeCompare(right.firstName))),
   ]);
 
   const buildingMap = new Map(buildings.map((item) => [item.id, item]));
@@ -52,7 +56,7 @@ export async function renderLeaseEditor(
     ? await leaseRepository.getCharges(leaseId)
     : [];
   const concessions = leaseId
-    ? await db.leaseConcessions.where("leaseId").equals(leaseId).toArray()
+    ? await leaseRepository.getConcessions(leaseId)
     : [];
 
   const selectedTenantIds = participants
@@ -496,7 +500,7 @@ function bindEditor(
         phone: (document.getElementById("new-phone") as HTMLInputElement).value,
         active: true,
       });
-      const tenant = await db.tenants.get(tenantId);
+      const tenant = await tenantRepository.getById(tenantId);
       if (!tenant || tenant.id === undefined) throw new Error("The tenant was saved but could not be added to the lease.");
       tenants.push(tenant);
       tenants.sort((left, right) => left.lastName.localeCompare(right.lastName) || left.firstName.localeCompare(right.firstName));

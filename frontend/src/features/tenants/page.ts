@@ -1,4 +1,4 @@
-
+import type { Tenant, TenantListItem } from "../../models/domain";
 import { tenantRepository } from "../../repositories/tenantRepository";
 import { tenantService } from "../../services/tenantService";
 import { createTable } from "../shared/table";
@@ -25,7 +25,9 @@ export async function renderTenants(container: HTMLElement): Promise<void> {
 }
 
 async function refresh(): Promise<void> {
-  const rows = await tenantRepository.getListItems();
+  let rows: TenantListItem[];
+  try { rows = await tenantRepository.getListItems(); }
+  catch (error) { notify((error as Error).message, "danger"); rows = []; }
   table?.destroy();
   table = createTable("#tenants-table", {
     data: rows,
@@ -45,7 +47,9 @@ async function openEditor(id?: number): Promise<void> {
   (document.getElementById("tenant-id") as HTMLInputElement).value = "";
   (document.getElementById("tenant-active") as HTMLInputElement).checked = true;
   if (id) {
-    const item = await tenantRepository.getById(id);
+    let item: Tenant | undefined;
+    try { item = await tenantRepository.getById(id); }
+    catch (error) { notify((error as Error).message, "danger"); return; }
     if (!item) return;
     (document.getElementById("tenant-id") as HTMLInputElement).value = String(id);
     (document.getElementById("tenant-first") as HTMLInputElement).value = item.firstName;

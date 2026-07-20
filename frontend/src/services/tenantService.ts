@@ -1,5 +1,4 @@
 
-import { db } from "../db/database";
 import type { Tenant } from "../models/domain";
 import { tenantRepository } from "../repositories/tenantRepository";
 
@@ -26,9 +25,6 @@ export class TenantService {
   }
 
   async remove(id: number): Promise<void> {
-    if (await db.leaseParticipants.where("tenantId").equals(id).count()) {
-      throw new Error("A leaseholder cannot be deleted. Mark the tenant inactive instead.");
-    }
     await tenantRepository.delete(id);
   }
 }

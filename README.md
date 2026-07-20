@@ -1,18 +1,18 @@
-# PropertyManager Baseline 6.2.0.1
+# PropertyManager Baseline 6.3.0
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
 Version identifiers:
 
-- Application: **6.2.0.1**
+- Application: **6.3.0**
 - REST API: **v1**
 - Database schema: **1**
 
-Baseline 6.2.0.1 makes Locations, Buildings, and Units live REST-backed domains and corrects Unit creation through API v1. Their list projections and editors use MariaDB; every other application domain continues to use its established IndexedDB repository.
+Baseline 6.3.0 adds Tenants and Leases to the REST-backed domains. Locations, Buildings, Units, Tenants, and Leases now use API v1 and MariaDB. Remaining financial, bank-import, reconciliation, dashboard, and reporting services continue using IndexedDB until their own migration slices.
 
 Start with [docs/INSTALL.md](docs/INSTALL.md).
 
-The repository selection is deliberately explicit in `frontend/src/repositories/repositoryConfiguration.ts`. Only `locations`, `buildings`, and `units` are set to `api`; no other frontend repository was migrated in this baseline.
+The repository selection is explicit in `frontend/src/repositories/repositoryConfiguration.ts`. Locations, Buildings, Units, Tenants, and Leases are set to `api`; other domains remain unchanged.
 
 ## Development quick start
 
