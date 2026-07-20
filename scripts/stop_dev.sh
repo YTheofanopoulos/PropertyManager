@@ -7,8 +7,12 @@ for name in frontend backend; do
   file="$PM_PID_DIR/$name.pid"
   if [[ -f "$file" ]]; then
     pid="$(cat "$file")"
-    if kill -0 "$pid" 2>/dev/null; then
-      kill "$pid"
+    if kill -0 -- "-$pid" 2>/dev/null; then
+      kill -TERM -- "-$pid"
+      pm_ok "Stopped $name process group (PGID $pid)"
+      stopped=1
+    elif kill -0 "$pid" 2>/dev/null; then
+      kill -TERM "$pid"
       pm_ok "Stopped $name (PID $pid)"
       stopped=1
     fi

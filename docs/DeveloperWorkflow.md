@@ -1,4 +1,4 @@
-# Developer Workflow — Baseline 6.0.0.5
+# Developer Workflow — Baseline 6.0.0.7
 
 PropertyManager uses two development processes: the Vite frontend and the Python API. MariaDB normally runs continuously as an operating-system service. The helper scripts coordinate the frontend and backend for you.
 
@@ -45,9 +45,15 @@ troubleshooting guidance.
 ./scripts/start_dev.sh
 ```
 
-Open `http://127.0.0.1:5173`. Vite proxies requests beginning with `/api` to the Python backend at `http://127.0.0.1:5000`.
+Open `http://127.0.0.1:5173` locally. Vite listens on all network interfaces
+and proxies requests beginning with `/api` to the Python backend at
+`http://127.0.0.1:5000`. The backend itself remains available only locally.
 
-Press `Ctrl+C` in the launcher terminal to stop both processes. If that terminal was closed unexpectedly, run:
+The launcher starts the backend and frontend in separate process groups and
+waits for both. Press `Ctrl+C` in the launcher terminal to send a coordinated
+shutdown to both complete process trees. `SIGTERM` receives the same cleanup.
+Flask's reloader is disabled under the launcher so it cannot leave a second
+backend process running. If the launcher terminal was closed unexpectedly, run:
 
 ```bash
 ./scripts/stop_dev.sh
@@ -74,13 +80,18 @@ The restore script deliberately requires the migration credentials and an explic
 
 ## LAN testing
 
-The launcher binds Vite to localhost by default. To test from another computer:
+Vite binds to `0.0.0.0` automatically. From another device on the same trusted
+network, browse to the development computer's LAN address with port 5173:
 
-```bash
-PM_DEV_HOST=0.0.0.0 ./scripts/start_dev.sh
+```text
+http://192.168.1.25:5173
 ```
 
-Use the development computer's LAN IP with port 5173. The Python API remains bound to localhost and is reached through the Vite proxy.
+Replace the example address with the development computer's actual LAN IP.
+Allow inbound TCP port 5173 through the development firewall if necessary.
+Do not expose the Vite development server directly to the public internet. The
+Python API remains bound to localhost and is reached only through Vite's `/api`
+proxy.
 
 ## What npm does
 

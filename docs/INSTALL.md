@@ -1,6 +1,6 @@
 # PropertyManager Baseline 6.0.0.1 Installation
 
-Baseline 6.0.0.6 includes the 6.0.0 foundation, coordinated development workflow, and a hardened Baseline 5.x JSON importer. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
+Baseline 6.0.0.7 includes the 6.0.0 foundation, coordinated development workflow, and a hardened Baseline 5.x JSON importer. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
 
 ## 1. Requirements
 
@@ -269,7 +269,7 @@ This confirms that the restricted runtime account has sufficient read access.
 
 ## 11. Recommended development workflow
 
-The helper scripts are the recommended way to develop and test Baseline 6.0.0.1. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend together and shuts both down on `Ctrl+C`.
+The helper scripts are the recommended way to develop and test Baseline 6.0.0.7. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend in separate process groups and shuts both complete process trees down on `Ctrl+C` or `SIGTERM`. Flask's reloader is disabled during coordinated startup.
 
 Run `./scripts/check_dev.sh` whenever setup or connectivity is uncertain.
 
@@ -281,12 +281,15 @@ Run `./scripts/check_dev.sh` whenever setup or connectivity is uncertain.
 
 This runs `npm ci` and creates `frontend/dist`.
 
-For frontend development on the LAN:
+For frontend development on the LAN, `start_dev.sh` and Vite now bind to all
+interfaces automatically. Use the development computer's LAN IP:
 
-```bash
-cd frontend
-npm run dev -- --host 0.0.0.0
+```text
+http://<development-machine-IP>:5173
 ```
+
+The `/api` proxy continues to reach the locally bound backend at
+`http://127.0.0.1:5000`. Do not expose port 5173 to the public internet.
 
 ## 13. Manual development startup (advanced)
 

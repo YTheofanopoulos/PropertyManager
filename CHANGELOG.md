@@ -1,5 +1,16 @@
 # Changelog
 
+## 6.0.0.7 — 2026-07-20
+
+### Changed
+
+- Bound the Vite development server to `0.0.0.0` for LAN testing while retaining the `/api` proxy to the backend on `127.0.0.1:5000`.
+- Started the backend and frontend in independent process groups.
+- Added coordinated `SIGINT` and `SIGTERM` handling with graceful shutdown, bounded waiting, and forced cleanup when required.
+- Ensured `Ctrl+C` terminates the complete backend and frontend process trees.
+- Disabled Flask's development reloader when started by `start_dev.sh` to prevent an unmanaged second backend process.
+- Updated `stop_dev.sh` to terminate recorded process groups.
+
 ## 6.0.0.6 — 2026-07-20
 
 ### Changed
