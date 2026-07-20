@@ -1,18 +1,18 @@
 # Release Manifest
 
-- Application version: 6.0.0.4
+- Application version: 6.0.0.5
 - REST API version: v1
 - Database schema version: 1
-- Source baseline: 6.0.0.3
+- Source baseline: 6.0.0.4
 - Package type: Delta
 
 ## Modified files
 
-- `scripts/import_5x_backup.py`
+- `scripts/_dev_common.sh`
 - `CHANGELOG.md`
 - `RELEASE_MANIFEST.md`
 - `docs/INSTALL.md`
-- `docs/IMPORTING_5X_BACKUPS.md`
+- `docs/DeveloperWorkflow.md`
 
 ## Added files
 
@@ -24,7 +24,7 @@
 
 ## Apply
 
-Extract the archive directly into the root of an existing Baseline 6.0.0.3
+Extract the archive directly into the root of an existing Baseline 6.0.0.4
 project directory. The archive intentionally has no enclosing project folder.
 
 No database schema migration or frontend rebuild is required.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.0.0.5 — 2026-07-20
+
+### Fixed
+
+- Stopped loading `.env` files as executable Bash source code.
+- Database passwords containing shell-special characters such as `$`, `!`, `#`, spaces, quotes, semicolons, ampersands, parentheses, and backticks are now loaded literally through `python-dotenv`.
+- Disabled variable interpolation while parsing helper-script configuration so password text such as `$NAME` is not expanded.
+- Added environment-variable name validation and clear configuration parsing errors.
+
 ## 6.0.0.4 — 2026-07-20
 
 ### Fixed

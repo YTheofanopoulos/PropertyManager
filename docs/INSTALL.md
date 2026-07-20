@@ -1,6 +1,6 @@
 # PropertyManager Baseline 6.0.0.1 Installation
 
-Baseline 6.0.0.4 includes the 6.0.0 foundation, coordinated development workflow, and a hardened Baseline 5.x JSON importer. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
+Baseline 6.0.0.5 includes the 6.0.0 foundation, coordinated development workflow, and a hardened Baseline 5.x JSON importer. Baseline 6.0.0 establishes the Python/MariaDB backend, database schema 1, API v1, migration tooling, and the official 5.x JSON importer. The existing 5.8 user interface is included and remains operational while the REST conversion proceeds in later 6.0.x milestones.
 
 ## 1. Requirements
 
@@ -242,6 +242,18 @@ After schema installation and import, edit `backend/.env`:
 PM_DB_USER=propertymanager_app
 PM_DB_PASSWORD=LONG_RANDOM_APPLICATION_PASSWORD
 ```
+
+Environment files are parsed as data with `python-dotenv`; they are not executed
+as shell scripts. Put passwords containing spaces or `#` inside single or double
+quotes. Dollar signs and other shell-special characters are preserved literally.
+For example:
+
+```ini
+PM_DB_PASSWORD='correct horse $battery #staple! `literal`'
+```
+
+If the password itself contains a single quote, use double quotes around the
+complete value instead.
 
 Then verify database connectivity:
 

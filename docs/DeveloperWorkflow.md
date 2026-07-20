@@ -1,4 +1,4 @@
-# Developer Workflow — Baseline 6.0.0.3
+# Developer Workflow — Baseline 6.0.0.5
 
 PropertyManager uses two development processes: the Vite frontend and the Python API. MariaDB normally runs continuously as an operating-system service. The helper scripts coordinate the frontend and backend for you.
 
@@ -14,6 +14,10 @@ Edit the generated files:
 
 - `backend/.env` — restricted runtime account
 - `backend/.env.migrate` — schema/import account
+
+The helper scripts parse these files with `python-dotenv`, not Bash. Quote values
+that contain spaces or `#`; shell-special characters such as `$`, `!`, and
+backticks remain literal. Do not add shell commands or `export` statements.
 
 Then initialize the schema:
 
