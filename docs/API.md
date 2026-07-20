@@ -20,7 +20,15 @@ Checks Python and MariaDB connectivity and returns application, API, and schema 
 
 Currently equivalent to the health endpoint.
 
-Units are the first entity contract implemented as a complete vertical slice. Other entity and workflow endpoints remain deferred so they can be migrated and tested independently.
+Locations, Buildings, and Units are implemented as connected vertical slices. Other entity and workflow endpoints remain deferred so they can be migrated and tested independently.
+
+## Locations endpoints
+
+`GET /api/v1/locations` returns locations with `buildingCount` and `unitCount`. `GET /api/v1/locations/{id}` returns one location. `POST`, `PUT`, and `DELETE` maintain locations. Duplicate names and deletion of locations that still contain buildings return `409`.
+
+## Buildings endpoints
+
+`GET /api/v1/buildings` returns buildings with their location name and unit count. `GET /api/v1/buildings/{id}` returns one building. `POST`, `PUT`, and `DELETE` maintain buildings. Duplicate civic addresses within a location and deletion of buildings that still contain units return `409`.
 
 ## Units endpoints
 

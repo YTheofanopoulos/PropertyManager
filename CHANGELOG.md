@@ -1,5 +1,22 @@
 # Changelog
 
+## 6.2.0 — 2026-07-20
+
+### Added
+
+- Added API v1 repositories, services, and CRUD routes for Locations and Buildings.
+- Added MariaDB-backed list projections with building and unit counts.
+- Added frontend API repositories for Locations and Buildings.
+- Added backend service regression tests for both domains.
+
+### Changed
+
+- Made MariaDB authoritative for Locations, Buildings, and Units while retaining IndexedDB for every other domain.
+- Changed the Unit editor's building and location selectors to use API-backed repositories.
+- Moved building/unit dependency checks for deletion into transactional backend services.
+- Made unchanged Units updates resolve successfully instead of being mistaken for missing records.
+- Updated application and backup version identifiers to 6.2.0.
+
 ## 6.1.0 — 2026-07-20
 
 ### Added

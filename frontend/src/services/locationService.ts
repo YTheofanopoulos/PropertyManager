@@ -1,5 +1,4 @@
 
-import { db } from "../db/database";
 import type { Location } from "../models/domain";
 import { locationRepository } from "../repositories/locationRepository";
 
@@ -23,9 +22,6 @@ export class LocationService {
   }
 
   async remove(id: number): Promise<void> {
-    if (await db.buildings.where("locationId").equals(id).count()) {
-      throw new Error("Delete or move the buildings before deleting this location.");
-    }
     await locationRepository.delete(id);
   }
 }

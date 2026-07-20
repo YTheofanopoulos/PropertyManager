@@ -112,6 +112,14 @@ class UnitRepository:
         return exists
 
     @staticmethod
+    def exists(connection: Any, unit_id: int) -> bool:
+        cursor = connection.cursor()
+        cursor.execute("SELECT 1 FROM units WHERE id = ? LIMIT 1", (unit_id,))
+        exists = cursor.fetchone() is not None
+        cursor.close()
+        return exists
+
+    @staticmethod
     def next_id(connection: Any) -> int:
         cursor = connection.cursor()
         cursor.execute("SELECT id FROM units ORDER BY id DESC LIMIT 1 FOR UPDATE")
@@ -143,7 +151,7 @@ class UnitRepository:
         cursor.close()
 
     @staticmethod
-    def update(connection: Any, unit_id: int, values: dict[str, Any]) -> bool:
+    def update(connection: Any, unit_id: int, values: dict[str, Any]) -> None:
         cursor = connection.cursor()
         cursor.execute(
             """
@@ -163,9 +171,7 @@ class UnitRepository:
                 unit_id,
             ),
         )
-        changed = cursor.rowcount > 0
         cursor.close()
-        return changed
 
     @staticmethod
     def has_lease_history(connection: Any, unit_id: int) -> bool:

@@ -1,6 +1,9 @@
 
-import { db } from "../../db/database";
-import { buildingRepository } from "../../repositories/buildingRepository";
+import {
+  buildingRepository,
+  type BuildingListItem,
+} from "../../repositories/buildingRepository";
+import { locationRepository } from "../../repositories/locationRepository";
 import { buildingService } from "../../services/buildingService";
 import { createTable } from "../shared/table";
 import { modal, notify } from "../shared/ui";
@@ -20,28 +23,29 @@ export async function renderBuildings(container: HTMLElement): Promise<void> {
     </div></div>${editor()}
   `;
 
-  await populateLocations();
+  try {
+    await populateLocations();
+  } catch (error) {
+    notify((error as Error).message, "danger");
+    (document.getElementById("add-building") as HTMLButtonElement).disabled = true;
+  }
   await refresh();
   document.getElementById("add-building")?.addEventListener("click", () => openEditor());
   document.getElementById("building-form")?.addEventListener("submit", save);
   document.getElementById("buildings-table")?.addEventListener("click", action);
 }
 
-async function dataRows() {
-  const buildings = await db.buildings.toArray();
-  const locations = new Map((await db.locations.toArray()).map((x) => [x.id, x]));
-  const units = await db.units.toArray();
-  return buildings.map((building) => ({
-    ...building,
-    street: locations.get(building.locationId)?.name ?? "Unknown",
-    unitCount: units.filter((unit) => unit.buildingId === building.id).length,
-  }));
-}
-
 async function refresh(): Promise<void> {
   table?.destroy();
+  let buildings: BuildingListItem[];
+  try {
+    buildings = await buildingRepository.getListItems();
+  } catch (error) {
+    notify((error as Error).message, "danger");
+    buildings = [];
+  }
   table = createTable("#buildings-table", {
-    data: await dataRows(),
+    data: buildings,
     columns: [
       { data: "street" }, { data: "civicAddress" }, { data: "city", defaultContent: "" },
       { data: "stateProvince", defaultContent: "" }, { data: "postalCode", defaultContent: "" }, { data: "unitCount" },
@@ -52,7 +56,9 @@ async function refresh(): Promise<void> {
 
 async function populateLocations(): Promise<void> {
   const select = document.getElementById("building-location") as HTMLSelectElement;
-  const locations = await db.locations.orderBy("name").toArray();
+  const locations = (await locationRepository.getAll()).sort((left, right) =>
+    left.name.localeCompare(right.name),
+  );
   select.innerHTML = locations.map((x) => `<option value="${x.id}">${x.name}</option>`).join("");
 }
 
@@ -60,7 +66,13 @@ async function openEditor(id?: number): Promise<void> {
   (document.getElementById("building-form") as HTMLFormElement).reset();
   (document.getElementById("building-id") as HTMLInputElement).value = "";
   if (id) {
-    const item = await buildingRepository.getById(id);
+    let item: Building | undefined;
+    try {
+      item = await buildingRepository.getById(id);
+    } catch (error) {
+      notify((error as Error).message, "danger");
+      return;
+    }
     if (!item) return;
     (document.getElementById("building-id") as HTMLInputElement).value = String(id);
     (document.getElementById("building-location") as HTMLSelectElement).value = String(item.locationId);
@@ -120,3 +132,4 @@ function editor(): string {
     </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save</button></div>
     </form></div></div></div>`;
 }
+import type { Building } from "../../models/domain";

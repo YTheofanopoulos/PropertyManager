@@ -7,7 +7,12 @@ from flask import Flask, jsonify, send_from_directory
 
 from .config import PROJECT_DIR, Settings
 from .database import initialize_pool
-from .routes import system_blueprint, units_blueprint
+from .routes import (
+    buildings_blueprint,
+    locations_blueprint,
+    system_blueprint,
+    units_blueprint,
+)
 
 
 def create_app() -> Flask:
@@ -21,6 +26,8 @@ def create_app() -> Flask:
     dist_dir = PROJECT_DIR / "frontend" / "dist"
     app = Flask(__name__, static_folder=str(dist_dir), static_url_path="")
     app.config["PM_SETTINGS"] = settings
+    app.register_blueprint(buildings_blueprint)
+    app.register_blueprint(locations_blueprint)
     app.register_blueprint(system_blueprint)
     app.register_blueprint(units_blueprint)
 

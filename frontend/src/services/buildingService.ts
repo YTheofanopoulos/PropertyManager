@@ -1,5 +1,4 @@
 
-import { db } from "../db/database";
 import type { Building } from "../models/domain";
 import { buildingRepository } from "../repositories/buildingRepository";
 
@@ -33,9 +32,6 @@ export class BuildingService {
   }
 
   async remove(id: number): Promise<void> {
-    if (await db.units.where("buildingId").equals(id).count()) {
-      throw new Error("Delete or move the units before deleting this building.");
-    }
     await buildingRepository.delete(id);
   }
 }

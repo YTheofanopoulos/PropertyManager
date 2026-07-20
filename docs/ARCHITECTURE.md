@@ -2,7 +2,7 @@
 
 ## Version boundaries
 
-- Application: 6.1.0
+- Application: 6.2.0
 - REST API: v1
 - MariaDB schema: 1
 
@@ -49,6 +49,12 @@ MariaDB is the future authoritative data store. InnoDB foreign keys, unique inde
 Units are the first complete REST-backed domain. The Units page selects `ApiUnitRepository`, which calls API v1. Flask routes delegate validation and operations to `UnitService`; SQL and row projections remain in `UnitRepository`; MariaDB is authoritative for Units.
 
 All other domain repositories remain unchanged and continue using IndexedDB. This deliberate mixed mode lets each domain be migrated and verified independently. Frontend repository selection is centralized in `repositoryConfiguration.ts` so the boundary is visible and testable.
+
+## Baseline 6.2.0 vertical slice
+
+Locations and Buildings join Units as REST-backed domains. Their API list projections calculate relationship counts in MariaDB, and referential deletion checks execute transactionally in the backend. The Units editor now obtains its location/building choices from these API repositories so the connected screens share one authoritative data source.
+
+All remaining domains continue using IndexedDB.
 
 ## Security principles
 

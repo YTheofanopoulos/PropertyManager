@@ -1,6 +1,7 @@
 
-import { db } from "../../db/database";
-import type { UnitListItem, UnitStatus } from "../../models/domain";
+import type { Unit, UnitListItem, UnitStatus } from "../../models/domain";
+import { buildingRepository } from "../../repositories/buildingRepository";
+import { locationRepository } from "../../repositories/locationRepository";
 import { unitRepository } from "../../repositories/unitRepository";
 import { unitService } from "../../services/unitService";
 import { createTable } from "../shared/table";
@@ -21,7 +22,12 @@ export async function renderUnits(container: HTMLElement): Promise<void> {
       </table>
     </div></div>${editor()}
   `;
-  await populateBuildings();
+  try {
+    await populateBuildings();
+  } catch (error) {
+    notify((error as Error).message, "danger");
+    (document.getElementById("add-unit") as HTMLButtonElement).disabled = true;
+  }
   await refresh();
   document.getElementById("add-unit")?.addEventListener("click", () => openEditor());
   document.getElementById("unit-form")?.addEventListener("submit", save);
@@ -57,10 +63,19 @@ async function refresh(): Promise<void> {
 
 async function populateBuildings(): Promise<void> {
   const select = document.getElementById("unit-building") as HTMLSelectElement;
-  const buildings = await db.buildings.toArray();
-  const locations = new Map((await db.locations.toArray()).map((x) => [x.id, x]));
+  const [buildingRows, locationRows] = await Promise.all([
+    buildingRepository.getAll(),
+    locationRepository.getAll(),
+  ]);
+  const buildings = buildingRows.sort((left, right) => {
+    const leftLocation = locationRows.find((item) => item.id === left.locationId);
+    const rightLocation = locationRows.find((item) => item.id === right.locationId);
+    return `${leftLocation?.name} ${left.civicAddress}`.localeCompare(
+      `${rightLocation?.name} ${right.civicAddress}`,
+    );
+  });
+  const locations = new Map(locationRows.map((location) => [location.id, location]));
   select.innerHTML = buildings
-    .sort((a, b) => `${locations.get(a.locationId)?.name} ${a.civicAddress}`.localeCompare(`${locations.get(b.locationId)?.name} ${b.civicAddress}`))
     .map((x) => `<option value="${x.id}">${x.civicAddress} ${locations.get(x.locationId)?.name ?? ""}</option>`)
     .join("");
 }
@@ -69,7 +84,13 @@ async function openEditor(id?: number): Promise<void> {
   (document.getElementById("unit-form") as HTMLFormElement).reset();
   (document.getElementById("unit-id") as HTMLInputElement).value = "";
   if (id) {
-    const item = await unitRepository.getById(id);
+    let item: Unit | undefined;
+    try {
+      item = await unitRepository.getById(id);
+    } catch (error) {
+      notify((error as Error).message, "danger");
+      return;
+    }
     if (!item) return;
     (document.getElementById("unit-id") as HTMLInputElement).value = String(id);
     (document.getElementById("unit-building") as HTMLSelectElement).value = String(item.buildingId);

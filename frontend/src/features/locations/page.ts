@@ -1,6 +1,8 @@
 
-import { db } from "../../db/database";
-import { locationRepository } from "../../repositories/locationRepository";
+import {
+  locationRepository,
+  type LocationListItem,
+} from "../../repositories/locationRepository";
 import { locationService } from "../../services/locationService";
 import { createTable } from "../shared/table";
 import { modal, notify } from "../shared/ui";
@@ -27,21 +29,17 @@ export async function renderLocations(container: HTMLElement): Promise<void> {
   document.getElementById("locations-table")?.addEventListener("click", action);
 }
 
-async function rows() {
-  const locations = await db.locations.toArray();
-  const buildings = await db.buildings.toArray();
-  const units = await db.units.toArray();
-  return locations.map((location) => {
-    const locationBuildings = buildings.filter((item) => item.locationId === location.id);
-    const ids = locationBuildings.map((item) => item.id);
-    return { ...location, buildingCount: ids.length, unitCount: units.filter((item) => ids.includes(item.buildingId)).length };
-  });
-}
-
 async function refresh(): Promise<void> {
   table?.destroy();
+  let locations: LocationListItem[];
+  try {
+    locations = await locationRepository.getListItems();
+  } catch (error) {
+    notify((error as Error).message, "danger");
+    locations = [];
+  }
   table = createTable("#locations-table", {
-    data: await rows(),
+    data: locations,
     columns: [
       { data: "name" }, { data: "city" }, { data: "buildingCount" }, { data: "unitCount" },
       { data: "id", orderable: false, searchable: false, render: buttons },
@@ -53,7 +51,13 @@ async function openEditor(id?: number): Promise<void> {
   (document.getElementById("location-form") as HTMLFormElement).reset();
   (document.getElementById("location-id") as HTMLInputElement).value = "";
   if (id) {
-    const item = await locationRepository.getById(id);
+    let item: Location | undefined;
+    try {
+      item = await locationRepository.getById(id);
+    } catch (error) {
+      notify((error as Error).message, "danger");
+      return;
+    }
     if (!item) return;
     (document.getElementById("location-id") as HTMLInputElement).value = String(id);
     (document.getElementById("location-name") as HTMLInputElement).value = item.name;
@@ -102,3 +106,4 @@ function editor(): string {
     </div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary">Save</button></div>
     </form></div></div></div>`;
 }
+import type { Location } from "../../models/domain";

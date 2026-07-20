@@ -1,18 +1,18 @@
-# PropertyManager Baseline 6.1.0
+# PropertyManager Baseline 6.2.0
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
 Version identifiers:
 
-- Application: **6.1.0**
+- Application: **6.2.0**
 - REST API: **v1**
 - Database schema: **1**
 
-Baseline 6.1.0 is the first live REST repository milestone. Units are read and maintained through API v1 and MariaDB; every other application domain continues to use its established IndexedDB repository.
+Baseline 6.2.0 makes Locations, Buildings, and Units live REST-backed domains. Their list projections and editors use API v1 and MariaDB; every other application domain continues to use its established IndexedDB repository.
 
 Start with [docs/INSTALL.md](docs/INSTALL.md).
 
-The repository selection is deliberately explicit in `frontend/src/repositories/repositoryConfiguration.ts`. Only `units` is set to `api`; no other frontend repository was migrated in this baseline.
+The repository selection is deliberately explicit in `frontend/src/repositories/repositoryConfiguration.ts`. Only `locations`, `buildings`, and `units` are set to `api`; no other frontend repository was migrated in this baseline.
 
 ## Development quick start
 
