@@ -1,5 +1,19 @@
 # Changelog
 
+## 6.6.1 — 2026-07-20
+
+### Added
+
+- Added a searchable manual unit selector to the bank reconciliation screen.
+- Limited manual choices to leases covering the individual bank transaction date.
+- Displayed unit, tenant, and lease details for the manual selection before allocation.
+
+### Changed
+
+- Allowed reconciliation when the matching engine returns no suitable candidate.
+- Routed manual selections through the existing outstanding-obligation allocation and transactional reconciliation workflow.
+- Updated application version to 6.6.1; REST API v1 and MariaDB Schema 2 are unchanged.
+
 ## 6.6.0 — 2026-07-20
 
 ### Added

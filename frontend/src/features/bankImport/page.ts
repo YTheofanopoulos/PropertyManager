@@ -6,8 +6,9 @@ import { bankImportService } from "../../services/bankImportService";
 import { parseQfx } from "../../services/qfxParser";
 import { reconciliationService } from "../../services/reconciliationService";
 import { rentLedgerService } from "../../services/rentLedgerService";
+import { financialContextService } from "../../services/financialContextService";
 import { createTable } from "../shared/table";
-import { currency } from "../shared/format";
+import { currency, escapeHtml } from "../shared/format";
 
 import { applicationClock } from "../../services/applicationClockService";
 import { busyOverlay } from "../../services/busyOverlayService";
@@ -1283,6 +1284,17 @@ export async function renderReconciliation(
                 '<div class="alert alert-warning mb-0">No outstanding leases found.</div>'
               }
             </div>
+            <div class="border-top mt-3 pt-3">
+              <button type="button" id="select-unit-manually"
+                      class="btn btn-outline-primary reconciliation-control">
+                <i class="fa-solid fa-magnifying-glass me-1"></i>
+                Select Unit Manually
+              </button>
+              <div class="small text-body-secondary mt-2">
+                Use this when the correct unit is not included in the suggested matches.
+              </div>
+              <div id="manual-unit-selection" class="alert alert-info mt-3 mb-0 d-none"></div>
+            </div>
           </div>
         </div>
 
@@ -1300,10 +1312,43 @@ export async function renderReconciliation(
         </div>
       </div>
     </div>
+
+    <div class="modal fade" id="manual-unit-modal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div>
+              <h2 class="modal-title fs-5">Select Unit Manually</h2>
+              <div class="small text-body-secondary">
+                Showing units with a lease covering ${escapeHtml(bankTransaction.postedDate)}.
+              </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <label class="form-label" for="manual-unit-search">Search units or tenants</label>
+            <div class="input-group mb-3">
+              <span class="input-group-text"><i class="fa-solid fa-magnifying-glass"></i></span>
+              <input id="manual-unit-search" class="form-control"
+                     placeholder="Street, civic address, apartment, or tenant" autocomplete="off">
+            </div>
+            <div id="manual-unit-results" class="list-group">
+              <div class="text-body-secondary">Loading units…</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 
   let selectedLeaseId = suggestions[0]?.leaseId ?? 0;
   let submitting = false;
+  let manualChoices: Array<{leaseId:number;unitLabel:string;tenantNames:string;searchText:string}> | undefined;
+  const manualModalElement = document.getElementById("manual-unit-modal")!;
+  const manualModal = new Modal(manualModalElement);
 
   document
     .querySelectorAll<HTMLElement>(".suggestion-item")
@@ -1317,9 +1362,25 @@ export async function renderReconciliation(
 
         item.classList.add("active");
         selectedLeaseId = Number(item.dataset.leaseId);
+        document.getElementById("manual-unit-selection")?.classList.add("d-none");
         await loadAllocations();
       });
     });
+
+  document.getElementById("select-unit-manually")?.addEventListener("click", async () => {
+    if (submitting) return;
+    manualModal.show();
+    try {
+      if (!manualChoices) manualChoices = await loadManualChoices();
+      renderManualChoices();
+      setTimeout(() => (document.getElementById("manual-unit-search") as HTMLInputElement | null)?.focus(), 150);
+    } catch (error) {
+      const host = document.getElementById("manual-unit-results");
+      if (host) host.innerHTML = `<div class="alert alert-danger mb-0">${escapeHtml((error as Error).message)}</div>`;
+    }
+  });
+
+  document.getElementById("manual-unit-search")?.addEventListener("input", renderManualChoices);
 
   document
     .getElementById("confirm-reconciliation")
@@ -1344,7 +1405,7 @@ export async function renderReconciliation(
         .filter((item) => item.amount > 0);
 
       if (!selectedLeaseId) {
-        showMessage("danger", "Select a suggested unit before reconciling.");
+        showMessage("danger", "Select a suggested unit or choose a unit manually before reconciling.");
         return;
       }
 
@@ -1433,6 +1494,71 @@ export async function renderReconciliation(
     });
 
   if (selectedLeaseId) await loadAllocations();
+
+  async function loadManualChoices(): Promise<Array<{leaseId:number;unitLabel:string;tenantNames:string;searchText:string}>> {
+    const context = await financialContextService.get(applicationClock.currentPeriod());
+    const buildingMap = new Map(context.buildings.map(item => [item.id, item]));
+    const locationMap = new Map(context.locations.map(item => [item.id, item]));
+    const tenantMap = new Map(context.tenants.map(item => [item.id, item]));
+    const transactionDate = bankTransaction.postedDate;
+
+    return context.leases
+      .filter(lease => lease.id !== undefined && lease.status !== "Terminated" &&
+        lease.startDate <= transactionDate &&
+        (lease.termType === "Month-to-Month" || !lease.endDate || lease.endDate >= transactionDate))
+      .map(lease => {
+        const unit = context.units.find(item => item.id === lease.unitId);
+        const building = unit ? buildingMap.get(unit.buildingId) : undefined;
+        const location = building ? locationMap.get(building.locationId) : undefined;
+        const tenantNames = context.participants
+          .filter(item => item.leaseId === lease.id)
+          .sort((left, right) => Number(right.primary) - Number(left.primary) ||
+            (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
+          .map(item => tenantMap.get(item.tenantId))
+          .filter((tenant): tenant is NonNullable<typeof tenant> => Boolean(tenant))
+          .map(tenant => `${tenant.firstName} ${tenant.lastName}`)
+          .join(", ");
+        const unitLabel = `${building?.civicAddress ?? "?"}${unit?.apartmentNumber ? ` ${unit.apartmentNumber}` : ""} ${location?.name ?? ""}`.trim();
+        return {leaseId:lease.id!,unitLabel,tenantNames,
+          searchText:`${unitLabel} ${tenantNames}`.toLowerCase()};
+      })
+      .sort((left, right) => left.unitLabel.localeCompare(right.unitLabel));
+  }
+
+  function renderManualChoices(): void {
+    if (!manualChoices) return;
+    const host = document.getElementById("manual-unit-results");
+    const query = (document.getElementById("manual-unit-search") as HTMLInputElement | null)?.value.trim().toLowerCase() ?? "";
+    if (!host) return;
+    const matches = manualChoices.filter(item => item.searchText.includes(query));
+    host.innerHTML = matches.map(item => `
+      <button type="button" class="list-group-item list-group-item-action manual-unit-choice"
+              data-lease-id="${item.leaseId}">
+        <div class="d-flex justify-content-between gap-3">
+          <strong>${escapeHtml(item.unitLabel)}</strong>
+          <span class="badge text-bg-secondary">Lease #${item.leaseId}</span>
+        </div>
+        <div class="small text-body-secondary mt-1">${escapeHtml(item.tenantNames || "No leaseholders")}</div>
+      </button>`).join("") || '<div class="alert alert-warning mb-0">No units match this search for the transaction date.</div>';
+
+    host.querySelectorAll<HTMLButtonElement>(".manual-unit-choice").forEach(button => {
+      button.addEventListener("click", async () => {
+        const choice = manualChoices?.find(item => item.leaseId === Number(button.dataset.leaseId));
+        if (!choice) return;
+        selectedLeaseId = choice.leaseId;
+        document.querySelectorAll(".suggestion-item").forEach(row => row.classList.remove("active"));
+        const selected = document.getElementById("manual-unit-selection");
+        if (selected) {
+          selected.classList.remove("d-none");
+          selected.innerHTML = `<strong>Manually selected:</strong> ${escapeHtml(choice.unitLabel)}<br><span class="small">${escapeHtml(choice.tenantNames || "No leaseholders")} · Lease #${choice.leaseId}</span>`;
+        }
+        const confirm = document.getElementById("confirm-reconciliation") as HTMLButtonElement | null;
+        if (confirm) confirm.disabled = false;
+        manualModal.hide();
+        await loadAllocations();
+      });
+    });
+  }
 
   async function loadAllocations(): Promise<void> {
     const currentPeriod = applicationClock.currentPeriod();

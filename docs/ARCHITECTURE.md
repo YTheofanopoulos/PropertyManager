@@ -2,7 +2,7 @@
 
 ## Version boundaries
 
-- Application: 6.6.0
+- Application: 6.6.1
 - REST API: v1
 - MariaDB schema: 2
 
@@ -75,6 +75,10 @@ Payment Receipts, Dashboard calculations, Bank Statement Import, duplicate detec
 An accepted renewal produces an editable successor draft. Confirmation creates the new lease, participants, recurring charges, shifted concessions, and lineage link in one backend transaction. A unique `previous_lease_id` relationship prevents duplicate successors, and the source lease is preserved unchanged except for advancing its renewal workflow to `Renewed` after successful creation.
 
 Eligibility, proposed-rent defaults, successor dates, duplicate prevention, and unit/tenant overlap validation remain backend responsibilities. The frontend supplies an editable review experience without duplicating or bypassing those rules.
+
+## Baseline 6.6.1 manual reconciliation fallback
+
+Suggested matches remain the default reconciliation path. A user may instead search every unit with a lease covering the bank transaction date and select that lease manually. The selected lease then enters the existing outstanding-obligation allocation workflow; backend validation and the transactional payment/reconciliation operation are unchanged.
 
 ## Security principles
 

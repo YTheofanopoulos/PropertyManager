@@ -1,14 +1,14 @@
-# PropertyManager Baseline 6.6.0
+# PropertyManager Baseline 6.6.1
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
 Version identifiers:
 
-- Application: **6.6.0**
+- Application: **6.6.1**
 - REST API: **v1**
 - Database schema: **2**
 
-Baseline 6.6.0 adds a transactional lease-renewal workflow. Accepted renewals can create an editable successor lease with copied participants and financial terms, intelligent term defaults, overlap validation, and linked lease history. Every operational screen remains MariaDB-backed.
+Baseline 6.6.1 adds manual unit selection to bank reconciliation. When the matching engine omits the correct unit, the user can search all units with a lease covering the transaction date and apply that individual payment through the existing allocation workflow.
 
 Before starting 6.6.0, apply database migration `002_lease_renewals.sql` with `./scripts/init_database.sh`.
 
