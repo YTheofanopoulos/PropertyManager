@@ -1,4 +1,4 @@
-# Developer Workflow — Baseline 6.6.2
+# Developer Workflow — Baseline 6.6.2.1
 
 After updating from 6.5.0, run `./scripts/init_database.sh` before starting the services. Confirm `/api/v1/system/health` reports expected and installed schema version 2.
 

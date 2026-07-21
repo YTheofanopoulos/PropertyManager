@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.6.2.1 — 2026-07-20
+
+### Fixed
+
+- Added the **Unit Receiving This Payment** panel to the bank-import reconciliation dialog actually used by the import queue.
+- Added an inline searchable **Choose Unit** / **Change Unit** control to that dialog.
+- Kept suggested and searched units synchronized with the dialog's allocation list and confirmation state.
+- Updated application version to 6.6.2.1; REST API v1 and MariaDB Schema 2 are unchanged.
+
 ## 6.6.2 — 2026-07-20
 
 ### Changed

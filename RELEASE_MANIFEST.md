@@ -1,9 +1,9 @@
 # Release Manifest
 
-- Application version: 6.6.2
+- Application version: 6.6.2.1
 - REST API version: v1
 - Database schema version: 2
-- Source baseline: 6.6.1
+- Source baseline: 6.6.2
 - Package type: Delta
 
 ## Modified files
@@ -19,7 +19,6 @@
 - `README.md`
 - `CHANGELOG.md`
 - `DELTA_INSTALL.md`
-- `docs/API.md`
 - `docs/ARCHITECTURE.md`
 - `docs/DeveloperWorkflow.md`
 - `docs/INSTALL.md`
@@ -27,8 +26,8 @@
 
 ## Apply and verify
 
-Extract directly over Baseline 6.6.1, refresh dependencies, and restart both services. No database migration is required.
+Extract directly over Baseline 6.6.2, refresh dependencies, and restart both services. No database migration is required.
 
-Verify the selected destination appears in **Unit Receiving This Payment**, **Change Unit** opens the searchable unit list, and either a suggested or searched unit updates the allocations before reconciliation.
+Open **Reconcile** from the bank-import queue. Verify **Unit Receiving This Payment** appears above Suggested Units, **Change Unit** expands the searchable picker inline, and either a suggested or searched unit updates the allocations before confirmation.
 
-The prior generated bundle `frontend/dist/assets/index-BDlVhWhR.js` is obsolete after the update and may be removed if it remains in the target directory.
+The prior generated bundle from Baseline 6.6.2 is obsolete after the update and may be removed if it remains in the target directory.

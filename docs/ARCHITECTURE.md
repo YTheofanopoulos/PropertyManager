@@ -2,7 +2,7 @@
 
 ## Version boundaries
 
-- Application: 6.6.2
+- Application: 6.6.2.1
 - REST API: v1
 - MariaDB schema: 2
 
@@ -83,6 +83,10 @@ Suggested matches remain the default reconciliation path. A user may instead sea
 ## Baseline 6.6.2 reconciliation destination
 
 The bank reconciliation view treats the selected lease/unit as a first-class piece of state. Suggested matches and manual search both update the same visible destination panel and allocation list. Changing the destination before confirmation does not persist a bank-reference mapping; the existing transactional reconciliation API remains authoritative.
+
+## Baseline 6.6.2.1 dialog correction
+
+The destination selector is implemented directly in the bank-import reconciliation dialog. Its searchable picker expands inline so it does not create a nested Bootstrap modal, and it uses the same selected lease and allocation state as suggested matches.
 
 ## Security principles
 

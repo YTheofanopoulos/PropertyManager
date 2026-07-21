@@ -1,6 +1,6 @@
-# PropertyManager Baseline 6.6.2 Installation
+# PropertyManager Baseline 6.6.2.1 Installation
 
-Baseline 6.6.2 makes the payment's selected unit visible and changeable during bank reconciliation and retains MariaDB Schema 2. No additional database migration is required when upgrading from 6.6.1.
+Baseline 6.6.2.1 makes the payment's selected unit visible and changeable inside the bank-import reconciliation dialog and retains MariaDB Schema 2. No additional database migration is required when upgrading from 6.6.2.
 
 ## 1. Requirements
 
@@ -269,7 +269,7 @@ This confirms that the restricted runtime account has sufficient read access.
 
 ## 11. Recommended development workflow
 
-The helper scripts are the recommended way to develop and test Baseline 6.6.2. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend in separate process groups and shuts both complete process trees down on `Ctrl+C` or `SIGTERM`. Flask's reloader is disabled during coordinated startup.
+The helper scripts are the recommended way to develop and test Baseline 6.6.2.1. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend in separate process groups and shuts both complete process trees down on `Ctrl+C` or `SIGTERM`. Flask's reloader is disabled during coordinated startup.
 
 Run `./scripts/check_dev.sh` whenever setup or connectivity is uncertain.
 
@@ -305,7 +305,7 @@ curl http://127.0.0.1:5000/api/v1/system/health
 
 A successful response includes:
 
-- application version `6.6.2`
+- application version `6.6.2.1`
 - API version `v1`
 - expected schema version `2`
 - MariaDB server and user information
@@ -461,4 +461,4 @@ Do not manually delete individual tables. Confirm whether schema migration 1 was
 
 ## 17. Baseline limitation
 
-Baseline 6.6.2 keeps MariaDB authoritative for all operational screens through API v1 and makes the reconciliation destination unit explicit and changeable. After startup, verify Dashboard and Payment Receipts use `/api/v1/financial/context`, Bank Import/Reconciliation use `/api/v1/bank/*`, and accepted renewals use `/api/v1/leases/{id}/renewal-draft`. Browser backup/restore and sample reset do not modify MariaDB.
+Baseline 6.6.2.1 keeps MariaDB authoritative for all operational screens through API v1 and makes the reconciliation destination unit explicit and changeable in the import-queue dialog. After startup, verify Dashboard and Payment Receipts use `/api/v1/financial/context`, Bank Import/Reconciliation use `/api/v1/bank/*`, and accepted renewals use `/api/v1/leases/{id}/renewal-draft`. Browser backup/restore and sample reset do not modify MariaDB.
