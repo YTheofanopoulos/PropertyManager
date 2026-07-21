@@ -35,7 +35,7 @@ pm_heading "Preparing configuration"
 if [[ ! -f "$PM_BACKEND_DIR/.env" ]]; then
   cp "$PM_BACKEND_DIR/.env.example" "$PM_BACKEND_DIR/.env"
   chmod 600 "$PM_BACKEND_DIR/.env"
-  pm_warn "Created backend/.env. Edit the database password before starting."
+  pm_warn "Created backend/.env. Edit the database password and PM_AUTH_PATH before starting."
 else
   pm_ok "backend/.env already exists"
 fi
@@ -49,7 +49,7 @@ fi
 mkdir -p "$PM_PID_DIR"
 
 printf '\nSetup complete. Next steps:\n'
-printf '  1. Edit backend/.env and backend/.env.migrate\n'
+printf '  1. Edit backend/.env (MariaDB + SharedAuth) and backend/.env.migrate\n'
 printf '  2. Run ./scripts/init_database.sh\n'
 printf '  3. Optionally import data with ./scripts/import_5x_backup.sh FILE.json\n'
 printf '  4. Run ./scripts/start_dev.sh\n'

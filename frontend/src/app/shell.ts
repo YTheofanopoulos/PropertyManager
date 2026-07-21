@@ -1,5 +1,6 @@
 import { applicationClock } from "../services/applicationClockService";
 import { apiRequest } from "../repositories/apiClient";
+import { authService } from "../services/authService";
 
 interface SystemInfo {
   applicationVersion:string;
@@ -26,6 +27,12 @@ async function hydrateSystemInfo():Promise<void>{
 export function renderShell(): HTMLElement {
   const app=document.getElementById("app");
   if(!app) throw new Error("Application root not found");
+  const auth = authService.current();
+  const accessLabel = auth?.administrator
+    ? "Administrator"
+    : auth?.canWrite
+      ? "Manager"
+      : "Read only";
   app.innerHTML=`
   <div class="app-shell">
     <aside class="sidebar">
@@ -105,7 +112,7 @@ export function renderShell(): HTMLElement {
           data-bs-target="#about-property-manager"
         >
           <i class="fa-solid fa-circle-info me-2"></i>
-          <span>v<span data-system-app-version>6.6.2.1</span></span>
+          <span>v<span data-system-app-version>6.7.0</span></span>
         </button>
       </div>
     </aside>
@@ -129,9 +136,13 @@ export function renderShell(): HTMLElement {
           `
           : ""
       }
-      <header class="topbar d-flex justify-content-between align-items-center">
+      <header class="topbar d-flex justify-content-between align-items-center gap-3">
         <span class="fw-semibold">PropertyManager</span>
-        <span class="small text-body-secondary">Baseline <span data-system-app-version>6.6.2.1</span> · MariaDB Schema <span data-system-schema-version data-system-live>2</span></span>
+        <div class="d-flex align-items-center gap-3">
+          <span class="small text-body-secondary">Baseline <span data-system-app-version>6.7.0</span> · MariaDB Schema <span data-system-schema-version data-system-live>2</span></span>
+          <span class="small"><i class="fa-solid fa-user me-1"></i>${auth?.username ?? "Unknown"} · ${accessLabel}</span>
+          <button type="button" id="logout-button" class="btn btn-sm btn-outline-secondary">Sign Out</button>
+        </div>
       </header>
       <section id="page-content" class="content"></section>
     </main>
@@ -150,10 +161,10 @@ export function renderShell(): HTMLElement {
         <div class="modal-body">
           <dl class="row mb-0">
             <dt class="col-5">Application Version</dt>
-            <dd class="col-7" data-system-app-version>6.6.2.1</dd>
+            <dd class="col-7" data-system-app-version>6.7.0</dd>
 
             <dt class="col-5">Baseline</dt>
-            <dd class="col-7" data-system-app-version>6.6.2.1</dd>
+            <dd class="col-7" data-system-app-version>6.7.0</dd>
 
             <dt class="col-5">REST API</dt>
             <dd class="col-7" data-system-api-version data-system-live>v1</dd>
@@ -174,7 +185,7 @@ export function renderShell(): HTMLElement {
             <dd class="col-7">Historical leases: Jul 2025 – Jun 2026</dd>
 
             <dt class="col-5">Build Date</dt>
-            <dd class="col-7">2026-07-20</dd>
+            <dd class="col-7">2026-07-21</dd>
           </dl>
         </div>
         <div class="modal-footer">

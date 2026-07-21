@@ -9,6 +9,8 @@ import { seedDatabase } from "./db/seed";
 import { backupService, type BackupPreview } from "./services/backupService";
 import { applicationClock } from "./services/applicationClockService";
 import { escapeHtml } from "./features/shared/format";
+import { authService } from "./services/authService";
+import { renderLoginPage } from "./features/auth/loginPage";
 
 
 function bindSidebarSections(): void {
@@ -78,10 +80,15 @@ function confirmRestore(preview: BackupPreview): Promise<boolean> {
   });
 }
 
-async function start(): Promise<void> {
+async function startAuthenticatedApplication(): Promise<void> {
   await seedDatabase();
   const container = renderShell();
   bindSidebarSections();
+  document.getElementById("logout-button")?.addEventListener("click", async () => {
+    await authService.logout();
+    window.location.hash = "/";
+    window.location.reload();
+  });
   window.addEventListener("hashchange", () => void route(container));
   document.getElementById("banner-restore-system-date")?.addEventListener("click", () => { applicationClock.useSystemDate(); window.location.reload(); });
   document.getElementById("reset-data")?.addEventListener("click", async () => { if (!window.confirm("Reset browser data to the sample portfolio?")) return; await seedDatabase(true); await route(container); window.alert("Sample data restored."); });
@@ -104,4 +111,15 @@ ${(error as Error).message}`); }
   });
   await route(container);
 }
+
+async function start(): Promise<void> {
+  window.addEventListener("pm:authentication-required", () => window.location.reload());
+  const session = await authService.restore();
+  if (!session) {
+    renderLoginPage(startAuthenticatedApplication);
+    return;
+  }
+  await startAuthenticatedApplication();
+}
+
 void start();

@@ -6,6 +6,7 @@ from .bank import blueprint as bank_blueprint
 from .system import blueprint as system_blueprint
 from .units import blueprint as units_blueprint
 from .tenants import blueprint as tenants_blueprint
+from .auth import blueprint as auth_blueprint
 
 __all__ = [
     "buildings_blueprint",
@@ -16,4 +17,5 @@ __all__ = [
     "system_blueprint",
     "units_blueprint",
     "tenants_blueprint",
+    "auth_blueprint",
 ]

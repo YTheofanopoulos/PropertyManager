@@ -6,6 +6,21 @@ Base path:
 /api/v1
 ```
 
+## Authentication (Baseline 6.7.0)
+
+`POST /auth/login` accepts `username`, `password`, and `remember`. Successful responses contain the existing SharedAuth token information plus PropertyManager authorization details.
+
+All other endpoints require:
+
+```text
+X-PM-Username: <username>
+X-PM-Token: <SharedAuth token>
+```
+
+`GET /auth/session` returns the current user and scope permissions. `POST /auth/logout` invalidates the SharedAuth token. Missing or expired credentials return `401`; an authenticated user below the configured scope threshold receives `403`.
+
+Read requests require the configured read level (default 1). Mutating requests require the configured write level (default 5). Global level 99 is administrative.
+
 ## Financial endpoints (Baseline 6.4.0)
 
 - `GET /payments`
@@ -43,7 +58,7 @@ Returns the API name and contract version.
 
 ### GET `/api/v1/system/health`
 
-Checks Python and MariaDB connectivity and returns application, API, and schema version details.
+Checks Python and MariaDB connectivity and returns application, API, and schema version details. Authentication is required.
 
 ### GET `/api/v1/system/info`
 

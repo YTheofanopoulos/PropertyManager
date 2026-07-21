@@ -36,6 +36,17 @@ else
   pm_warn "Database check skipped until setup is complete"
 fi
 
+pm_heading "SharedAuth"
+if [[ -f "$PM_BACKEND_DIR/.env" ]] && pm_load_env "$PM_BACKEND_DIR/.env"; then
+  if [[ -n "${PM_AUTH_PATH:-}" && -f "${PM_AUTH_PATH}/mongoclass.py" && -d "${PM_AUTH_PATH}/shared_auth" ]]; then
+    pm_ok "SharedAuth installation found: $PM_AUTH_PATH"
+  else
+    pm_error "PM_AUTH_PATH must point to the login directory containing mongoclass.py and shared_auth/"
+    failures=$((failures+1))
+  fi
+  if [[ -n "${PM_AUTH_SCOPE:-}" ]]; then pm_ok "SharedAuth scope: $PM_AUTH_SCOPE"; else pm_error "PM_AUTH_SCOPE is missing"; failures=$((failures+1)); fi
+fi
+
 printf '\n'
 if (( failures > 0 )); then
   pm_error "$failures required check(s) failed"

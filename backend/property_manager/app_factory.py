@@ -16,7 +16,10 @@ from .routes import (
     system_blueprint,
     units_blueprint,
     tenants_blueprint,
+    auth_blueprint,
 )
+from .security import SharedAuthAdapter
+from .security.middleware import install_authentication
 
 
 def create_app() -> Flask:
@@ -30,6 +33,12 @@ def create_app() -> Flask:
     dist_dir = PROJECT_DIR / "frontend" / "dist"
     app = Flask(__name__, static_folder=str(dist_dir), static_url_path="")
     app.config["PM_SETTINGS"] = settings
+    auth_adapter = SharedAuthAdapter(
+        settings.auth_path, settings.auth_database, settings.auth_scope
+    )
+    app.extensions["pm_shared_auth"] = auth_adapter
+    install_authentication(app, auth_adapter)
+    app.register_blueprint(auth_blueprint)
     app.register_blueprint(buildings_blueprint)
     app.register_blueprint(leases_blueprint)
     app.register_blueprint(financial_blueprint)

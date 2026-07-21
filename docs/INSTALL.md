@@ -1,6 +1,6 @@
-# PropertyManager Baseline 6.6.2.1 Installation
+# PropertyManager Baseline 6.7.0 Installation
 
-Baseline 6.6.2.1 makes the payment's selected unit visible and changeable inside the bank-import reconciliation dialog and retains MariaDB Schema 2. No additional database migration is required when upgrading from 6.6.2.
+Baseline 6.7.0 integrates the existing SharedAuth installation and retains MariaDB Schema 2. No additional MariaDB migration is required when upgrading from 6.6.2.1.
 
 ## 1. Requirements
 
@@ -11,6 +11,7 @@ Recommended production platform:
 - Python 3.12 or 3.13 recommended
 - Node.js 20 or newer and npm
 - Apache 2.4 with `mod_proxy` and `mod_proxy_http`, or another reverse proxy
+- An installed and working SharedAuth `login` directory with access to its MongoDB authentication database
 
 Python 3.14 may work, but third-party binary packages can lag behind new Python releases. Use 3.12 or 3.13 for the most predictable deployment.
 
@@ -26,7 +27,7 @@ After installing the operating-system prerequisites and creating the MariaDB acc
 
 ```bash
 ./scripts/setup_dev.sh
-# Edit backend/.env and backend/.env.migrate
+# Edit backend/.env and backend/.env.migrate; set PM_AUTH_PATH
 ./scripts/init_database.sh
 ./scripts/import_5x_backup.sh /path/to/backup.json --dry-run
 ./scripts/import_5x_backup.sh /path/to/backup.json
@@ -47,6 +48,10 @@ sudo apt install -y \
   python3 python3-venv python3-dev build-essential \
   nodejs npm apache2
 ```
+
+SharedAuth also requires MongoDB connectivity and the Python packages declared
+by PropertyManager (`pymongo`, `argon2-cffi`, and `bcrypt`). `setup_dev.sh`
+installs those Python dependencies automatically.
 
 Verify MariaDB:
 
@@ -146,7 +151,22 @@ PM_DB_PASSWORD=DIFFERENT_LONG_RANDOM_MIGRATION_PASSWORD
 PM_DB_POOL_SIZE=5
 PM_FLASK_DEBUG=false
 PM_LOG_LEVEL=INFO
+PM_AUTH_PATH=/absolute/path/to/mtlapts_wkspc/login
+PM_AUTH_DATABASE=auth
+PM_AUTH_SCOPE=propertymanager
+PM_AUTH_READ_LEVEL=1
+PM_AUTH_WRITE_LEVEL=5
 ```
+
+`PM_AUTH_PATH` must point to the existing server-side `login` directory—not to
+PropertyManager and not to the workspace ZIP. Confirm that it contains
+`mongoclass.py` and `shared_auth/`.
+
+In the existing SharedAuth administration interface, register or infer the
+`propertymanager` scope and assign users a numeric permission level. The
+defaults are level 1 for read access and level 5 for changes; global level 99
+retains administrative access. See `docs/AUTHENTICATION.md` for the complete
+contract and source-file inventory.
 
 Never commit `backend/.env` to Git.
 
@@ -269,7 +289,7 @@ This confirms that the restricted runtime account has sufficient read access.
 
 ## 11. Recommended development workflow
 
-The helper scripts are the recommended way to develop and test Baseline 6.6.2.1. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend in separate process groups and shuts both complete process trees down on `Ctrl+C` or `SIGTERM`. Flask's reloader is disabled during coordinated startup.
+The helper scripts are the recommended way to develop and test Baseline 6.7.0. Run `./scripts/setup_dev.sh` once, configure both environment files, initialize/import the database, and then use `./scripts/start_dev.sh` for daily work. The launcher starts the Python API and Vite frontend in separate process groups and shuts both complete process trees down on `Ctrl+C` or `SIGTERM`. Flask's reloader is disabled during coordinated startup.
 
 Run `./scripts/check_dev.sh` whenever setup or connectivity is uncertain.
 
@@ -305,7 +325,7 @@ curl http://127.0.0.1:5000/api/v1/system/health
 
 A successful response includes:
 
-- application version `6.6.2.1`
+- application version `6.7.0`
 - API version `v1`
 - expected schema version `2`
 - MariaDB server and user information
@@ -461,4 +481,4 @@ Do not manually delete individual tables. Confirm whether schema migration 1 was
 
 ## 17. Baseline limitation
 
-Baseline 6.6.2.1 keeps MariaDB authoritative for all operational screens through API v1 and makes the reconciliation destination unit explicit and changeable in the import-queue dialog. After startup, verify Dashboard and Payment Receipts use `/api/v1/financial/context`, Bank Import/Reconciliation use `/api/v1/bank/*`, and accepted renewals use `/api/v1/leases/{id}/renewal-draft`. Browser backup/restore and sample reset do not modify MariaDB.
+Baseline 6.7.0 keeps MariaDB authoritative for operational data and delegates every protected API authentication decision to SharedAuth. After startup, verify login, session restoration, read/write scope enforcement, expiry handling, and logout before testing the existing business workflows. Browser backup/restore and sample reset do not modify MariaDB.

@@ -1,14 +1,14 @@
-# PropertyManager Baseline 6.6.2.1
+# PropertyManager Baseline 6.7.0
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
 Version identifiers:
 
-- Application: **6.6.2.1**
+- Application: **6.7.0**
 - REST API: **v1**
 - Database schema: **2**
 
-Baseline 6.6.2.1 places the explicit **Unit Receiving This Payment** selection in the bank-import reconciliation dialog used by the normal workflow. The user can choose or change the unit before confirming the allocation.
+Baseline 6.7.0 integrates the existing SharedAuth login and token-verification mechanism. Every API transaction is authenticated, authorization uses the configurable `propertymanager` scope, and the frontend provides login, remembered sessions, current-user display, expiry handling, and logout.
 
 Before starting 6.6.0, apply database migration `002_lease_renewals.sql` with `./scripts/init_database.sh`.
 
@@ -20,9 +20,11 @@ The repository selection is explicit in `frontend/src/repositories/repositoryCon
 
 ```bash
 ./scripts/setup_dev.sh
-# Configure backend/.env and backend/.env.migrate
+# Configure MariaDB and SharedAuth in backend/.env
 ./scripts/init_database.sh
 ./scripts/start_dev.sh
 ```
 
 The launcher starts the Python API and Vite frontend together. Open `http://127.0.0.1:5173` and press `Ctrl+C` to stop both. See `docs/DeveloperWorkflow.md`.
+
+SharedAuth integration and the exact source-file inventory are documented in [docs/AUTHENTICATION.md](docs/AUTHENTICATION.md).

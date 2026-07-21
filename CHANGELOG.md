@@ -1,5 +1,21 @@
 # Changelog
 
+## 6.7.0 — 2026-07-21
+
+### Added
+
+- Added SharedAuth-backed login, remembered sessions, current-user display, expiry handling, and logout.
+- Added Flask middleware that validates the existing SharedAuth username/token pair on every protected API transaction.
+- Added configurable `propertymanager` scope authorization with separate read and write thresholds.
+- Added authentication endpoints for login, session inspection, and logout.
+- Added SharedAuth installation checks and complete integration/source-file documentation.
+
+### Changed
+
+- Protected all API health, information, domain, financial, and bank endpoints behind SharedAuth; only API discovery and login remain public.
+- Added `pymongo`, `argon2-cffi`, and `bcrypt` as backend dependencies required by the existing login implementation.
+- Updated application version to 6.7.0; REST API v1 and MariaDB Schema 2 are unchanged.
+
 ## 6.6.2.1 — 2026-07-20
 
 ### Fixed

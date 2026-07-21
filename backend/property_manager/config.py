@@ -28,6 +28,11 @@ class Settings:
     db_pool_size: int
     flask_debug: bool
     log_level: str
+    auth_path: str
+    auth_database: str
+    auth_scope: str
+    auth_read_level: int
+    auth_write_level: int
 
     @classmethod
     def from_environment(cls) -> "Settings":
@@ -40,4 +45,9 @@ class Settings:
             db_pool_size=int(os.getenv("PM_DB_POOL_SIZE", "5")),
             flask_debug=os.getenv("PM_FLASK_DEBUG", "false").lower() in {"1", "true", "yes"},
             log_level=os.getenv("PM_LOG_LEVEL", "INFO").upper(),
+            auth_path=_required("PM_AUTH_PATH"),
+            auth_database=os.getenv("PM_AUTH_DATABASE", "auth"),
+            auth_scope=os.getenv("PM_AUTH_SCOPE", "propertymanager"),
+            auth_read_level=int(os.getenv("PM_AUTH_READ_LEVEL", "1")),
+            auth_write_level=int(os.getenv("PM_AUTH_WRITE_LEVEL", "5")),
         )

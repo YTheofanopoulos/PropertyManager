@@ -1,3 +1,5 @@
+import { clearAuthCredentials, loadAuthCredentials } from "../services/authSession";
+
 interface ApiErrorPayload {
   error?: string;
   message?: string;
@@ -17,6 +19,7 @@ export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
+  const credentials = loadAuthCredentials();
   let response: Response;
   try {
     response = await fetch(path, {
@@ -24,6 +27,10 @@ export async function apiRequest<T>(
       headers: {
         Accept: "application/json",
         ...(options.body ? { "Content-Type": "application/json" } : {}),
+        ...(credentials ? {
+          "X-PM-Username": credentials.username,
+          "X-PM-Token": credentials.token,
+        } : {}),
         ...options.headers,
       },
     });
@@ -40,6 +47,10 @@ export async function apiRequest<T>(
       payload = (await response.json()) as ApiErrorPayload;
     } catch {
       // A proxy or server may return a non-JSON error page.
+    }
+    if (response.status === 401 && !path.endsWith("/auth/login")) {
+      clearAuthCredentials();
+      window.dispatchEvent(new CustomEvent("pm:authentication-required"));
     }
     throw new ApiError(
       payload.error ?? payload.message ?? `The request failed (${response.status}).`,
