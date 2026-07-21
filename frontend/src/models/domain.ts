@@ -39,17 +39,20 @@ export interface Tenant {
 }
 
 export type LeaseStatus = "Active" | "Expired" | "Future" | "Terminated";
-export type RenewalStatus = "Not Started" | "Renewal Letter Sent" | "Renewed" | "Under Dispute" | "Non-Renewal";
+export type RenewalStatus = "Not Started" | "Renewal Letter Sent" | "Accepted" | "Renewed" | "Under Dispute" | "Non-Renewal";
 export type LeaseTermType = "Fixed" | "Month-to-Month";
 
 export interface Lease {
   id?: EntityId;
   unitId: EntityId;
+  previousLeaseId?: EntityId | null;
+  successorLeaseId?: EntityId | null;
   startDate: string;
   endDate: string;
   termType?: LeaseTermType;
   status: LeaseStatus;
   renewalStatus?: RenewalStatus;
+  renewalProposedRent?: number | null;
   renewalLetterSentDate?: string;
   renewalResponseDate?: string;
   renewalNotes?: string;
@@ -104,6 +107,17 @@ export interface LeaseListItem extends Lease {
   street: string;
   apartment: string;
   leaseholders: string[];
+  monthlyTotal: number;
+}
+
+export interface LeaseHistoryItem {
+  id: EntityId;
+  previousLeaseId?: EntityId | null;
+  startDate: string;
+  endDate: string;
+  termType: LeaseTermType;
+  status: LeaseStatus;
+  renewalStatus: RenewalStatus;
   monthlyTotal: number;
 }
 

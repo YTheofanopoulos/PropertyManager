@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
+from calendar import monthrange
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
@@ -14,7 +15,8 @@ class LeaseConflictError(RuntimeError): pass
 
 LEASE_STATUSES = {"Active", "Expired", "Future", "Terminated"}
 RENEWAL_STATUSES = {
-    "Not Started", "Renewal Letter Sent", "Renewed", "Under Dispute", "Non-Renewal"
+    "Not Started", "Renewal Letter Sent", "Accepted", "Renewed",
+    "Under Dispute", "Non-Renewal"
 }
 CHARGE_TYPES = {"Apartment Rent", "Parking", "Storage", "Other"}
 
@@ -27,9 +29,82 @@ class LeaseService:
         return [self._serialize(row, True) for row in self.repository.list_leases()]
 
     def get_lease(self, lease_id):
-        row = self.repository.get_by_id(lease_id)
+        row = self.repository.get_with_successor(lease_id)
         if row is None: raise LeaseNotFoundError("Lease not found.")
         return self._serialize(row)
+
+    def history(self, lease_id):
+        self.get_lease(lease_id)
+        return [{"id": int(row["id"]),
+                 "previousLeaseId": int(row["previous_lease_id"]) if row["previous_lease_id"] else None,
+                 "startDate": row["start_date"].isoformat(),
+                 "endDate": "" if row["term_type"] == "Month-to-Month" else row["end_date"].isoformat(),
+                 "termType": row["term_type"], "status": row["status"],
+                 "renewalStatus": row["renewal_status"],
+                 "monthlyTotal": float(row["monthly_total"])}
+                for row in self.repository.history(lease_id)]
+
+    def renewal_draft(self, lease_id):
+        lease = self.get_lease(lease_id)
+        if lease["renewalStatus"] != "Accepted":
+            raise LeaseConflictError("The renewal must be accepted before it can be started.")
+        if lease.get("successorLeaseId"):
+            raise LeaseConflictError("A successor lease has already been created.")
+        if lease["termType"] == "Month-to-Month" or not lease["endDate"]:
+            raise LeaseConflictError("An open-ended lease needs an end date before renewal.")
+        old_start, old_end = date.fromisoformat(lease["startDate"]), date.fromisoformat(lease["endDate"])
+        new_start = old_end + timedelta(days=1)
+        term_months = ((new_start.year - old_start.year) * 12
+                       + new_start.month - old_start.month)
+        new_end = (self._add_months(new_start, term_months) - timedelta(days=1)
+                   if term_months > 0 and new_start.day == old_start.day
+                   else new_start + (old_end - old_start))
+        charges = self.charges(lease_id)
+        current_rent = next((item["amount"] for item in charges
+                             if item["chargeType"] == "Apartment Rent"), 0)
+        current_total = sum(item["amount"] for item in charges
+                            if item["frequency"] == "Monthly")
+        proposed = lease.get("renewalProposedRent")
+        for charge in charges:
+            charge.pop("id", None)
+            charge.pop("leaseId", None)
+            charge["startDate"], charge["endDate"] = new_start.isoformat(), new_end.isoformat()
+            if charge["chargeType"] == "Apartment Rent" and proposed is not None:
+                charge["amount"] = proposed
+        shift = (new_start.year - old_start.year) * 12 + new_start.month - old_start.month
+        concessions = self.concessions(lease_id)
+        for item in concessions:
+            item.pop("id", None)
+            item.pop("leaseId", None)
+            item["startPeriod"] = self._shift_period(item["startPeriod"], shift)
+            item["endPeriod"] = self._shift_period(item["endPeriod"], shift)
+        participants = self.participants(lease_id)
+        return {"sourceLease": lease, "currentRent": current_rent,
+                "currentMonthlyTotal": current_total,
+                "renewal": {"unitId": lease["unitId"],
+                            "startDate": new_start.isoformat(),
+                            "endDate": new_end.isoformat(), "termType": lease["termType"],
+                            "status": "Future", "notes": lease.get("notes", ""),
+                            "renewalStatus": "Not Started", "renewalLetterSentDate": "",
+                            "renewalResponseDate": "", "renewalNotes": "",
+                            "participantIds": [row["tenantId"] for row in participants],
+                            "primaryTenantId": next((row["tenantId"] for row in participants if row["primary"]), 0),
+                            "charges": charges, "concessions": concessions}}
+
+    def create_renewal(self, lease_id, payload):
+        values = self._validate(payload)
+        values["previous_lease_id"] = lease_id
+        with transaction() as connection:
+            source = self.repository.get_by_id(lease_id)
+            if source is None: raise LeaseNotFoundError("Lease not found.")
+            if source["renewal_status"] != "Accepted":
+                raise LeaseConflictError("The renewal must be accepted before it can be created.")
+            if self.repository.successor_id(connection, lease_id):
+                raise LeaseConflictError("A successor lease has already been created.")
+            new_id = self.repository.next_id(connection, "leases")
+            self._persist(connection, values, new_id, True)
+            self.repository.complete_renewal(connection, lease_id)
+        return self.get_lease(new_id)
 
     def participants(self, lease_id):
         self.get_lease(lease_id)
@@ -55,56 +130,63 @@ class LeaseService:
             creating = lease_id is None
             if creating:
                 lease_id = self.repository.next_id(connection, "leases")
-            elif not self.repository.exists(connection, "leases", lease_id):
-                raise LeaseNotFoundError("Lease not found.")
-            if not self.repository.exists(connection, "units", values["unit_id"]):
-                raise LeaseValidationError("The selected unit does not exist.")
-            for tenant_id in values["participant_ids"]:
-                if not self.repository.exists(connection, "tenants", tenant_id):
-                    raise LeaseValidationError("A selected tenant does not exist.")
+            else:
+                existing = self.repository.get_by_id(lease_id)
+                if existing is None: raise LeaseNotFoundError("Lease not found.")
+                values["previous_lease_id"] = existing.get("previous_lease_id")
+            self._persist(connection, values, lease_id, creating)
+        return self.get_lease(lease_id)
 
-            if values["status"] in {"Active", "Future"}:
-                overlap = self.repository.overlapping_unit(
-                    connection, values["unit_id"], values["start_date"],
+    def _persist(self, connection, values, lease_id, creating):
+        if not creating and not self.repository.exists(connection, "leases", lease_id):
+            raise LeaseNotFoundError("Lease not found.")
+        if not self.repository.exists(connection, "units", values["unit_id"]):
+            raise LeaseValidationError("The selected unit does not exist.")
+        for tenant_id in values["participant_ids"]:
+            if not self.repository.exists(connection, "tenants", tenant_id):
+                raise LeaseValidationError("A selected tenant does not exist.")
+
+        if values["status"] in {"Active", "Future"}:
+            overlap = self.repository.overlapping_unit(
+                connection, values["unit_id"], values["start_date"],
+                values["end_date"], lease_id)
+            if overlap:
+                raise LeaseConflictError(
+                    "These dates overlap another lease for the selected unit."
+                )
+            for tenant_id in values["participant_ids"]:
+                overlap = self.repository.overlapping_tenant(
+                    connection, tenant_id, values["start_date"],
                     values["end_date"], lease_id)
                 if overlap:
                     raise LeaseConflictError(
-                        "These dates overlap another lease for the selected unit."
+                        "A selected tenant already belongs to another lease "
+                        "covering this timeframe."
                     )
-                for tenant_id in values["participant_ids"]:
-                    overlap = self.repository.overlapping_tenant(
-                        connection, tenant_id, values["start_date"],
-                        values["end_date"], lease_id)
-                    if overlap:
-                        raise LeaseConflictError(
-                            "A selected tenant already belongs to another lease "
-                            "covering this timeframe."
-                        )
 
-            existing_charges = [] if creating else self.repository.related(
-                connection, "recurring_charges", lease_id)
-            existing_concessions = [] if creating else self.repository.related(
-                connection, "lease_concessions", lease_id)
-            self._validate_concessions(
-                connection, lease_id, values["concessions"], existing_concessions
-            )
-            financial_changed = creating or self._financial_changed(
-                values, existing_charges, existing_concessions,
-                self.repository.get_by_id(lease_id) if not creating else None,
-            )
+        existing_charges = [] if creating else self.repository.related(
+            connection, "recurring_charges", lease_id)
+        existing_concessions = [] if creating else self.repository.related(
+            connection, "lease_concessions", lease_id)
+        self._validate_concessions(
+            connection, lease_id, values["concessions"], existing_concessions
+        )
+        financial_changed = creating or self._financial_changed(
+            values, existing_charges, existing_concessions,
+            self.repository.get_by_id(lease_id) if not creating else None,
+        )
 
-            self.repository.upsert_lease(connection, lease_id, values, creating)
-            self.repository.replace_participants(
-                connection, lease_id, values["participant_ids"])
-            self.repository.replace_charges(
-                connection, lease_id, values["charges"], values["start_date"],
-                values["end_date"])
-            self.repository.sync_concessions(
-                connection, lease_id, values["concessions"], existing_concessions)
-            if financial_changed:
-                self._reconcile_obligations(connection, lease_id, values)
-            self.repository.refresh_unit(connection, values["unit_id"], date.today())
-        return self.get_lease(lease_id)
+        self.repository.upsert_lease(connection, lease_id, values, creating)
+        self.repository.replace_participants(
+            connection, lease_id, values["participant_ids"])
+        self.repository.replace_charges(
+            connection, lease_id, values["charges"], values["start_date"],
+            values["end_date"])
+        self.repository.sync_concessions(
+            connection, lease_id, values["concessions"], existing_concessions)
+        if financial_changed:
+            self._reconcile_obligations(connection, lease_id, values)
+        self.repository.refresh_unit(connection, values["unit_id"], date.today())
 
     def terminate(self, lease_id):
         with transaction() as connection:
@@ -237,8 +319,16 @@ class LeaseService:
             try: return date.fromisoformat(raw)
             except ValueError:
                 raise LeaseValidationError(f"{name} must be a valid date.") from None
-        return {"unit_id": unit_id, "start_date": start, "end_date": end,
+        proposed_raw = payload.get("renewalProposedRent")
+        try:
+            proposed = None if proposed_raw in (None, "") else Decimal(str(proposed_raw))
+            if proposed is not None and proposed <= 0: raise ValueError
+        except (InvalidOperation, TypeError, ValueError):
+            raise LeaseValidationError("Proposed renewal rent must be greater than zero.") from None
+        return {"unit_id": unit_id, "previous_lease_id": None,
+                "start_date": start, "end_date": end,
                 "term_type": term, "status": status, "renewal_status": renewal,
+                "renewal_proposed_rent": proposed,
                 "renewal_letter_sent_date": optional_date("renewalLetterSentDate"),
                 "renewal_response_date": optional_date("renewalResponseDate"),
                 "renewal_notes": str(payload.get("renewalNotes", "")).strip(),
@@ -250,10 +340,12 @@ class LeaseService:
     def _serialize(row: dict[str, Any], projection=False):
         month_to_month = row["term_type"] == "Month-to-Month"
         result = {"id": int(row["id"]), "unitId": int(row["unit_id"]),
+                  "previousLeaseId": int(row["previous_lease_id"]) if row.get("previous_lease_id") else None,
                   "startDate": row["start_date"].isoformat(),
                   "endDate": "" if month_to_month else row["end_date"].isoformat(),
                   "termType": row["term_type"], "status": row["status"],
                   "renewalStatus": row["renewal_status"],
+                  "renewalProposedRent": float(row["renewal_proposed_rent"]) if row.get("renewal_proposed_rent") is not None else None,
                   "renewalLetterSentDate": row["renewal_letter_sent_date"].isoformat() if row["renewal_letter_sent_date"] else "",
                   "renewalResponseDate": row["renewal_response_date"].isoformat() if row["renewal_response_date"] else "",
                   "renewalNotes": row["renewal_notes"], "notes": row["notes"]}
@@ -263,7 +355,21 @@ class LeaseService:
             result.update({"street": row["street"], "apartment": apartment,
                            "leaseholders": row["leaseholders"],
                            "monthlyTotal": float(row["monthly_total"])})
+        if row.get("successor_lease_id"):
+            result["successorLeaseId"] = int(row["successor_lease_id"])
         return result
+
+    @staticmethod
+    def _shift_period(period: str, months: int) -> str:
+        year, month = map(int, period.split("-"))
+        index = year * 12 + month - 1 + months
+        return f"{index // 12:04d}-{index % 12 + 1:02d}"
+
+    @staticmethod
+    def _add_months(value: date, months: int) -> date:
+        index = value.year * 12 + value.month - 1 + months
+        year, month = index // 12, index % 12 + 1
+        return date(year, month, min(value.day, monthrange(year, month)[1]))
 
     @staticmethod
     def _charge(row):

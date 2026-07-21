@@ -1,5 +1,20 @@
 # Changelog
 
+## 6.6.0 — 2026-07-20
+
+### Added
+
+- Added `Accepted` renewal tracking, proposed renewal rent, and Schema 2 successor-lease lineage.
+- Added Start Renewal actions, editable copied renewal terms, current-versus-renewal review, and lease-history visibility.
+- Added API endpoints for renewal drafts, transactional successor creation, and lease history.
+- Added renewal defaulting and validation regression tests.
+
+### Changed
+
+- Renewal creation now copies participants and roles, recurring charges, shifted concessions, and notes while allowing every draft value to be edited.
+- Successful confirmation creates a separate future lease, preserves the current lease through its normal end date, and prevents unit or tenant overlaps and duplicate successors.
+- Updated application version to 6.6.0 and MariaDB schema version to 2.
+
 ## 6.5.0 — 2026-07-20
 
 ### Added

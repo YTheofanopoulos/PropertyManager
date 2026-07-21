@@ -57,6 +57,8 @@ Locations, Buildings, Units, Tenants, and Leases are implemented as connected ve
 
 `GET /api/v1/leases` returns the lease list projection. `GET /api/v1/leases/{id}` returns one lease. Related editor collections are available at `/participants`, `/charges`, and `/concessions`. `POST /api/v1/leases` creates a complete lease; `PUT /api/v1/leases/{id}` updates it transactionally; `POST /api/v1/leases/{id}/terminate` terminates it and refreshes occupancy.
 
+`GET /api/v1/leases/{id}/renewal-draft` returns an editable successor draft for an accepted renewal. It carries forward the unit, participants and roles, recurring charges, shifted concessions, and notes; uses the proposed renewal rent when present; and suggests the next contiguous term. `POST /api/v1/leases/{id}/renewal` validates and creates the linked successor transactionally. `GET /api/v1/leases/{id}/history` returns the unit's chronological lease history.
+
 Lease write failures return `400` for invalid input, `404` for missing records, and `409` for overlaps or financial conflicts. A failed multi-table operation is rolled back.
 
 ## Locations endpoints

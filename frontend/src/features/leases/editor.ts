@@ -1,5 +1,6 @@
 import type {
   ChargeType,
+  Lease,
   LeaseStatus,
   RenewalStatus,
   LeaseTermType,
@@ -26,6 +27,7 @@ const chargeTypes: ChargeType[] = [
 export async function renderLeaseEditor(
   container: HTMLElement,
   leaseId?: number,
+  renewalSourceId?: number,
 ): Promise<void> {
   const [units, buildings, locations, tenants] = await Promise.all([
     unitRepository.getAll(),
@@ -43,20 +45,38 @@ export async function renderLeaseEditor(
       .map((tenant) => [tenant.id, tenant]),
   );
 
-  const lease = leaseId ? await leaseRepository.getById(leaseId) : undefined;
+  const renewalDraft = renewalSourceId
+    ? await leaseService.renewalDraft(renewalSourceId)
+    : undefined;
+  const lease = leaseId
+    ? await leaseRepository.getById(leaseId)
+    : renewalDraft?.renewal;
   if (leaseId && !lease) {
     container.innerHTML = `<div class="alert alert-danger">Lease not found.</div>`;
     return;
   }
 
-  const participants = leaseId
+  const participants = renewalDraft
+    ? renewalDraft.renewal.participantIds.map((tenantId, index) => ({
+        id: undefined, leaseId: renewalSourceId!, tenantId, primary: tenantId === renewalDraft.renewal.primaryTenantId,
+        sortOrder: index,
+      }))
+    : leaseId
     ? await leaseRepository.getParticipants(leaseId)
     : [];
-  const charges = leaseId
+  const charges = renewalDraft
+    ? renewalDraft.renewal.charges.map((charge) => ({...charge, leaseId: renewalSourceId!, frequency: "Monthly" as const,
+        startDate: renewalDraft.renewal.startDate, endDate: renewalDraft.renewal.endDate}))
+    : leaseId
     ? await leaseRepository.getCharges(leaseId)
     : [];
-  const concessions = leaseId
+  const concessions = renewalDraft
+    ? renewalDraft.renewal.concessions.map((item) => ({...item, leaseId: renewalSourceId!}))
+    : leaseId
     ? await leaseRepository.getConcessions(leaseId)
+    : [];
+  const history = leaseId || renewalSourceId
+    ? await leaseRepository.getHistory(leaseId ?? renewalSourceId!)
     : [];
 
   const selectedTenantIds = participants
@@ -81,14 +101,15 @@ export async function renderLeaseEditor(
   container.innerHTML = `
     <div class="page-heading d-flex justify-content-between align-items-center">
       <div>
-        <h1>${lease ? "Edit Lease" : "Create Lease"}</h1>
+        <h1>${renewalDraft ? "Renew Lease" : lease ? "Edit Lease" : "Create Lease"}</h1>
         <p class="text-body-secondary mb-0">
-          ${lease ? "The leased unit is locked; terms and participants remain editable." : "Create a time-bound agreement for an active unit."}
+          ${renewalDraft ? `Create a successor to Lease #${renewalSourceId}. Every copied value can be reviewed and edited.` : lease ? "The leased unit is locked; terms and participants remain editable." : "Create a time-bound agreement for an active unit."}
         </p>
       </div>
       <a class="btn btn-outline-secondary" href="#/leases">Back to Leases</a>
     </div>
 
+    ${renewalDraft ? `<input type="hidden" id="renewal-source-rent" value="${renewalDraft.currentRent}">` : ""}
     <form id="lease-form">
       <div class="row g-4">
         <div class="col-xl-8">
@@ -96,12 +117,12 @@ export async function renderLeaseEditor(
             <div class="card-header fw-semibold">1. Unit</div>
             <div class="card-body">
               <label class="form-label">Unit</label>
-              <select id="lease-unit" class="form-select" ${lease ? "disabled" : ""} required>
+              <select id="lease-unit" class="form-select" ${leaseId ? "disabled" : ""} required>
                 <option value="">Choose a unit...</option>
                 ${unitOptions}
               </select>
-              ${lease ? `<input type="hidden" id="lease-unit-hidden" value="${lease.unitId}">` : ""}
-              <div class="form-text">Existing leases remain attached to their original unit.</div>
+              ${leaseId ? `<input type="hidden" id="lease-unit-hidden" value="${lease!.unitId}">` : ""}
+              <div class="form-text">${renewalDraft ? "The existing unit is selected, but can be changed before the successor is created." : "Existing leases remain attached to their original unit."}</div>
             </div>
           </div>
 
@@ -169,17 +190,24 @@ export async function renderLeaseEditor(
                 <div class="col-md-4">
                   <label class="form-label">Renewal Status</label>
                   <select id="renewal-status" class="form-select">
-                    ${(["Not Started", "Renewal Letter Sent", "Renewed", "Under Dispute", "Non-Renewal"] as RenewalStatus[]).map((status) =>
+                    ${(["Not Started", "Renewal Letter Sent", "Accepted", "Renewed", "Under Dispute", "Non-Renewal"] as RenewalStatus[]).map((status) =>
                       `<option ${lease?.renewalStatus === status || (!lease?.renewalStatus && status === "Not Started") ? "selected" : ""}>${status}</option>`,
                     ).join("")}
                   </select>
                 </div>
+                <div class="col-md-4"><label class="form-label">Proposed Renewal Rent</label>
+                  <div class="input-group"><span class="input-group-text">$</span><input id="renewal-proposed-rent" type="number" min="0.01" step="0.01" class="form-control" value="${lease?.renewalProposedRent ?? ""}"></div></div>
                 <div class="col-md-4"><label class="form-label">Renewal Letter Sent Date</label>
                   <input id="renewal-letter-date" type="date" class="form-control" value="${lease?.renewalLetterSentDate ?? ""}"></div>
                 <div class="col-md-4"><label class="form-label">Response / Resolution Date</label>
                   <input id="renewal-response-date" type="date" class="form-control" value="${lease?.renewalResponseDate ?? ""}"></div>
                 <div class="col-12"><label class="form-label">Renewal Notes</label>
                   <textarea id="renewal-notes" class="form-control" rows="2">${escapeHtml(lease?.renewalNotes ?? "")}</textarea></div>
+                ${leaseId && lease?.renewalStatus === "Accepted" && !(lease as Lease).successorLeaseId
+                  ? `<div class="col-12"><a class="btn btn-success" href="#/leases/${leaseId}/renew"><i class="fa-solid fa-rotate me-1"></i>Start Renewal</a></div>`
+                  : leaseId && (lease as Lease)?.successorLeaseId
+                    ? `<div class="col-12"><a class="btn btn-outline-success" href="#/leases/${(lease as Lease).successorLeaseId}">View Renewal Lease #${(lease as Lease).successorLeaseId}</a></div>`
+                    : ""}
               </div>
             </div>
           </div>
@@ -235,19 +263,31 @@ export async function renderLeaseEditor(
 
         <div class="col-xl-4">
           <div class="card sticky-xl-top lease-review-card">
-            <div class="card-header fw-semibold">Review</div>
+            <div class="card-header fw-semibold">${renewalDraft ? "Renewal Review" : "Review"}</div>
             <div class="card-body">
               <dl class="row mb-0">
                 <dt class="col-5">Unit</dt><dd class="col-7" id="review-unit">—</dd>
                 <dt class="col-5">Term</dt><dd class="col-7" id="review-term">—</dd>
                 <dt class="col-5">People</dt><dd class="col-7" id="review-people">0</dd>
                 <dt class="col-5">Monthly</dt><dd class="col-7" id="review-total">${currency(0)}</dd>
+                ${renewalDraft ? `
+                  <dt class="col-5 border-top pt-3 mt-2">Current term</dt><dd class="col-7 border-top pt-3 mt-2">${renewalDraft.sourceLease.startDate} to ${renewalDraft.sourceLease.endDate}</dd>
+                  <dt class="col-5">Current rent</dt><dd class="col-7">${currency(renewalDraft.currentRent)}</dd>
+                  <dt class="col-5">New rent</dt><dd class="col-7" id="review-new-rent">—</dd>
+                  <dt class="col-5">Increase</dt><dd class="col-7" id="review-increase">—</dd>
+                ` : ""}
               </dl>
               <button class="btn btn-primary w-100 mt-4" type="submit">
-                ${lease ? "Save Lease" : "Create Lease"}
+                ${renewalDraft ? "Review and Create Renewal" : lease ? "Save Lease" : "Create Lease"}
               </button>
             </div>
           </div>
+          ${history.length ? `<div class="card mt-4"><div class="card-header fw-semibold">Lease History</div><div class="list-group list-group-flush">
+            ${history.map(item=>`<a class="list-group-item list-group-item-action ${item.id===(leaseId??renewalSourceId)?"active":""}" href="#/leases/${item.id}">
+              <div class="d-flex justify-content-between"><strong>Lease #${item.id}</strong><span>${currency(item.monthlyTotal)}</span></div>
+              <div class="small">${item.startDate} – ${item.endDate || "Open-ended"} · ${escapeHtml(item.status)}</div>
+            </a>`).join("")}
+          </div></div>` : ""}
         </div>
       </div>
     </form>
@@ -301,7 +341,8 @@ export async function renderLeaseEditor(
     </div>
   `;
 
-  bindEditor(container, leaseId, tenants, tenantMap, selectedTenantIds);
+  bindEditor(container, leaseId, renewalSourceId, renewalDraft?.currentRent, lease?.renewalStatus,
+    tenants, tenantMap, selectedTenantIds);
 }
 
 function chargeRow(type: ChargeType, amount: number, description: string): string {
@@ -340,6 +381,9 @@ function defaultEndDate(): string {
 function bindEditor(
   container: HTMLElement,
   leaseId: number | undefined,
+  renewalSourceId: number | undefined,
+  currentRent: number | undefined,
+  originalRenewalStatus: RenewalStatus | undefined,
   tenants: Tenant[],
   tenantMap: Map<number, Tenant & { id: number }>,
   selectedTenantIds: number[],
@@ -535,7 +579,7 @@ function bindEditor(
         ? (document.getElementById("lease-unit-hidden") as HTMLInputElement).value
         : (document.getElementById("lease-unit") as HTMLSelectElement).value);
 
-      await leaseService.save({
+      const payload = {
         id: leaseId,
         unitId,
         startDate: (document.getElementById("lease-start") as HTMLInputElement).value,
@@ -544,6 +588,7 @@ function bindEditor(
         status: (document.getElementById("lease-status") as HTMLSelectElement).value as LeaseStatus,
         notes: (document.getElementById("lease-notes") as HTMLTextAreaElement).value,
         renewalStatus: (document.getElementById("renewal-status") as HTMLSelectElement).value as RenewalStatus,
+        renewalProposedRent: Number((document.getElementById("renewal-proposed-rent") as HTMLInputElement).value) || null,
         renewalLetterSentDate: (document.getElementById("renewal-letter-date") as HTMLInputElement).value,
         renewalResponseDate: (document.getElementById("renewal-response-date") as HTMLInputElement).value,
         renewalNotes: (document.getElementById("renewal-notes") as HTMLTextAreaElement).value,
@@ -551,9 +596,27 @@ function bindEditor(
         primaryTenantId: selectedTenantIds[0] ?? 0,
         charges,
         concessions,
-      });
+      };
+
+      if (renewalSourceId) {
+        const rent = charges.find(item=>item.chargeType==="Apartment Rent")?.amount ?? 0;
+        const increase = rent - (currentRent ?? 0);
+        const percent = currentRent ? (increase/currentRent)*100 : 0;
+        if (!window.confirm(`Create this renewal lease?\n\nCurrent rent: ${currency(currentRent ?? 0)}\nNew rent: ${currency(rent)}\nIncrease: ${currency(increase)} (${percent.toFixed(2)}%)\n\nThe current lease will remain unchanged.`)) return;
+        const newId=await leaseService.createRenewal(renewalSourceId,payload);
+        notify("Renewal lease created.");
+        location.hash=`#/leases/${newId}`;
+        return;
+      }
+
+      const savedId=await leaseService.save(payload);
 
       notify("Lease saved.");
+      if (leaseId && originalRenewalStatus !== "Accepted" && payload.renewalStatus === "Accepted" &&
+          window.confirm("The tenant accepted the renewal terms. Start the renewal now?")) {
+        location.hash = `#/leases/${savedId}/renew`;
+        return;
+      }
       location.hash = "#/leases";
     } catch (error) {
       notify((error as Error).message, "danger");
@@ -583,4 +646,13 @@ function refreshReview(selectedPeople: number): void {
   document.getElementById("review-term")!.textContent = term === "Month-to-Month"
     ? `${start || "Start date"} onward`
     : `${start || "Start"} to ${end || "End"}`;
+  const rent=Number((document.querySelector<HTMLElement>('.charge-row[data-type="Apartment Rent"] .charge-amount') as HTMLInputElement|null)?.value||0);
+  const current=document.getElementById("review-new-rent");
+  if(current){
+    current.textContent=currency(rent);
+    const original=Number((document.getElementById("renewal-source-rent") as HTMLInputElement|null)?.value||0);
+    const increase=rent-original;
+    const percent=original?(increase/original)*100:0;
+    document.getElementById("review-increase")!.textContent=`${currency(increase)} (${percent.toFixed(2)}%)`;
+  }
 }

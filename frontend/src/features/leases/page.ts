@@ -88,6 +88,7 @@ export async function renderLeases(container: HTMLElement): Promise<void> {
             "Urgent": "warning",
             "Renewal Letter Sent": "info",
             "Awaiting Tenant Response": "info",
+            "Accepted": "primary",
             "Renewed": "success",
             "Non-Renewal": "dark",
             "Under Dispute": "danger",
@@ -101,6 +102,11 @@ export async function renderLeases(container: HTMLElement): Promise<void> {
         searchable: false,
         render: (id: number, _type: unknown, row: typeof rows[number]) => `
           <a class="btn btn-sm btn-outline-primary" href="#/leases/${id}">Edit</a>
+          ${row.renewalStatus === "Accepted" && !row.successorLeaseId
+            ? `<a class="btn btn-sm btn-success" href="#/leases/${id}/renew">Start Renewal</a>`
+            : row.successorLeaseId
+              ? `<a class="btn btn-sm btn-outline-success" href="#/leases/${row.successorLeaseId}">View Renewal</a>`
+              : ""}
           ${row.status !== "Terminated"
             ? `<button class="btn btn-sm btn-outline-danger terminate-lease" data-id="${id}">Terminate</button>`
             : ""}

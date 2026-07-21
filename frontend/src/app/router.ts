@@ -58,6 +58,9 @@ export async function route(container: HTMLElement): Promise<void> {
   if (path.startsWith("/payments/new")) return renderPaymentEditor(container);
   if (path === "/leases/new") return renderLeaseEditor(container);
 
+  const renewalMatch = path.match(/^\/leases\/(\d+)\/renew$/);
+  if (renewalMatch) return renderLeaseEditor(container, undefined, Number(renewalMatch[1]));
+
   const reconciliationMatch = path.match(/^\/bank-import\/reconcile\/(\d+)$/);
   if (reconciliationMatch) {
     return renderReconciliation(container, Number(reconciliationMatch[1]));

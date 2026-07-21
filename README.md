@@ -1,14 +1,16 @@
-# PropertyManager Baseline 6.5.0
+# PropertyManager Baseline 6.6.0
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
 Version identifiers:
 
-- Application: **6.5.0**
+- Application: **6.6.0**
 - REST API: **v1**
-- Database schema: **1**
+- Database schema: **2**
 
-Baseline 6.5.0 makes every operational screen MariaDB-backed: Locations, Buildings, Units, Tenants, Leases, Payments, Allocations, Credits, Rent Roll, Rent Status, Payment Receipts, Bank Statement Import/Reconciliation, and Dashboard calculations. Browser backup/restore and sample-data reset remain explicitly legacy IndexedDB utilities.
+Baseline 6.6.0 adds a transactional lease-renewal workflow. Accepted renewals can create an editable successor lease with copied participants and financial terms, intelligent term defaults, overlap validation, and linked lease history. Every operational screen remains MariaDB-backed.
+
+Before starting 6.6.0, apply database migration `002_lease_renewals.sql` with `./scripts/init_database.sh`.
 
 Start with [docs/INSTALL.md](docs/INSTALL.md).
 

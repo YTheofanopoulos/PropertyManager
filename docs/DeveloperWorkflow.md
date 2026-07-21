@@ -1,4 +1,6 @@
-# Developer Workflow — Baseline 6.5.0
+# Developer Workflow — Baseline 6.6.0
+
+After updating from 6.5.0, run `./scripts/init_database.sh` before starting the services. Confirm `/api/v1/system/health` reports expected and installed schema version 2.
 
 PropertyManager uses two development processes: the Vite frontend and the Python API. MariaDB normally runs continuously as an operating-system service. The helper scripts coordinate the frontend and backend for you.
 

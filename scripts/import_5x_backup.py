@@ -457,8 +457,8 @@ def main() -> int:
         connection = connect()
         cursor = connection.cursor()
         cursor.execute("SELECT MAX(version) FROM schema_migrations")
-        if cursor.fetchone()[0] != 1:
-            raise RuntimeError("Database schema 1 is required")
+        if cursor.fetchone()[0] != 2:
+            raise RuntimeError("Database schema 2 is required")
         cursor.execute("SELECT COUNT(*) FROM locations")
         populated = cursor.fetchone()[0] > 0
         if populated and not args.replace:

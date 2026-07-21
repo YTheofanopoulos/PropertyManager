@@ -13,12 +13,14 @@ class LeaseRepository:
                 """
                 SELECT le.*, l.name AS street, b.civic_address,
                        u.apartment_number,
+                       successor.id AS successor_lease_id,
                        COALESCE((SELECT SUM(rc.amount) FROM recurring_charges rc
                                   WHERE rc.lease_id=le.id
                                     AND rc.frequency='Monthly'), 0) AS monthly_total
                   FROM leases le JOIN units u ON u.id=le.unit_id
                   JOIN buildings b ON b.id=u.building_id
                   JOIN locations l ON l.id=b.location_id
+                  LEFT JOIN leases successor ON successor.previous_lease_id=le.id
                  ORDER BY le.start_date DESC, le.id DESC
                 """
             )
@@ -46,6 +48,20 @@ class LeaseRepository:
             cursor.close()
         return row
 
+    def get_with_successor(self, lease_id):
+        with read_connection() as connection:
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute(
+                """SELECT le.*, successor.id AS successor_lease_id
+                     FROM leases le
+                     LEFT JOIN leases successor ON successor.previous_lease_id=le.id
+                    WHERE le.id=?""",
+                (lease_id,),
+            )
+            row = cursor.fetchone()
+            cursor.close()
+        return row
+
     def get_related(self, table, lease_id):
         allowed = {
             "lease_participants": "SELECT * FROM lease_participants WHERE lease_id=? ORDER BY is_primary DESC, sort_order, id",
@@ -55,6 +71,23 @@ class LeaseRepository:
         with read_connection() as connection:
             cursor = connection.cursor(dictionary=True)
             cursor.execute(allowed[table], (lease_id,))
+            rows = list(cursor.fetchall())
+            cursor.close()
+        return rows
+
+    def history(self, lease_id):
+        with read_connection() as connection:
+            cursor = connection.cursor(dictionary=True)
+            cursor.execute(
+                """SELECT le.id, le.previous_lease_id, le.start_date, le.end_date,
+                          le.term_type, le.status, le.renewal_status,
+                          COALESCE((SELECT SUM(rc.amount) FROM recurring_charges rc
+                                    WHERE rc.lease_id=le.id AND rc.frequency='Monthly'),0) monthly_total
+                     FROM leases le
+                    WHERE le.unit_id=(SELECT unit_id FROM leases WHERE id=?)
+                    ORDER BY le.start_date, le.id""",
+                (lease_id,),
+            )
             rows = list(cursor.fetchall())
             cursor.close()
         return rows
@@ -119,24 +152,32 @@ class LeaseRepository:
         return row
 
     @staticmethod
+    def successor_id(connection, lease_id):
+        cursor = connection.cursor()
+        cursor.execute("SELECT id FROM leases WHERE previous_lease_id=?", (lease_id,))
+        row = cursor.fetchone()
+        cursor.close()
+        return int(row[0]) if row else None
+
+    @staticmethod
     def upsert_lease(connection, lease_id, values, creating):
         cursor = connection.cursor()
-        columns = ("unit_id", "start_date", "end_date", "term_type", "status",
-                   "renewal_status", "renewal_letter_sent_date",
+        columns = ("unit_id", "previous_lease_id", "start_date", "end_date", "term_type", "status",
+                   "renewal_status", "renewal_proposed_rent", "renewal_letter_sent_date",
                    "renewal_response_date", "renewal_notes", "notes")
         args = tuple(values[column] for column in columns)
         if creating:
             cursor.execute(
                 """INSERT INTO leases
-                   (id,unit_id,start_date,end_date,term_type,status,renewal_status,
-                    renewal_letter_sent_date,renewal_response_date,renewal_notes,notes)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                   (id,unit_id,previous_lease_id,start_date,end_date,term_type,status,renewal_status,
+                    renewal_proposed_rent,renewal_letter_sent_date,renewal_response_date,renewal_notes,notes)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (lease_id, *args),
             )
         else:
             cursor.execute(
-                """UPDATE leases SET unit_id=?,start_date=?,end_date=?,term_type=?,
-                   status=?,renewal_status=?,renewal_letter_sent_date=?,
+                """UPDATE leases SET unit_id=?,previous_lease_id=?,start_date=?,end_date=?,term_type=?,
+                   status=?,renewal_status=?,renewal_proposed_rent=?,renewal_letter_sent_date=?,
                    renewal_response_date=?,renewal_notes=?,notes=? WHERE id=?""",
                 (*args, lease_id),
             )
@@ -247,6 +288,12 @@ class LeaseRepository:
     def set_lease_status(connection, lease_id, status):
         cursor = connection.cursor()
         cursor.execute("UPDATE leases SET status=? WHERE id=?", (status, lease_id))
+        cursor.close()
+
+    @staticmethod
+    def complete_renewal(connection, lease_id):
+        cursor = connection.cursor()
+        cursor.execute("UPDATE leases SET renewal_status='Renewed' WHERE id=?", (lease_id,))
         cursor.close()
 
     @staticmethod

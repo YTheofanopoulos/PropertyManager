@@ -6,6 +6,7 @@ import type {
   LeaseParticipant,
   RecurringCharge,
   LeaseConcession,
+  LeaseHistoryItem,
 } from "../models/domain";
 import type { Repository } from "./repository";
 import { apiRequest } from "./apiClient";
@@ -16,6 +17,7 @@ export interface LeaseRepository extends Repository<Lease> {
   getCharges(leaseId:number):Promise<RecurringCharge[]>;
   getConcessions(leaseId:number):Promise<LeaseConcession[]>;
   getListItems():Promise<LeaseListItem[]>;
+  getHistory(leaseId:number):Promise<LeaseHistoryItem[]>;
 }
 
 export class DexieLeaseRepository implements LeaseRepository {
@@ -89,6 +91,18 @@ export class DexieLeaseRepository implements LeaseRepository {
       };
     });
   }
+
+  async getHistory(leaseId:number):Promise<LeaseHistoryItem[]> {
+    const lease=await this.getById(leaseId);
+    if(!lease)return [];
+    const charges=await db.recurringCharges.toArray();
+    return (await db.leases.where("unitId").equals(lease.unitId).sortBy("startDate")).map(item=>({
+      id:item.id!, previousLeaseId:item.previousLeaseId, startDate:item.startDate,
+      endDate:item.endDate, termType:item.termType??"Fixed", status:item.status,
+      renewalStatus:item.renewalStatus??"Not Started",
+      monthlyTotal:charges.filter(c=>c.leaseId===item.id&&c.frequency==="Monthly").reduce((s,c)=>s+c.amount,0),
+    }));
+  }
 }
 
 export class ApiLeaseRepository implements LeaseRepository {
@@ -101,6 +115,7 @@ export class ApiLeaseRepository implements LeaseRepository {
   getCharges(id:number){return apiRequest<RecurringCharge[]>(`/api/v1/leases/${id}/charges`);}
   getConcessions(id:number){return apiRequest<LeaseConcession[]>(`/api/v1/leases/${id}/concessions`);}
   getListItems(){return apiRequest<LeaseListItem[]>("/api/v1/leases");}
+  getHistory(id:number){return apiRequest<LeaseHistoryItem[]>(`/api/v1/leases/${id}/history`);}
 }
 
 export const leaseRepository:LeaseRepository=repositoryConfiguration.leases==="api"?new ApiLeaseRepository():new DexieLeaseRepository();

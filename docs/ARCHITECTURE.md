@@ -2,9 +2,9 @@
 
 ## Version boundaries
 
-- Application: 6.5.0
+- Application: 6.6.0
 - REST API: v1
-- MariaDB schema: 1
+- MariaDB schema: 2
 
 These versions evolve independently. A later application release can retain API v1 while applying a new schema migration.
 
@@ -69,6 +69,12 @@ Payments, allocations, credits, rent-obligation generation, Rent Roll, and Rent 
 ## Baseline 6.5.0 completion slice
 
 Payment Receipts, Dashboard calculations, Bank Statement Import, duplicate detection, queue display, matching, ignore, and reconciliation now read and write MariaDB through API v1. Reconciliation atomically creates the payment and allocations, updates the bank transaction, records matching history, and refreshes obligation status. All operational pages now use MariaDB; only explicitly legacy browser backup/restore and sample reset continue to touch IndexedDB.
+
+## Baseline 6.6.0 lease-renewal workflow
+
+An accepted renewal produces an editable successor draft. Confirmation creates the new lease, participants, recurring charges, shifted concessions, and lineage link in one backend transaction. A unique `previous_lease_id` relationship prevents duplicate successors, and the source lease is preserved unchanged except for advancing its renewal workflow to `Renewed` after successful creation.
+
+Eligibility, proposed-rent defaults, successor dates, duplicate prevention, and unit/tenant overlap validation remain backend responsibilities. The frontend supplies an editable review experience without duplicating or bypassing those rules.
 
 ## Security principles
 

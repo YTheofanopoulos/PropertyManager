@@ -45,6 +45,20 @@ def charges(lease_id): return handle(lambda: jsonify(service.charges(lease_id)))
 def concessions(lease_id): return handle(lambda: jsonify(service.concessions(lease_id)))
 
 
+@blueprint.get("/<int:lease_id>/history")
+def history(lease_id): return handle(lambda: jsonify(service.history(lease_id)))
+
+
+@blueprint.get("/<int:lease_id>/renewal-draft")
+def renewal_draft(lease_id): return handle(lambda: jsonify(service.renewal_draft(lease_id)))
+
+
+@blueprint.post("/<int:lease_id>/renewal")
+def create_renewal(lease_id):
+    return handle(lambda: (jsonify(service.create_renewal(
+        lease_id, request.get_json(silent=True))), 201))
+
+
 @blueprint.post("")
 def create_lease():
     return handle(lambda: (jsonify(service.save(request.get_json(silent=True))), 201))
