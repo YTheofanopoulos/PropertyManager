@@ -2,7 +2,7 @@
 
 ## Version boundaries
 
-- Application: 6.6.1
+- Application: 6.6.2
 - REST API: v1
 - MariaDB schema: 2
 
@@ -79,6 +79,10 @@ Eligibility, proposed-rent defaults, successor dates, duplicate prevention, and 
 ## Baseline 6.6.1 manual reconciliation fallback
 
 Suggested matches remain the default reconciliation path. A user may instead search every unit with a lease covering the bank transaction date and select that lease manually. The selected lease then enters the existing outstanding-obligation allocation workflow; backend validation and the transactional payment/reconciliation operation are unchanged.
+
+## Baseline 6.6.2 reconciliation destination
+
+The bank reconciliation view treats the selected lease/unit as a first-class piece of state. Suggested matches and manual search both update the same visible destination panel and allocation list. Changing the destination before confirmation does not persist a bank-reference mapping; the existing transactional reconciliation API remains authoritative.
 
 ## Security principles
 

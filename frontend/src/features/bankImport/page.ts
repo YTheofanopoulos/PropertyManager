@@ -1234,6 +1234,27 @@ export async function renderReconciliation(
       </div>
 
       <div class="col-lg-7">
+        <div class="card mb-4 border-primary">
+          <div class="card-header fw-semibold text-bg-primary">
+            Unit Receiving This Payment
+          </div>
+          <div class="card-body d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3">
+            <div>
+              <div id="selected-payment-unit-label" class="fs-5 fw-semibold">
+                ${suggestions[0] ? escapeHtml(suggestions[0].unitLabel) : "No unit selected"}
+              </div>
+              <div id="selected-payment-unit-detail" class="text-body-secondary">
+                ${suggestions[0] ? `Suggested match · Lease #${suggestions[0].leaseId}` : "Choose the unit whose rent this payment should be applied to."}
+              </div>
+            </div>
+            <button type="button" id="choose-payment-unit"
+                    class="btn btn-${suggestions[0] ? "outline-primary" : "primary"} reconciliation-control flex-shrink-0">
+              <i class="fa-solid fa-building me-1"></i>
+              <span id="choose-payment-unit-label">${suggestions[0] ? "Change Unit" : "Choose Unit"}</span>
+            </button>
+          </div>
+        </div>
+
         <div class="card mb-4">
           <div class="card-header fw-semibold d-flex justify-content-between">
             <span>Suggested Units</span>
@@ -1284,17 +1305,6 @@ export async function renderReconciliation(
                 '<div class="alert alert-warning mb-0">No outstanding leases found.</div>'
               }
             </div>
-            <div class="border-top mt-3 pt-3">
-              <button type="button" id="select-unit-manually"
-                      class="btn btn-outline-primary reconciliation-control">
-                <i class="fa-solid fa-magnifying-glass me-1"></i>
-                Select Unit Manually
-              </button>
-              <div class="small text-body-secondary mt-2">
-                Use this when the correct unit is not included in the suggested matches.
-              </div>
-              <div id="manual-unit-selection" class="alert alert-info mt-3 mb-0 d-none"></div>
-            </div>
           </div>
         </div>
 
@@ -1318,7 +1328,7 @@ export async function renderReconciliation(
         <div class="modal-content">
           <div class="modal-header">
             <div>
-              <h2 class="modal-title fs-5">Select Unit Manually</h2>
+              <h2 class="modal-title fs-5">Choose Unit Receiving This Payment</h2>
               <div class="small text-body-secondary">
                 Showing units with a lease covering ${escapeHtml(bankTransaction.postedDate)}.
               </div>
@@ -1362,12 +1372,15 @@ export async function renderReconciliation(
 
         item.classList.add("active");
         selectedLeaseId = Number(item.dataset.leaseId);
-        document.getElementById("manual-unit-selection")?.classList.add("d-none");
+        const suggestion = suggestions.find(candidate => candidate.leaseId === selectedLeaseId);
+        if (suggestion) {
+          updateSelectedUnit(suggestion.unitLabel, `Suggested match · Lease #${suggestion.leaseId}`);
+        }
         await loadAllocations();
       });
     });
 
-  document.getElementById("select-unit-manually")?.addEventListener("click", async () => {
+  document.getElementById("choose-payment-unit")?.addEventListener("click", async () => {
     if (submitting) return;
     manualModal.show();
     try {
@@ -1405,7 +1418,7 @@ export async function renderReconciliation(
         .filter((item) => item.amount > 0);
 
       if (!selectedLeaseId) {
-        showMessage("danger", "Select a suggested unit or choose a unit manually before reconciling.");
+        showMessage("danger", "Choose the unit receiving this payment before reconciling.");
         return;
       }
 
@@ -1547,17 +1560,29 @@ export async function renderReconciliation(
         if (!choice) return;
         selectedLeaseId = choice.leaseId;
         document.querySelectorAll(".suggestion-item").forEach(row => row.classList.remove("active"));
-        const selected = document.getElementById("manual-unit-selection");
-        if (selected) {
-          selected.classList.remove("d-none");
-          selected.innerHTML = `<strong>Manually selected:</strong> ${escapeHtml(choice.unitLabel)}<br><span class="small">${escapeHtml(choice.tenantNames || "No leaseholders")} · Lease #${choice.leaseId}</span>`;
-        }
+        updateSelectedUnit(
+          choice.unitLabel,
+          `${choice.tenantNames || "No leaseholders"} · Lease #${choice.leaseId}`,
+        );
         const confirm = document.getElementById("confirm-reconciliation") as HTMLButtonElement | null;
         if (confirm) confirm.disabled = false;
         manualModal.hide();
         await loadAllocations();
       });
     });
+  }
+
+  function updateSelectedUnit(unitLabel: string, detail: string): void {
+    const label = document.getElementById("selected-payment-unit-label");
+    const detailElement = document.getElementById("selected-payment-unit-detail");
+    const chooseButton = document.getElementById("choose-payment-unit");
+    const chooseLabel = document.getElementById("choose-payment-unit-label");
+
+    if (label) label.textContent = unitLabel;
+    if (detailElement) detailElement.textContent = detail;
+    if (chooseLabel) chooseLabel.textContent = "Change Unit";
+    chooseButton?.classList.remove("btn-primary");
+    chooseButton?.classList.add("btn-outline-primary");
   }
 
   async function loadAllocations(): Promise<void> {

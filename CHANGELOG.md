@@ -1,5 +1,14 @@
 # Changelog
 
+## 6.6.2 — 2026-07-20
+
+### Changed
+
+- Added a prominent **Unit Receiving This Payment** panel above reconciliation suggestions.
+- Replaced the secondary manual-selection action with an explicit **Choose Unit** / **Change Unit** workflow.
+- Made suggested matches and manual search update the same selected-unit display and allocation list.
+- Updated application version to 6.6.2; REST API v1 and MariaDB Schema 2 are unchanged.
+
 ## 6.6.1 — 2026-07-20
 
 ### Added

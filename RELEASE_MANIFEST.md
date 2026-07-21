@@ -1,9 +1,9 @@
 # Release Manifest
 
-- Application version: 6.6.1
+- Application version: 6.6.2
 - REST API version: v1
 - Database schema version: 2
-- Source baseline: 6.6.0
+- Source baseline: 6.6.1
 - Package type: Delta
 
 ## Modified files
@@ -27,8 +27,8 @@
 
 ## Apply and verify
 
-Extract directly over Baseline 6.6.0, refresh dependencies, and restart both services. No database migration is required.
+Extract directly over Baseline 6.6.1, refresh dependencies, and restart both services. No database migration is required.
 
-Verify a transaction whose correct unit is absent from Suggested Units can use **Select Unit Manually**, find the unit by address/apartment/tenant, load its outstanding obligations, allocate the payment, and reconcile successfully.
+Verify the selected destination appears in **Unit Receiving This Payment**, **Change Unit** opens the searchable unit list, and either a suggested or searched unit updates the allocations before reconciliation.
 
-The prior generated bundle `frontend/dist/assets/index-BzY8quCP.js` is obsolete after the update and may be removed if it remains in the target directory.
+The prior generated bundle `frontend/dist/assets/index-BDlVhWhR.js` is obsolete after the update and may be removed if it remains in the target directory.

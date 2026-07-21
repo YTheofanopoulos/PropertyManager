@@ -1,12 +1,12 @@
-# Baseline 6.6.1 Delta Installation
+# Baseline 6.6.2 Delta Installation
 
 This archive is rooted at the PropertyManager project directory. It does **not** contain an enclosing `PropertyManager/` folder.
 
-Apply it from inside a clean Baseline 6.6.0 project directory:
+Apply it from inside a clean Baseline 6.6.1 project directory:
 
 ```bash
-cd /path/to/your/PropertyManager6.6.0
-unzip -o /path/to/PropertyManager_Baseline6_6_1_Delta.zip
+cd /path/to/your/PropertyManager6.6.1
+unzip -o /path/to/PropertyManager_Baseline6_6_2_Delta.zip
 ```
 
 Then refresh dependencies and start the services:
@@ -25,4 +25,4 @@ For normal daily testing:
 
 The launcher starts both the Python backend and the Vite frontend. Press `Ctrl+C` to stop both processes.
 
-This delta requires Baseline 6.6.0. REST API v1 and MariaDB Schema 2 are unchanged.
+This delta requires Baseline 6.6.1. REST API v1 and MariaDB Schema 2 are unchanged; no database migration is required.

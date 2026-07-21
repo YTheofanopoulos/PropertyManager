@@ -20,7 +20,7 @@ Base path:
 
 Payment, allocation, credit, and obligation mutations execute transactionally. Validation failures return 400, missing records return 404, and balance or state conflicts return 409.
 
-The reconciliation UI may submit a manually selected lease when the matching engine omits the correct unit. It uses the same reconciliation endpoint and allocation contract as a suggested match; no permanent bank-reference mapping is created.
+The reconciliation UI displays the unit receiving the payment and may submit either a suggested lease or a unit chosen through search. The user can change that unit before confirmation. Both paths use the same reconciliation endpoint and allocation contract; no permanent bank-reference mapping is created.
 
 ## Reporting and bank endpoints (Baseline 6.5.0)
 

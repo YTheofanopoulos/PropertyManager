@@ -1,14 +1,14 @@
-# PropertyManager Baseline 6.6.1
+# PropertyManager Baseline 6.6.2
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
 Version identifiers:
 
-- Application: **6.6.1**
+- Application: **6.6.2**
 - REST API: **v1**
 - Database schema: **2**
 
-Baseline 6.6.1 adds manual unit selection to bank reconciliation. When the matching engine omits the correct unit, the user can search all units with a lease covering the transaction date and apply that individual payment through the existing allocation workflow.
+Baseline 6.6.2 makes the unit receiving a bank payment explicit. The reconciliation screen always shows the selected destination unit and provides a prominent **Choose Unit** or **Change Unit** action, while suggested matches remain convenient shortcuts.
 
 Before starting 6.6.0, apply database migration `002_lease_renewals.sql` with `./scripts/init_database.sh`.
 
