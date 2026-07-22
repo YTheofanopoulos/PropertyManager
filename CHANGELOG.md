@@ -1,5 +1,19 @@
 # Changelog
 
+## Deployment Kit 1.0 — 2026-07-21
+
+### Added
+
+- Added a development-side production packager that runs the Vite build and creates a minimal, versioned release archive with a SHA-256 checksum.
+- Added an SCP/SSH deployment command with configurable host, user, key, port, staging path, and install root.
+- Added a production installer using versioned releases, shared credentials and Python environment, atomic activation, service restart, and automatic activation rollback after a restart failure.
+- Added Apache and systemd production configuration templates and deployment, first-run, migration, and rollback documentation.
+
+### Deployment
+
+- Production no longer needs Node.js, npm, Vite, TypeScript, frontend source, or development dependencies.
+- Database migrations remain an explicit, backup-first operation and are never run automatically during deployment.
+
 ## 6.6.2.1 — 2026-07-20
 
 ### Fixed

@@ -1,0 +1,20 @@
+<VirtualHost *:80>
+    ServerName propertymanager.example.com
+
+    DocumentRoot /opt/propertymanager/current/frontend
+    DirectoryIndex index.html
+
+    <Directory /opt/propertymanager/current/frontend>
+        Require all granted
+        Options -Indexes
+        AllowOverride None
+        FallbackResource /index.html
+    </Directory>
+
+    ProxyPreserveHost On
+    ProxyPass        /api/ http://127.0.0.1:5000/api/
+    ProxyPassReverse /api/ http://127.0.0.1:5000/api/
+
+    ErrorLog ${APACHE_LOG_DIR}/propertymanager-error.log
+    CustomLog ${APACHE_LOG_DIR}/propertymanager-access.log combined
+</VirtualHost>
