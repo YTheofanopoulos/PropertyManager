@@ -3,6 +3,16 @@ interface ApiErrorPayload {
   message?: string;
 }
 
+function resolveApplicationPath(path: string): string {
+  if (!path.startsWith("/api/")) return path;
+
+  const applicationBasePath = window.location.pathname
+    .replace(/\/index\.html$/, "")
+    .replace(/\/$/, "");
+
+  return `${applicationBasePath}${path}`;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -19,7 +29,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(path, {
+    response = await fetch(resolveApplicationPath(path), {
       ...options,
       headers: {
         Accept: "application/json",

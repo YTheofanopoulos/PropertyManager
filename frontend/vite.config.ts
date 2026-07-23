@@ -1,7 +1,9 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/",
+  // PropertyManager is mounted at /PropertyManager/ in local and production
+  // Apache deployments. Relative assets also keep development builds portable.
+  base: "./",
   server: {
     host: "0.0.0.0",
     port: 5173,

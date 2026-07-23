@@ -1,4 +1,4 @@
-# PropertyManager Deployment Kit 1.1 — Baseline 6.6.2.1
+# PropertyManager Deployment Kit 1.1.2 — Baseline 6.6.2.1
 
 For a complete production-style local VM deployment:
 
@@ -6,11 +6,16 @@ For a complete production-style local VM deployment:
 sudo ./deployment/deploy.sh local
 ```
 
+Open `http://localhost/PropertyManager`.
+
 For production:
 
 ```bash
-sudo ./deployment/deploy.sh production
+sudo PROPERTYMANAGER_SERVER_NAME=server.example.com \
+  ./deployment/deploy.sh production
 ```
+
+Open `https://server.example.com/PropertyManager`.
 
 See `docs/DEPLOYMENT_KIT.md` for configuration, cleanup, upgrades, and diagnostics.
 
@@ -28,7 +33,7 @@ Before starting 6.6.0, apply database migration `002_lease_renewals.sql` with `.
 
 Start with [docs/INSTALL.md](docs/INSTALL.md).
 
-For production packaging and automated Apache deployment, see [PropertyManager Deployment Kit 1.1](docs/DEPLOYMENT_KIT.md).
+For production packaging and automated Apache deployment, see [PropertyManager Deployment Kit 1.1.2](docs/DEPLOYMENT_KIT.md).
 
 The repository selection is explicit in `frontend/src/repositories/repositoryConfiguration.ts`. Locations, Buildings, Units, Tenants, and Leases are set to `api`; other domains remain unchanged.
 
