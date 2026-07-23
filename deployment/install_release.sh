@@ -3,6 +3,7 @@ set -euo pipefail
 
 ARCHIVE="${1:?Usage: install_release.sh ARCHIVE [INSTALL_ROOT]}"
 INSTALL_ROOT="${2:-/opt/propertymanager}"
+SERVICE_NAME="${PROPERTYMANAGER_SERVICE_NAME:-propertymanager.service}"
 ARCHIVE="$(cd "$(dirname "$ARCHIVE")" && pwd)/$(basename "$ARCHIVE")"
 CHECKSUM="$ARCHIVE.sha256"
 RELEASES_DIR="$INSTALL_ROOT/releases"
@@ -90,20 +91,20 @@ fi
 ln -sfn "$RELEASE_DIR" "$INSTALL_ROOT/current.new"
 mv -Tf "$INSTALL_ROOT/current.new" "$INSTALL_ROOT/current"
 
-if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet propertymanager.service; then
-  if ! systemctl restart propertymanager.service; then
+if command -v systemctl >/dev/null 2>&1 && systemctl is-active --quiet "$SERVICE_NAME"; then
+  if ! systemctl restart "$SERVICE_NAME"; then
     echo "Service restart failed; restoring previous release." >&2
     if [[ -n "$PREVIOUS_TARGET" ]]; then
       ln -sfn "$PREVIOUS_TARGET" "$INSTALL_ROOT/current.new"
       mv -Tf "$INSTALL_ROOT/current.new" "$INSTALL_ROOT/current"
-      systemctl restart propertymanager.service || true
+      systemctl restart "$SERVICE_NAME" || true
     else
       rm -f "$INSTALL_ROOT/current"
     fi
     exit 1
   fi
 else
-  echo "propertymanager.service is not active; release activated but not started."
+  echo "$SERVICE_NAME is not active; release activated but not started."
 fi
 
 echo "Active release: $RELEASE_DIR"

@@ -30,12 +30,13 @@ esac
 
 echo "Building PropertyManager frontend..."
 if [[ -f "$ROOT/frontend/package-lock.json" ]]; then
-  "$ROOT/scripts/build_frontend.sh"
+  echo "Refusing to package while frontend/package-lock.json is present." >&2
+  echo "Remove it before building the PropertyManager distribution." >&2
+  exit 1
 else
-  echo "Warning: frontend/package-lock.json is absent; using npm install instead of npm ci." >&2
   (
     cd "$ROOT/frontend"
-    npm install
+    npm install --no-package-lock
     npm run build
   )
 fi

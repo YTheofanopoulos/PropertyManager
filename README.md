@@ -1,4 +1,18 @@
-# PropertyManager Baseline 6.6.2.1
+# PropertyManager Deployment Kit 1.1 — Baseline 6.6.2.1
+
+For a complete production-style local VM deployment:
+
+```bash
+sudo ./deployment/deploy.sh local
+```
+
+For production:
+
+```bash
+sudo ./deployment/deploy.sh production
+```
+
+See `docs/DEPLOYMENT_KIT.md` for configuration, cleanup, upgrades, and diagnostics.
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
@@ -14,7 +28,7 @@ Before starting 6.6.0, apply database migration `002_lease_renewals.sql` with `.
 
 Start with [docs/INSTALL.md](docs/INSTALL.md).
 
-For production packaging and SCP deployment without a frontend build environment on the server, see [PropertyManager Deployment Kit 1.0](docs/DEPLOYMENT_KIT.md).
+For production packaging and automated Apache deployment, see [PropertyManager Deployment Kit 1.1](docs/DEPLOYMENT_KIT.md).
 
 The repository selection is explicit in `frontend/src/repositories/repositoryConfiguration.ts`. Locations, Buildings, Units, Tenants, and Leases are set to `api`; other domains remain unchanged.
 

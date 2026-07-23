@@ -1,120 +1,85 @@
-# PropertyManager Deployment Kit 1.0
+# PropertyManager Deployment Kit 1.1
 
-Deployment Kit 1.0 builds PropertyManager on the development system and sends a production-only release archive to the server with `scp`. Node.js, npm, Vite, TypeScript, source files, and `node_modules` are not installed on production.
+Deployment Kit 1.1 supports a production-style local VM test and a production installation. Both use Apache for the compiled frontend, Gunicorn for the Flask API, systemd for supervision, and MariaDB for data.
 
-## Deployment layout
+## Deployment modes
 
-```text
-/opt/propertymanager/
-├── current -> releases/6.6.2.1
-├── releases/
-│   └── 6.6.2.1/
-│       ├── frontend/
-│       ├── backend/
-│       ├── database/
-│       └── scripts/
-└── shared/
-    ├── backend.env
-    └── venv/
-```
+| Mode | Command | Install root | Apache | Gunicorn | Service |
+|---|---|---|---:|---:|---|
+| Local VM test | `sudo ./deployment/deploy.sh local` | `/opt/propertymanager-test` | 8080 | 5001 | `propertymanager-test.service` |
+| Production | `sudo ./deployment/deploy.sh production` | `/opt/propertymanager` | 80 | 5000 | `propertymanager.service` |
 
-Production still requires its runtime components: Apache, MariaDB, Python 3 with `venv`, Gunicorn dependencies, and the MariaDB client development package needed to install the pinned Python connector. It does not require the frontend development/build environment.
+The modes are isolated. Local deployment does not replace or restart production.
 
-## One-time production setup
+## Before deploying
 
-Install runtime packages on Ubuntu/Debian:
+The release archive and matching `.sha256` file must be in `deployment/out/`. Kit 1.1 includes v6.6.2.1. On Ubuntu/Debian, the deployment command installs missing runtime packages when necessary.
+
+Database migrations are deliberately not automatic. A restored or existing Schema 2 database for v6.6.2.1 requires no migration.
+
+## Local production-style VM test
+
+From the extracted kit root:
 
 ```bash
-sudo apt update
-sudo apt install -y apache2 mariadb-server python3 python3-venv \
-  libmariadb-dev libmariadb-dev-compat
-sudo a2enmod proxy proxy_http rewrite
+sudo ./deployment/deploy.sh local
 ```
 
-Create a dedicated account and directories:
+On first installation, answer the MariaDB prompts. Password input is hidden. The command verifies the archive, installs under `/opt`, creates the persistent environment, configures systemd and Apache, starts the application, and verifies the frontend and API.
+
+Open `http://localhost:8080`.
+
+Check it later:
 
 ```bash
-sudo useradd --system --home /opt/propertymanager --shell /usr/sbin/nologin propertymanager
-sudo mkdir -p /opt/propertymanager/{releases,shared}
-sudo chown -R propertymanager:www-data /opt/propertymanager
+sudo ./deployment/deploy.sh status-local
 ```
 
-Copy and edit the supplied Apache and systemd templates:
+Remove the local test:
 
 ```bash
-sudo cp deployment/apache/propertymanager.conf.example /etc/apache2/sites-available/propertymanager.conf
-sudo cp deployment/systemd/propertymanager.service.example /etc/systemd/system/propertymanager.service
-sudo a2ensite propertymanager.conf
-sudo systemctl daemon-reload
-sudo systemctl enable propertymanager.service
-sudo systemctl reload apache2
+sudo ./deployment/deploy.sh remove-local
 ```
 
-The SSH deployment user must be able to write to `/opt/propertymanager` and restart `propertymanager.service`. Prefer a dedicated SSH key and a narrowly scoped sudo policy. If the deployment user owns the application tree but cannot restart the service, the release is activated and the script reports that the service still needs to be started or restarted.
+Removal disables the test service and Apache site, then renames the installation with a timestamp rather than deleting it. MariaDB is not changed.
 
-## Build only
-
-From the project root on the development system:
+## Production
 
 ```bash
-./deployment/deploy_scp.sh --package-only --version 6.6.2.1
+sudo PROPERTYMANAGER_SERVER_NAME=propertymanager.example.com \
+  ./deployment/deploy.sh production
 ```
 
-The archive and SHA-256 file are written to `deployment/out/`.
+`PROPERTYMANAGER_SERVER_NAME` is required so Apache routes the production hostname deliberately. Add HTTPS/certificates after HTTP is healthy. Existing persistent `backend.env` configuration is retained on upgrades.
 
-The packager uses `npm ci` when `frontend/package-lock.json` is present. The v6.6.2 tag does not include that lockfile, so this kit falls back to `npm install` and reports the condition during packaging. Commit a verified lockfile in a future source release to make dependency resolution fully reproducible.
-
-## Push to production
+## Select a specific archive
 
 ```bash
-./deployment/deploy_scp.sh \
-  --host property-server.example.com \
-  --user deploy \
-  --identity "$HOME/.ssh/propertymanager_deploy" \
-  --install-root /opt/propertymanager \
-  --version 6.6.2.1
+sudo ./deployment/deploy.sh local \
+  ./deployment/out/PropertyManager-6.6.2.1.tar.gz
 ```
 
-The script builds the frontend, creates a minimal production archive, uploads the archive and checksum, verifies the checksum remotely, installs runtime Python requirements, atomically switches `current`, and restarts the service when permitted.
+Without a path, the newest matching archive in `deployment/out/` is selected.
 
-## First deployment
-
-The first installation creates `/opt/propertymanager/shared/backend.env` from the example. Enter the production runtime database credentials and restrict the file to the application account:
+## Diagnostics
 
 ```bash
-sudoedit /opt/propertymanager/shared/backend.env
-sudo chown propertymanager:www-data /opt/propertymanager/shared/backend.env
-sudo chmod 600 /opt/propertymanager/shared/backend.env
-sudo systemctl restart propertymanager.service
+systemctl status propertymanager-test.service
+journalctl -u propertymanager-test.service
+tail -f /var/log/apache2/propertymanager-local-error.log
+curl -i http://localhost:8080/api/v1/system/health
 ```
 
-Database migrations are deliberately not automatic. Back up the database, temporarily supply the migration account through `shared/backend.env`, and run:
+For production, use `propertymanager.service`, port 80, and `propertymanager-production-error.log`.
+
+## Build a new application release
+
+On a development machine with npm:
 
 ```bash
-cd /opt/propertymanager/current
-sudo -u propertymanager /opt/propertymanager/shared/venv/bin/python scripts/apply_migrations.py
+./deployment/package_release.sh 6.6.2.1
 ```
 
-Restore the restricted runtime credentials immediately afterward and restart the service. For an existing Schema 2 installation at v6.6.2, no migration is required.
+The archive excludes `.git`, Git metadata, `package-lock.json`, `node_modules`, frontend source, tests, credentials, database contents, backups, and logs. Production does not need Node, npm, Vite, or TypeScript.
 
-## Rollback
-
-List installed releases, repoint `current`, and restart:
-
-```bash
-ls -1 /opt/propertymanager/releases
-sudo ln -sfn /opt/propertymanager/releases/PREVIOUS_VERSION /opt/propertymanager/current.new
-sudo mv -Tf /opt/propertymanager/current.new /opt/propertymanager/current
-sudo systemctl restart propertymanager.service
-```
-
-Do not roll the application back across an incompatible database migration without following that release's database rollback procedure.
-
-## Files intentionally excluded
-
-- `.git` and Git metadata
-- frontend source and development configuration
-- `node_modules`
-- backend tests and Python caches
-- local `.env` files and credentials
-- database contents, backups, uploads, and production logs
+`deployment/deploy_scp.sh` remains available for package transfer. `deploy.sh` is the preferred first-time setup and local VM test path.

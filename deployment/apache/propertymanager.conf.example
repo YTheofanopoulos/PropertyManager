@@ -6,7 +6,7 @@
 
     <Directory /opt/propertymanager/current/frontend>
         Require all granted
-        Options -Indexes
+        Options -Indexes +FollowSymLinks
         AllowOverride None
         FallbackResource /index.html
     </Directory>

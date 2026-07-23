@@ -12,6 +12,7 @@
 ### Deployment
 
 - Production no longer needs Node.js, npm, Vite, TypeScript, frontend source, or development dependencies.
+- The deployment packager neither generates nor distributes `package-lock.json` and stops with an explicit error if one is present.
 - Database migrations remain an explicit, backup-first operation and are never run automatically during deployment.
 
 ## 6.6.2.1 — 2026-07-20
