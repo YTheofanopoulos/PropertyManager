@@ -1,12 +1,12 @@
-# Baseline 6.7.2 Delta Installation
+# Baseline 6.7.3 Delta Installation
 
 This archive is rooted at the PropertyManager project directory. It does **not** contain an enclosing `PropertyManager/` folder.
 
-Apply it from inside a Baseline 6.7.1 project directory:
+Apply it from inside a Baseline 6.7.2 project directory:
 
 ```bash
-cd /path/to/your/PropertyManager6.7.1
-unzip -o /path/to/PropertyManager_Baseline6_7_2_Delta.zip
+cd /path/to/your/PropertyManager6.7.2
+unzip -o /path/to/PropertyManager-6.7.3-Delta.zip
 ```
 
 No dependency or database changes are required. If you run the frontend
@@ -16,14 +16,20 @@ through Vite, restart it after applying the delta:
 npm --prefix frontend run dev
 ```
 
-The included Vite configuration uses `/PropertyManager/` as its public base
-and does not require `@vitejs/plugin-react`.
+The included Vite configuration proxies `/PropertyManager/api/...` to the
+Flask backend and removes the `/PropertyManager` prefix before forwarding.
 
 Sign in at the server main page, then open PropertyManager from the portal.
-PropertyManager now reads the portal's separate `sessionStorage` entries
-(`username` and `hash`) and validates them through the backend. Confirm that no
-second login screen appears and that `/api/v1/auth/session` returns HTTP 200 in
-the browser Network tab.
+Confirm in the browser Network tab that
+`/PropertyManager/api/v1/auth/session` returns HTTP 200.
 
-This delta requires Baseline 6.7.1. REST API v1 and MariaDB Schema 2 are
+For a production Apache deployment, place the API proxy before the frontend
+alias or fallback rules:
+
+```apache
+ProxyPass        /PropertyManager/api/ http://127.0.0.1:5001/api/
+ProxyPassReverse /PropertyManager/api/ http://127.0.0.1:5001/api/
+```
+
+This delta requires Baseline 6.7.2. REST API v1 and MariaDB Schema 2 are
 unchanged; no database migration is required.

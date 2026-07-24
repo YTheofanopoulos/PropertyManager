@@ -1,5 +1,5 @@
 """PropertyManager backend package."""
 
-APPLICATION_VERSION = "6.7.2"
+APPLICATION_VERSION = "6.7.3"
 API_VERSION = "v1"
 DATABASE_SCHEMA_VERSION = 2

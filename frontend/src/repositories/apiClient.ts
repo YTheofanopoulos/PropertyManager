@@ -5,6 +5,13 @@ interface ApiErrorPayload {
   message?: string;
 }
 
+const applicationBasePath = "/PropertyManager";
+
+function resolveApiPath(path: string): string {
+  if (!path.startsWith("/api/")) return path;
+  return `${applicationBasePath}${path}`;
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -22,7 +29,7 @@ export async function apiRequest<T>(
   const credentials = loadAuthCredentials();
   let response: Response;
   try {
-    response = await fetch(path, {
+    response = await fetch(resolveApiPath(path), {
       ...options,
       headers: {
         Accept: "application/json",

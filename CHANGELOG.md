@@ -1,5 +1,17 @@
 # Changelog
 
+## 6.7.3 — 2026-07-23
+
+### Fixed
+
+- Routed browser API requests through `/PropertyManager/api/...` so they remain
+  within PropertyManager's Apache/Vite application mount instead of colliding
+  with the main portal's root-level `/api` routes.
+- Rewrote the prefixed development API path back to `/api/...` when Vite proxies
+  requests to the Flask backend.
+- Updated the application version to 6.7.3. REST API v1 and MariaDB Schema 2 are
+  unchanged.
+
 ## 6.7.2 — 2026-07-23
 
 ### Fixed
