@@ -1,0 +1,18 @@
+[Unit]
+Description=PropertyManager Gunicorn API
+After=network.target mariadb.service
+Requires=mariadb.service
+
+[Service]
+Type=notify
+User=propertymanager
+Group=www-data
+WorkingDirectory=/opt/propertymanager/current/backend
+ExecStart=/opt/propertymanager/shared/venv/bin/gunicorn --bind 127.0.0.1:5000 --workers 2 wsgi:application
+Restart=on-failure
+RestartSec=5
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

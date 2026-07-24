@@ -1,0 +1,14 @@
+# Include this alongside the server's existing HTTPS virtual host.
+RedirectMatch 301 ^/PropertyManager$ /PropertyManager/
+
+ProxyPass /PropertyManager/api/ http://127.0.0.1:5000/api/
+ProxyPassReverse /PropertyManager/api/ http://127.0.0.1:5000/api/
+
+Alias /PropertyManager/ /opt/propertymanager/current/frontend/
+<Directory /opt/propertymanager/current/frontend>
+    Require all granted
+    Options -Indexes +FollowSymLinks
+    AllowOverride None
+    DirectoryIndex index.html
+    FallbackResource /PropertyManager/index.html
+</Directory>
