@@ -2,7 +2,7 @@
 
 ## Version boundaries
 
-- Application: 6.7.0
+- Application: 6.7.1
 - REST API: v1
 - MariaDB schema: 2
 
@@ -88,11 +88,22 @@ The bank reconciliation view treats the selected lease/unit as a first-class pie
 
 The destination selector is implemented directly in the bank-import reconciliation dialog. Its searchable picker expands inline so it does not create a nested Bootstrap modal, and it uses the same selected lease and allocation state as suggested matches.
 
-## Baseline 6.7.0 SharedAuth integration
+## Baseline 6.7.1 SharedAuth portal integration
 
-PropertyManager loads the reusable `AuthService` and `DatabaseAccess` beneath the existing `Login` compatibility class from a configured server-side directory. Password verification and token issuance remain delegated to SharedAuth. Every protected API request carries the username/token pair and passes through Flask middleware that calls SharedAuth's non-rotating `authenticate()` method. Read and write permission thresholds are enforced against the configured `propertymanager` scope; global level 99 remains administrative.
+PropertyManager loads the reusable `AuthService` and `DatabaseAccess` beneath
+the existing `Login` compatibility class from a configured server-side
+directory. The main server portal performs interactive login and owns token
+storage. PropertyManager reads that existing same-origin token and never asks
+for or submits a password. Every protected API request carries the
+username/token pair and passes through Flask middleware that calls SharedAuth's
+non-rotating `authenticate()` method. Read and write permission thresholds are
+enforced against the configured `propertymanager` scope; global level 99
+remains administrative.
 
-This preserves the existing MongoDB identity store, Argon2/bcrypt compatibility, token expiry, remember-me behavior, logout, and one-active-token model. MariaDB contains no passwords or authentication tokens. See `AUTHENTICATION.md`.
+This preserves the existing MongoDB identity store, Argon2/bcrypt
+compatibility, token expiry, remember-me behavior, portal logout, and
+one-active-token model. MariaDB contains no passwords or authentication tokens.
+See `AUTHENTICATION.md`.
 
 ## Security principles
 
@@ -102,5 +113,5 @@ This preserves the existing MongoDB identity store, Argon2/bcrypt compatibility,
 - MariaDB remains bound to localhost when the backend is on the same host.
 - Apache terminates HTTPS and proxies to Gunicorn on loopback.
 - Every multi-table financial operation must execute in one transaction.
-- Every API operation except login and API discovery requires a valid SharedAuth session.
+- Every API operation except compatibility login and API discovery requires a valid SharedAuth session.
 - Production authentication traffic must use HTTPS because the compatibility token is a bearer credential.

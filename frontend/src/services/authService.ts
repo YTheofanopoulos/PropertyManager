@@ -1,9 +1,5 @@
 import { apiRequest } from "../repositories/apiClient";
-import {
-  clearAuthCredentials,
-  loadAuthCredentials,
-  saveAuthCredentials,
-} from "./authSession";
+import { loadAuthCredentials } from "./authSession";
 
 export interface AuthSession {
   username: string;
@@ -44,43 +40,17 @@ class AuthService {
     try {
       const response = await apiRequest<AuthResponse>("/api/v1/auth/session");
       if (!response.authorization.canRead) {
-        clearAuthCredentials();
         this.session = null;
         return null;
       }
-      return this.accept(response, false);
+      return this.accept(response);
     } catch {
-      clearAuthCredentials();
       this.session = null;
       return null;
     }
   }
 
-  async login(username: string, password: string, remember: boolean): Promise<AuthSession> {
-    const response = await apiRequest<AuthResponse>("/api/v1/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ username, password, remember }),
-    });
-    return this.accept(response, true);
-  }
-
-  async logout(): Promise<void> {
-    try {
-      await apiRequest<void>("/api/v1/auth/logout", { method: "POST" });
-    } finally {
-      clearAuthCredentials();
-      this.session = null;
-    }
-  }
-
-  private accept(response: AuthResponse, persistToken: boolean): AuthSession {
-    if (persistToken) {
-      saveAuthCredentials({
-        username: response.token.userName,
-        token: response.token.hash,
-        remember: Boolean(response.token.remember),
-      });
-    }
+  private accept(response: AuthResponse): AuthSession {
     this.session = {
       username: response.token.userName,
       globalLevel: response.token.level,

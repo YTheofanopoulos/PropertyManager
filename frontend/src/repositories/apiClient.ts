@@ -1,4 +1,4 @@
-import { clearAuthCredentials, loadAuthCredentials } from "../services/authSession";
+import { loadAuthCredentials } from "../services/authSession";
 
 interface ApiErrorPayload {
   error?: string;
@@ -48,8 +48,7 @@ export async function apiRequest<T>(
     } catch {
       // A proxy or server may return a non-JSON error page.
     }
-    if (response.status === 401 && !path.endsWith("/auth/login")) {
-      clearAuthCredentials();
+    if (response.status === 401) {
       window.dispatchEvent(new CustomEvent("pm:authentication-required"));
     }
     throw new ApiError(

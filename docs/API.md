@@ -6,18 +6,23 @@ Base path:
 /api/v1
 ```
 
-## Authentication (Baseline 6.7.0)
+## Authentication (Baseline 6.7.1)
 
-`POST /auth/login` accepts `username`, `password`, and `remember`. Successful responses contain the existing SharedAuth token information plus PropertyManager authorization details.
+The server portal owns interactive login. PropertyManager reads the existing
+same-origin SharedAuth token and does not submit a username or password.
 
-All other endpoints require:
+Protected endpoints require:
 
 ```text
 X-PM-Username: <username>
 X-PM-Token: <SharedAuth token>
 ```
 
-`GET /auth/session` returns the current user and scope permissions. `POST /auth/logout` invalidates the SharedAuth token. Missing or expired credentials return `401`; an authenticated user below the configured scope threshold receives `403`.
+`GET /auth/session` returns the current user and scope permissions. Missing or
+expired credentials return `401`; an authenticated user below the configured
+scope threshold receives `403`. The compatibility login and logout endpoints
+remain available to existing clients, but the PropertyManager frontend does
+not call them.
 
 Read requests require the configured read level (default 1). Mutating requests require the configured write level (default 5). Global level 99 is administrative.
 

@@ -1,6 +1,6 @@
 # Release Manifest
 
-- Application version: 6.7.0
+- Application version: 6.7.1
 - REST API version: v1
 - Database schema version: 2
 - Source baseline: 6.6.2.1
@@ -13,7 +13,6 @@
 - `backend/property_manager/security/middleware.py`
 - `backend/property_manager/security/shared_auth_adapter.py`
 - `backend/tests/test_auth_security.py`
-- `frontend/src/features/auth/loginPage.ts`
 - `frontend/src/services/authService.ts`
 - `frontend/src/services/authSession.ts`
 - `docs/AUTHENTICATION.md`
@@ -59,8 +58,8 @@ See `docs/AUTHENTICATION.md` for the exact inventory and responsibilities.
 Extract directly over Baseline 6.6.2.1, run `setup_dev.sh`, configure
 SharedAuth, and restart both services. No MariaDB migration is required.
 
-Verify login, remembered and session-only storage, current-user display,
-scope denial, read/write authorization, expired-token handling, and logout.
+Verify portal-token discovery, current-user display, scope denial, read/write
+authorization, expired-token handling, and return-to-main-page behavior.
 Then run the existing lease-renewal and manual-reconciliation regressions.
 
 The prior generated bundles from Baseline 6.6.2.1 are obsolete after the

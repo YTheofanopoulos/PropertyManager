@@ -1,5 +1,21 @@
 # Changelog
 
+## 6.7.1 — 2026-07-23
+
+### Changed
+
+- Removed PropertyManager's separate login screen and password submission flow.
+- PropertyManager now consumes the existing same-origin SharedAuth portal token
+  and validates it with the backend before rendering the application.
+- Missing, expired, invalid, or unauthorized tokens now return the browser to
+  the server main page (`/` by default).
+- Replaced the PropertyManager `Sign Out` action with `Main Page`; the portal
+  remains responsible for signing users in and out.
+- Added optional frontend build setting `VITE_PORTAL_URL` for installations
+  whose main portal is not at `/`.
+- Updated application version to 6.7.1; REST API v1 and MariaDB Schema 2 are
+  unchanged.
+
 ## 6.7.0 — 2026-07-21
 
 ### Added

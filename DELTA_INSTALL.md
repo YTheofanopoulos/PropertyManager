@@ -1,4 +1,4 @@
-# Baseline 6.7.0 Delta Installation
+# Baseline 6.7.1 Delta Installation
 
 This archive is rooted at the PropertyManager project directory. It does **not** contain an enclosing `PropertyManager/` folder.
 
@@ -6,7 +6,7 @@ Apply it from inside a clean Baseline 6.6.2.1 project directory:
 
 ```bash
 cd /path/to/your/PropertyManager6.6.2.1
-unzip -o /path/to/PropertyManager_Baseline6_7_0_Delta.zip
+unzip -o /path/to/PropertyManager_Baseline6_7_1_Delta.zip
 ```
 
 Install the new Python authentication dependencies:
@@ -37,7 +37,9 @@ Verify and start:
 ./scripts/start_dev.sh
 ```
 
-Browse to the Vite address and sign in with an existing SharedAuth account.
-Test logout and confirm an account without the scope is denied.
+Sign in at the server main page, then open PropertyManager from the portal.
+Confirm that no second login screen appears. Remove or expire the portal token
+and confirm PropertyManager returns to the main page. Also confirm that an
+account without the scope is denied and returned to the portal.
 
 This delta requires Baseline 6.6.2.1. REST API v1 and MariaDB Schema 2 are unchanged; no database migration is required.

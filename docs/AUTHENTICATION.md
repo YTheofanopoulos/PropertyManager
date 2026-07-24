@@ -1,21 +1,24 @@
 # SharedAuth Integration
 
-Baseline 6.7 delegates authentication and authorization to the existing
+Baseline 6.7.1 delegates authentication and authorization to the existing
 SharedAuth installation. PropertyManager does not maintain passwords or user
 accounts in MariaDB.
 
 ## Runtime contract
 
-1. `POST /api/v1/auth/login` accepts a username, password, and remember flag.
+1. The user signs in at the main server portal.
 2. SharedAuth verifies the password and issues its existing single active token.
-3. The browser stores the username and token in session storage, or local
-   storage when **Remember me** is selected.
-4. Every subsequent API request sends `X-PM-Username` and `X-PM-Token`.
-5. Flask middleware calls SharedAuth `authenticate(username, token)` before
+3. The portal stores its established token payload in same-origin browser
+   storage.
+4. PropertyManager reads the portal-owned `UserName` and `hash` values. It does
+   not copy, rotate, or replace the token.
+5. Every API request sends `X-PM-Username` and `X-PM-Token`.
+6. Flask middleware calls SharedAuth `authenticate(username, token)` before
    allowing the request.
-6. `GET`, `HEAD`, and `OPTIONS` require the configured read level. Mutating
+7. `GET`, `HEAD`, and `OPTIONS` require the configured read level. Mutating
    requests require the configured write level.
-7. Logout clears the token in SharedAuth and clears browser storage.
+8. A missing, invalid, expired, or unauthorized token returns the browser to
+   the main page. The portal remains responsible for logout.
 
 The middleware deliberately uses the non-rotating `authenticate()` method.
 This validates each transaction while avoiding races between concurrent API
@@ -62,8 +65,8 @@ Reviewed to preserve the established request pattern:
 
 Not copied or used by PropertyManager:
 
-- SharedAuth HTML, CSS, and browser JavaScript pages. PropertyManager provides
-  a Bootstrap 5 login view suitable for its existing single-page application.
+- SharedAuth HTML and CSS pages. The existing portal supplies the interactive
+  login view; PropertyManager does not provide another one.
 - User creation, activation, password-reset, mail, and administration scripts.
   Those workflows remain hosted by the existing SharedAuth installation.
 
@@ -88,8 +91,8 @@ Python versions where the standard-library `cgi` module has been removed.
 
 Register or infer the `propertymanager` scope in the existing SharedAuth
 administration interface, then assign the appropriate numeric level to each
-user. Users without the scope cannot sign into PropertyManager. Global level
-99 accounts retain administrative access.
+user. Users without the scope are returned to the main portal when they open
+PropertyManager. Global level 99 accounts retain administrative access.
 
 ## Security notes
 

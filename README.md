@@ -1,14 +1,24 @@
-# PropertyManager Baseline 6.7.0
+# PropertyManager Baseline 6.7.1
 
 PropertyManager is transitioning from the Baseline 5 browser-only application to a Python/MariaDB client-server architecture.
 
 Version identifiers:
 
-- Application: **6.7.0**
+- Application: **6.7.1**
 - REST API: **v1**
 - Database schema: **2**
 
-Baseline 6.7.0 integrates the existing SharedAuth login and token-verification mechanism. Every API transaction is authenticated, authorization uses the configurable `propertymanager` scope, and the frontend provides login, remembered sessions, current-user display, expiry handling, and logout.
+Baseline 6.7.1 integrates with the existing server portal and SharedAuth
+token-verification mechanism. PropertyManager uses the token created when the
+user signs in at the server's main page; it does not display a second login
+screen. Every API transaction remains authenticated and authorization uses the
+configurable `propertymanager` scope.
+
+PropertyManager and the portal must be served from the same origin so the
+frontend can read the portal token from browser storage. If the token is
+missing, expired, invalid, or lacks PropertyManager access, the browser returns
+to `/`. Set `VITE_PORTAL_URL` at frontend build time only when the portal uses a
+different same-origin path.
 
 Before starting 6.6.0, apply database migration `002_lease_renewals.sql` with `./scripts/init_database.sh`.
 
