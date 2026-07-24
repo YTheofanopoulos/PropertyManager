@@ -15,7 +15,7 @@ function returnToMainPage(): void {
   const environment = (import.meta as ImportMeta & {
     readonly env?: { readonly VITE_PORTAL_URL?: string };
   }).env;
-  window.location.replace(environment?.VITE_PORTAL_URL || "/");
+  window.location.replace(environment?.VITE_PORTAL_URL || "http://localhost");
 }
 
 function bindSidebarSections(): void {
