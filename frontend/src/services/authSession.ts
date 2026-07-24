@@ -14,6 +14,18 @@ interface SharedAuthToken {
 
 const PREFERRED_PORTAL_KEYS = ["token", "authToken", "sharedAuth.token"];
 
+function credentialsFromSeparateFields(storage: Storage): AuthCredentials | null {
+  const username = storage.getItem("username") ?? storage.getItem("UserName");
+  const token = storage.getItem("hash");
+  if (!username?.trim() || !token?.trim()) return null;
+
+  return {
+    username: username.trim(),
+    token: token.trim(),
+    remember: storage.getItem("remember") === "true",
+  };
+}
+
 function credentialsFrom(value: unknown): AuthCredentials | null {
   if (!value || typeof value !== "object") return null;
 
@@ -46,6 +58,13 @@ function parseStoredCredentials(value: string | null): AuthCredentials | null {
 
 function credentialsFromStorage(storage: Storage): AuthCredentials | null {
   try {
+    // The existing SharedAuth portal stores its active session as separate
+    // scalar entries: username, hash, and Collections. Only username and hash
+    // are credentials; PropertyManager obtains authoritative scope access from
+    // the backend instead of trusting the browser's Collections value.
+    const separateCredentials = credentialsFromSeparateFields(storage);
+    if (separateCredentials) return separateCredentials;
+
     for (const key of PREFERRED_PORTAL_KEYS) {
       const credentials = parseStoredCredentials(storage.getItem(key));
       if (credentials) return credentials;

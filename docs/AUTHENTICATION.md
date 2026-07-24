@@ -1,6 +1,6 @@
 # SharedAuth Integration
 
-Baseline 6.7.1 delegates authentication and authorization to the existing
+Baseline 6.7.2 delegates authentication and authorization to the existing
 SharedAuth installation. PropertyManager does not maintain passwords or user
 accounts in MariaDB.
 
@@ -8,10 +8,11 @@ accounts in MariaDB.
 
 1. The user signs in at the main server portal.
 2. SharedAuth verifies the password and issues its existing single active token.
-3. The portal stores its established token payload in same-origin browser
-   storage.
-4. PropertyManager reads the portal-owned `UserName` and `hash` values. It does
-   not copy, rotate, or replace the token.
+3. The portal stores the active session in same-origin browser storage using
+   separate `username`, `hash`, and `Collections` entries.
+4. PropertyManager reads the portal-owned `username` and `hash` values. It does
+   not copy, rotate, or replace the token, and it does not trust the browser's
+   `Collections` value for authorization.
 5. Every API request sends `X-PM-Username` and `X-PM-Token`.
 6. Flask middleware calls SharedAuth `authenticate(username, token)` before
    allowing the request.

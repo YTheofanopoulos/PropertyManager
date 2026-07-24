@@ -1,5 +1,20 @@
 # Changelog
 
+## 6.7.2 — 2026-07-23
+
+### Fixed
+
+- Read the existing SharedAuth portal session from its separate
+  `sessionStorage` fields (`username` and `hash`) instead of requiring a
+  combined JSON token object.
+- Retained support for combined token objects and remembered portal sessions.
+- Kept scope authorization server-side; the browser's `Collections` value is
+  not trusted to grant PropertyManager access.
+- Configured Vite's public base as `/PropertyManager/` without adding a React
+  plugin dependency.
+- Updated application version to 6.7.2; REST API v1 and MariaDB Schema 2 are
+  unchanged.
+
 ## 6.7.1 — 2026-07-23
 
 ### Changed

@@ -1,45 +1,29 @@
-# Baseline 6.7.1 Delta Installation
+# Baseline 6.7.2 Delta Installation
 
 This archive is rooted at the PropertyManager project directory. It does **not** contain an enclosing `PropertyManager/` folder.
 
-Apply it from inside a clean Baseline 6.6.2.1 project directory:
+Apply it from inside a Baseline 6.7.1 project directory:
 
 ```bash
-cd /path/to/your/PropertyManager6.6.2.1
-unzip -o /path/to/PropertyManager_Baseline6_7_1_Delta.zip
+cd /path/to/your/PropertyManager6.7.1
+unzip -o /path/to/PropertyManager_Baseline6_7_2_Delta.zip
 ```
 
-Install the new Python authentication dependencies:
+No dependency or database changes are required. If you run the frontend
+through Vite, restart it after applying the delta:
 
 ```bash
-chmod +x scripts/*.sh
-./scripts/setup_dev.sh
+npm --prefix frontend run dev
 ```
 
-Edit `backend/.env` and add:
-
-```ini
-PM_AUTH_PATH=/absolute/path/to/your/login
-PM_AUTH_DATABASE=auth
-PM_AUTH_SCOPE=propertymanager
-PM_AUTH_READ_LEVEL=1
-PM_AUTH_WRITE_LEVEL=5
-```
-
-The configured directory must contain `mongoclass.py` and `shared_auth/`.
-In SharedAuth administration, assign users the
-`propertymanager` scope before they attempt to sign in.
-
-Verify and start:
-
-```bash
-./scripts/check_dev.sh
-./scripts/start_dev.sh
-```
+The included Vite configuration uses `/PropertyManager/` as its public base
+and does not require `@vitejs/plugin-react`.
 
 Sign in at the server main page, then open PropertyManager from the portal.
-Confirm that no second login screen appears. Remove or expire the portal token
-and confirm PropertyManager returns to the main page. Also confirm that an
-account without the scope is denied and returned to the portal.
+PropertyManager now reads the portal's separate `sessionStorage` entries
+(`username` and `hash`) and validates them through the backend. Confirm that no
+second login screen appears and that `/api/v1/auth/session` returns HTTP 200 in
+the browser Network tab.
 
-This delta requires Baseline 6.6.2.1. REST API v1 and MariaDB Schema 2 are unchanged; no database migration is required.
+This delta requires Baseline 6.7.1. REST API v1 and MariaDB Schema 2 are
+unchanged; no database migration is required.

@@ -1,6 +1,6 @@
 # Release Manifest
 
-- Application version: 6.7.1
+- Application version: 6.7.2
 - REST API version: v1
 - Database schema version: 2
 - Source baseline: 6.6.2.1
